@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build app",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:app": "node dist/app/server/server.mjs"
@@ -40,3 +40,4 @@
     "vitest": "^4.0.8"
   }
 }
+

@@ -1,6 +1,9 @@
+name: seed-app
+
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: seed-postgres
     environment:
       POSTGRES_DB: seeddb
       POSTGRES_USER: seed
@@ -11,6 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
+    container_name: seed-api
     build:
       context: ../backend
       dockerfile: src/Seed.Api/Dockerfile
@@ -23,6 +27,7 @@ services:
       - postgres
 
   web:
+    container_name: seed-web
     build:
       context: ../frontend/web
       dockerfile: Dockerfile
