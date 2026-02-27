@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Seed.Api/Seed.Api.csproj" />
+    <Project Path="src/Seed.Application/Seed.Application.csproj" />
+    <Project Path="src/Seed.Domain/Seed.Domain.csproj" />
+    <Project Path="src/Seed.Infrastructure/Seed.Infrastructure.csproj" />
+    <Project Path="src/Seed.Shared/Seed.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Seed.IntegrationTests/Seed.IntegrationTests.csproj" />
+    <Project Path="tests/Seed.UnitTests/Seed.UnitTests.csproj" />
+  </Folder>
+</Solution>

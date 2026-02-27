@@ -1,0 +1,127 @@
+# ============================================================
+# .NET / ASP.NET Core
+# ============================================================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.rsuser
+*.DotSettings.user
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/packages/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results
+TestResults/
+[Tt]est[Rr]esult*/
+coverage*.xml
+coverage*.json
+*.coverage
+*.coveragexml
+
+# EF Core migrations temp
+*.mdf
+*.ldf
+*.ndf
+
+# Publish profiles
+**/Properties/PublishProfiles/
+PublishProfiles/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# ============================================================
+# .NET MAUI / Xamarin
+# ============================================================
+*.apk
+*.aab
+*.ipa
+*.app
+*.dSYM.zip
+*.dSYM/
+*-Signed.ipa
+project.ios.json
+project.android.json
+
+# ============================================================
+# Angular / Node
+# ============================================================
+frontend/web/node_modules/
+frontend/web/dist/
+frontend/web/.angular/cache/
+frontend/web/coverage/
+frontend/web/npm-debug.log
+frontend/web/yarn-error.log
+frontend/web/.sass-cache/
+frontend/web/out-tsc/
+frontend/web/tmp/
+
+# ============================================================
+# Docker
+# ============================================================
+docker/.env
+docker/**/.env
+
+# ============================================================
+# IDEs
+# ============================================================
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================
+# Secrets / Environment
+# ============================================================
+.env
+.env.local
+.env.*.local
+**/appsettings.Local.json
+**/appsettings.local.json
