@@ -1,101 +1,16 @@
-<main class="landing">
+<mat-toolbar color="primary" class="top-nav">
+  <span class="brand" routerLink="/">Seed App</span>
+  <span class="spacer"></span>
 
-  <header class="hero">
-    <div class="hero-inner">
-      <span class="badge">Seed App</span>
-      <h1>Full-Stack Starter Kit</h1>
-      <p class="tagline">Angular 21 · ASP.NET Core 10 · .NET MAUI · Docker</p>
-      <p class="description">
-        A production-ready seed application to jumpstart your next full-stack project.
-        Clone it, rename it, and build on top of a solid architecture — without starting from scratch.
-      </p>
-    </div>
-  </header>
-
-  <section class="section">
-    <h2>What's included</h2>
-    <div class="grid">
-      <div class="card">
-        <h3>Frontend</h3>
-        <p>Angular 21 SPA with Server-Side Rendering, Angular Material, and three shared libraries: <code>shared-ui</code>, <code>shared-core</code>, <code>shared-auth</code>.</p>
-      </div>
-      <div class="card">
-        <h3>Backend</h3>
-        <p>ASP.NET Core 10 Web API following Clean Architecture. MediatR for CQRS, FluentValidation, Mapster, EF Core 10 with PostgreSQL, JWT auth, and Serilog.</p>
-      </div>
-      <div class="card">
-        <h3>Mobile</h3>
-        <p>.NET MAUI application sharing business logic with the backend through the same .NET solution.</p>
-      </div>
-      <div class="card">
-        <h3>Infrastructure</h3>
-        <p>Docker Compose for local development: PostgreSQL, API, and web frontend — all running with a single command.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2>How to use it</h2>
-    <ol class="steps">
-      <li>
-        <strong>Clone the repository</strong>
-        <p>Fork or clone this repo as the starting point for your project.</p>
-        <pre><code>git clone &lt;repo-url&gt; my-app
-cd my-app</code></pre>
-      </li>
-      <li>
-        <strong>Rename the solution</strong>
-        <p>Replace all occurrences of <code>Seed</code> with your project name across <code>.slnx</code>, <code>.csproj</code>, namespaces, and Angular project names in <code>angular.json</code>.</p>
-      </li>
-      <li>
-        <strong>Start local infrastructure</strong>
-        <p>Bring up PostgreSQL and the full stack with Docker Compose.</p>
-        <pre><code>cd docker
-docker compose up</code></pre>
-      </li>
-      <li>
-        <strong>Run the backend</strong>
-        <pre><code>cd backend
-dotnet run --project src/Seed.Api</code></pre>
-      </li>
-      <li>
-        <strong>Run the frontend</strong>
-        <pre><code>cd frontend/web
-npm install
-npm start</code></pre>
-      </li>
-      <li>
-        <strong>Start building</strong>
-        <p>Add your domain entities in <code>Seed.Domain</code>, create MediatR commands/queries in <code>Seed.Application</code>, expose them via controllers in <code>Seed.Api</code>, and build your Angular pages.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section class="section">
-    <h2>Project structure</h2>
-    <pre class="tree"><code>seed-app/
-├── backend/
-│   └── src/
-│       ├── Seed.Api           ← ASP.NET Core controllers & middleware
-│       ├── Seed.Application   ← MediatR handlers, validators, DTOs
-│       ├── Seed.Domain        ← Entities & business logic
-│       ├── Seed.Infrastructure← EF Core, Identity, Serilog
-│       └── Seed.Shared        ← Cross-cutting utilities
-├── frontend/
-│   ├── web/                   ← Angular 21 workspace
-│   │   └── projects/
-│   │       ├── app            ← Main application
-│   │       ├── shared-ui      ← Component library
-│   │       ├── shared-core    ← Core services
-│   │       └── shared-auth    ← Authentication
-│   └── mobile/               ← .NET MAUI app
-└── docker/                   ← Docker Compose setup</code></pre>
-  </section>
-
-  <footer class="footer">
-    <p>Open the API at <code>http://localhost:5000/swagger</code> · Frontend at <code>http://localhost:4200</code></p>
-  </footer>
-
-</main>
+  @if (authService.isAuthenticated()) {
+    <a class="user-name-link" routerLink="/profile">
+      {{ authService.currentUser()?.firstName }} {{ authService.currentUser()?.lastName }}
+    </a>
+    <button mat-button type="button" (click)="authService.logout()">Logout</button>
+  } @else {
+    <button mat-button type="button" routerLink="/login">Login</button>
+    <button mat-button type="button" routerLink="/register">Register</button>
+  }
+</mat-toolbar>
 
 <router-outlet />

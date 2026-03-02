@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.profile-page {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.profile-card {
+  width: min(640px, 100%);
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.error-message {
+  color: #b00020;
+}

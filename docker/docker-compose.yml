@@ -19,7 +19,7 @@ services:
       context: ../backend
       dockerfile: src/Seed.Api/Dockerfile
     ports:
-      - "5000:8080"
+      - "5035:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=seed_password

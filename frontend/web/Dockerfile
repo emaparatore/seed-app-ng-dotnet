@@ -1,5 +1,6 @@
 FROM node:22 AS build
 WORKDIR /app
+ARG ANGULAR_BUILD_CONFIGURATION=production
 
 # Copia i manifest per sfruttare la cache dei layer
 COPY package*.json ./
@@ -10,7 +11,7 @@ COPY . .
 RUN NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-auth && \
     NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-core && \
     NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-ui && \
-    NODE_OPTIONS=--max-old-space-size=4096 npm run build
+    NODE_OPTIONS=--max-old-space-size=4096 npm run build -- --configuration=${ANGULAR_BUILD_CONFIGURATION}
 
 FROM node:22-slim AS runtime
 WORKDIR /app

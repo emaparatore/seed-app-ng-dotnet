@@ -1,0 +1,37 @@
+<section class="profile-page">
+  <mat-card class="profile-card">
+    <mat-card-header>
+      <mat-card-title>User Profile</mat-card-title>
+      <mat-card-subtitle>Your account details</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <p>Loading...</p>
+      } @else if (error()) {
+        <p class="error-message">{{ error() }}</p>
+      } @else if (user()) {
+        <div class="profile-row">
+          <span class="label">First Name</span>
+          <span>{{ user()!.firstName }}</span>
+        </div>
+        <div class="profile-row">
+          <span class="label">Last Name</span>
+          <span>{{ user()!.lastName }}</span>
+        </div>
+        <div class="profile-row">
+          <span class="label">Email</span>
+          <span>{{ user()!.email }}</span>
+        </div>
+        <div class="profile-row">
+          <span class="label">ID</span>
+          <span>{{ user()!.id }}</span>
+        </div>
+      }
+    </mat-card-content>
+
+    <mat-card-actions>
+      <a mat-button routerLink="/">Back to Home</a>
+    </mat-card-actions>
+  </mat-card>
+</section>

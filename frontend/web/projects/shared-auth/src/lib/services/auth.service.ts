@@ -1,0 +1,93 @@
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { Observable, tap, catchError, throwError } from 'rxjs';
+import { AuthResponse, LoginRequest, RegisterRequest, User } from '../models/auth.models';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly apiUrl = 'http://localhost:5035/api/v1/auth';
+
+  private readonly _currentUser = signal<User | null>(null);
+  private readonly _accessToken = signal<string | null>(null);
+
+  readonly currentUser = this._currentUser.asReadonly();
+  readonly accessToken = this._accessToken.asReadonly();
+  readonly isAuthenticated = computed(() => this._currentUser() !== null);
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  login(request: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
+      tap((response) => this.handleAuthResponse(response)),
+    );
+  }
+
+  register(request: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request).pipe(
+      tap((response) => this.handleAuthResponse(response)),
+    );
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = this.getRefreshToken();
+    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+      tap((response) => this.handleAuthResponse(response)),
+      catchError((error) => {
+        this.clearAuth();
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  logout(): void {
+    const refreshToken = this.getRefreshToken();
+    if (refreshToken) {
+      this.http.post(`${this.apiUrl}/logout`, { refreshToken }).subscribe();
+    }
+    this.clearAuth();
+    this.router.navigate(['/login']);
+  }
+
+  getProfile(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/me`).pipe(tap((user) => this._currentUser.set(user)));
+  }
+
+  private handleAuthResponse(response: AuthResponse): void {
+    this._accessToken.set(response.accessToken);
+    this._currentUser.set(response.user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
+    }
+  }
+
+  private clearAuth(): void {
+    this._accessToken.set(null);
+    this._currentUser.set(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    }
+  }
+
+  private getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('refreshToken');
+  }
+
+  private loadFromStorage(): void {
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      this._accessToken.set(token);
+      this.getProfile().subscribe({
+        error: () => this.clearAuth(),
+      });
+    }
+  }
+}

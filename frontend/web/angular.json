@@ -28,7 +28,7 @@
             "server": "projects/app/src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": []
+              "allowedHosts": ["localhost", "127.0.0.1", "host.docker.internal"]
             },
             "ssr": {
               "entry": "projects/app/src/server.ts"
@@ -155,3 +155,4 @@
     }
   }
 }
+
