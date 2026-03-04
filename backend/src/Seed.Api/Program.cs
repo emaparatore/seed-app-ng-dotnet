@@ -8,9 +8,13 @@ using Seed.Api.Extensions;
 using Seed.Api.Middleware;
 using Seed.Application;
 using Seed.Infrastructure;
+using Serilog;
 using Seed.Shared.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -124,6 +128,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.UseCors("AllowAngularDev");
 app.UseRateLimiter();
