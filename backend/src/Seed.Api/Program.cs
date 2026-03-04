@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Seed.Api.Extensions;
+using Seed.Api.Middleware;
 using Seed.Application;
 using Seed.Infrastructure;
 using Seed.Shared.Configuration;
@@ -11,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddControllers();
 
@@ -79,6 +83,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerWithUI();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("AllowAngularDev");
 app.UseAuthentication();
