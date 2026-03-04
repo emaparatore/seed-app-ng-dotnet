@@ -160,12 +160,38 @@ Project at `frontend/mobile/` (`Seed.Mobile.csproj`). A cross-platform .NET MAUI
 
 ## Docker Infrastructure
 
-Docker Compose in `docker/` that starts the full local stack:
+Docker Compose in `docker/` that starts the full local stack.
+
+### Environment Setup
+
+Environment variables are managed via a `.env` file. To get started:
+
+```bash
+cd docker
+cp .env.example .env
+docker compose up
+```
+
+The `.env.example` file contains sensible defaults for local development. For production, use the root `.env.example` as a template and replace placeholders with real secrets.
+
+### Available Variables
+
+| Variable | Dev Default | Description |
+|---|---|---|
+| `POSTGRES_DB` | `seeddb` | PostgreSQL database name |
+| `POSTGRES_USER` | `seed` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | `seed_password` | PostgreSQL password |
+| `ASPNETCORE_ENVIRONMENT` | `Development` | ASP.NET Core environment |
+| `ConnectionStrings__DefaultConnection` | `Host=postgres;Database=seeddb;...` | EF Core connection string |
+| `JwtSettings__Secret` | `YourSuperSecret...` | JWT signing key |
+| `AllowedHosts` | `*` | Allowed CORS hosts |
+
+### Services & Ports
 
 | Service | Port | Notes |
 |---|---|---|
 | PostgreSQL 16 | 5432 | DB `seeddb`, user `seed` |
-| API (ASP.NET Core) | 5000 | Maps internal port 8080 |
+| API (ASP.NET Core) | 5035 | Maps internal port 8080 |
 | Web (Angular SSR) | 4200 | Nginx |
 
 ```bash
@@ -186,9 +212,10 @@ Host=localhost;Database=seeddb;Username=seed;Password=seed_password
 
 ## Quick Start (local development without Docker)
 
-1. **Database** — start only PostgreSQL with Docker:
+1. **Database** — set up the environment and start PostgreSQL:
    ```bash
    cd docker
+   cp .env.example .env
    docker compose up postgres
    ```
 
