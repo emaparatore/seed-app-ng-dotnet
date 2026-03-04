@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="backend/src/Seed.Api/Seed.Api.csproj" />
+  <Project Path="backend/src/Seed.Application/Seed.Application.csproj" />
+  <Project Path="backend/src/Seed.Domain/Seed.Domain.csproj" />
+  <Project Path="backend/src/Seed.Infrastructure/Seed.Infrastructure.csproj" />
+  <Project Path="backend/src/Seed.Shared/Seed.Shared.csproj" />
+  <Project Path="frontend/mobile/Seed.Mobile.csproj" />
+</Solution>
