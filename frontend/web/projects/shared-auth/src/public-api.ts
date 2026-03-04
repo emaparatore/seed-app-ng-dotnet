@@ -2,6 +2,7 @@
  * Public API Surface of shared-auth
  */
 
+export * from './lib/auth.config';
 export * from './lib/models/auth.models';
 export * from './lib/services/auth.service';
 export * from './lib/interceptors/auth.interceptor';
