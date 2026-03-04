@@ -47,21 +47,15 @@ cd my-app</code></pre>
         <p>Replace all occurrences of <code>Seed</code> with your project name across <code>.slnx</code>, <code>.csproj</code>, namespaces, and Angular project names in <code>angular.json</code>.</p>
       </li>
       <li>
+        <strong>Configure environment</strong>
+        <p>Copy the environment template and adjust values if needed. The defaults work out of the box for local development.</p>
+        <pre><code>cd docker
+cp .env.example .env</code></pre>
+      </li>
+      <li>
         <strong>Start local infrastructure</strong>
         <p>Bring up PostgreSQL and the full stack with Docker Compose.</p>
-        <pre><code>cd docker
-docker compose up</code></pre>
-      </li>
-      <li>
-        <strong>Run the backend</strong>
-        <pre><code>cd backend
-dotnet run --project src/Seed.Api</code></pre>
-      </li>
-      <li>
-        <strong>Run the frontend</strong>
-        <pre><code>cd frontend/web
-npm install
-npm start</code></pre>
+        <pre><code>docker compose up --build</code></pre>
       </li>
       <li>
         <strong>Start building</strong>

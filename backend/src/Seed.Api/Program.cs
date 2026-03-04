@@ -62,6 +62,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+if (app.Environment.IsProduction())
+{
+    if (string.IsNullOrEmpty(jwtSettings.Secret) || jwtSettings.Secret.Contains("ForDevelopmentOnly"))
+        throw new InvalidOperationException(
+            "JWT Secret must be configured for production. Set the JwtSettings__Secret environment variable.");
+
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("seed_password"))
+        throw new InvalidOperationException(
+            "Database connection string must be configured for production. Set the ConnectionStrings__DefaultConnection environment variable.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwaggerWithUI();

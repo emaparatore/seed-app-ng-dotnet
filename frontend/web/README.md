@@ -54,6 +54,42 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## Docker / Local Infrastructure
+
+The Docker Compose setup lives in the `docker/` directory and starts PostgreSQL, the API, and the web frontend.
+
+### Environment Setup
+
+Environment variables are managed via a `.env` file. To get started:
+
+```bash
+cd docker
+cp .env.example .env
+docker compose up
+```
+
+The `.env.example` file contains sensible defaults for local development. For production, use the root `.env.example` as a template and replace placeholders with real secrets.
+
+### Available Variables
+
+| Variable | Dev Default | Description |
+|---|---|---|
+| `POSTGRES_DB` | `seeddb` | PostgreSQL database name |
+| `POSTGRES_USER` | `seed` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | `seed_password` | PostgreSQL password |
+| `ASPNETCORE_ENVIRONMENT` | `Development` | ASP.NET Core environment |
+| `ConnectionStrings__DefaultConnection` | `Host=postgres;Database=seeddb;...` | EF Core connection string |
+| `JwtSettings__Secret` | `YourSuperSecret...` | JWT signing key |
+| `AllowedHosts` | `*` | Allowed CORS hosts |
+
+### Services & Ports
+
+| Service | Port |
+|---|---|
+| PostgreSQL | `5432` |
+| API | `5035` |
+| Web | `4200` |
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

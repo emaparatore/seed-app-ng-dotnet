@@ -4,10 +4,11 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: seed-postgres
+    env_file: .env
     environment:
-      POSTGRES_DB: seeddb
-      POSTGRES_USER: seed
-      POSTGRES_PASSWORD: seed_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -20,9 +21,12 @@ services:
       dockerfile: src/Seed.Api/Dockerfile
     ports:
       - "5035:8080"
+    env_file: .env
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=seed_password
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+      - JwtSettings__Secret=${JwtSettings__Secret}
+      - AllowedHosts=${AllowedHosts}
     depends_on:
       - postgres
 
