@@ -1,6 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Seed.Api.Extensions;
 using Seed.Api.Middleware;
@@ -70,6 +72,38 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("auth-sensitive", limiter =>
+    {
+        limiter.PermitLimit = 5;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+        }
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            errors = new[] { "Too many requests. Please try again later." }
+        }, cancellationToken);
+    };
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsProduction())
@@ -92,6 +126,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("AllowAngularDev");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

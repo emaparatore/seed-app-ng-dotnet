@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
@@ -17,6 +19,7 @@ namespace Seed.Api.Controllers;
 public class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterCommand command)
     {
         var result = await sender.Send(command);
@@ -24,6 +27,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Login(LoginCommand command)
     {
         var result = await sender.Send(command);
@@ -31,6 +35,7 @@ public class AuthController(ISender sender) : ControllerBase
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Refresh(RefreshTokenCommand command)
     {
         var result = await sender.Send(command);
