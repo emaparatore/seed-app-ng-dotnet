@@ -3,16 +3,46 @@
     <div class="hero-inner">
       <span class="badge">Seed App</span>
       <h1>Full-Stack Starter Kit</h1>
-      <p class="tagline">Angular 21 · ASP.NET Core 10 · .NET MAUI · Docker</p>
+      <p class="tagline">Angular 21 &middot; ASP.NET Core 10 &middot; .NET MAUI &middot; Docker</p>
       <p class="description">
         A production-ready seed application to jumpstart your next full-stack project.
         Clone it, rename it, and build on top of a solid architecture - without starting from scratch.
       </p>
+      <div class="hero-actions">
+        <a class="action" href="#quick-start" (click)="scrollToSection($event, 'quick-start')">Quick start</a>
+        <a class="action secondary github-action" href="https://github.com/emaparatore/seed-app-ng-dotnet.git" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub repository in a new tab">
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.22 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+          </svg>
+          <span>GitHub Repository</span>
+        </a>
+      </div>
     </div>
   </header>
 
+  <section class="section" id="quick-start">
+    <h2>Quick start</h2>
+    <ol class="steps compact">
+      <li>
+        <strong>Clone and enter project</strong>
+        <pre><code>git clone https://github.com/emaparatore/seed-app-ng-dotnet my-app
+cd my-app</code></pre>
+      </li>
+      <li>
+        <strong>Prepare environment</strong>
+        <pre><code>cd docker
+cp .env.example .env</code></pre>
+      </li>
+      <li>
+        <strong>Run full stack</strong>
+        <pre><code>docker compose up --build</code></pre>
+      </li>
+    </ol>
+  </section>
+
   <section class="section">
-    <h2>What's included</h2>
+    <h2>Core stack</h2>
     <div class="grid">
       <div class="card">
         <h3>Frontend</h3>
@@ -26,47 +56,21 @@
         <h3>Mobile</h3>
         <p>.NET MAUI application sharing business logic with the backend through the same .NET solution.</p>
       </div>
-      <div class="card">
-        <h3>Infrastructure</h3>
-        <p>Docker Compose for local development: PostgreSQL, API, and web frontend - all running with a single command.</p>
-      </div>
-      <div class="card">
-        <h3>Docker Test Runner</h3>
-        <p>A .NET console tool that runs frontend and backend tests inside Docker containers. No local SDK or database required.</p>
-        <pre><code>dotnet run --project docker/TestRunner -- all</code></pre>
-      </div>
     </div>
+    <p class="subtle-note">
+      Infrastructure is already wired: Docker Compose starts PostgreSQL, API, and frontend together for local development.
+    </p>
   </section>
 
   <section class="section">
-    <h2>How to use it</h2>
-    <ol class="steps">
-      <li>
-        <strong>Clone the repository</strong>
-        <p>Fork or clone this repo as the starting point for your project.</p>
-        <pre><code>git clone &lt;repo-url&gt; my-app
-cd my-app</code></pre>
-      </li>
-      <li>
-        <strong>Rename the solution</strong>
-        <p>Replace all occurrences of <code>Seed</code> with your project name across <code>.slnx</code>, <code>.csproj</code>, namespaces, and Angular project names in <code>angular.json</code>.</p>
-      </li>
-      <li>
-        <strong>Configure environment</strong>
-        <p>Copy the environment template and adjust values if needed. The defaults work out of the box for local development.</p>
-        <pre><code>cd docker
-cp .env.example .env</code></pre>
-      </li>
-      <li>
-        <strong>Start local infrastructure</strong>
-        <p>Bring up PostgreSQL and the full stack with Docker Compose.</p>
-        <pre><code>docker compose up --build</code></pre>
-      </li>
-      <li>
-        <strong>Start building</strong>
-        <p>Add your domain entities in <code>Seed.Domain</code>, create MediatR commands/queries in <code>Seed.Application</code>, expose them via controllers in <code>Seed.Api</code>, and build your Angular pages.</p>
-      </li>
-    </ol>
+    <h2>Tooling</h2>
+    <div class="tool-row">
+      <div class="tool-copy">
+        <h3>Docker Test Runner</h3>
+        <p>Run frontend and backend tests in Docker containers without local SDK/database setup.</p>
+      </div>
+      <pre><code>dotnet run --project docker/TestRunner -- all</code></pre>
+    </div>
   </section>
 
   <section class="section">
@@ -91,6 +95,6 @@ cp .env.example .env</code></pre>
   </section>
 
   <footer class="footer">
-    <p>Open the API at <code>http://localhost:5000/swagger</code> · Frontend at <code>http://localhost:4200</code></p>
+    <p>Open the API at <code>http://localhost:5000/swagger</code> &middot; Frontend at <code>http://localhost:4200</code></p>
   </footer>
 </main>
