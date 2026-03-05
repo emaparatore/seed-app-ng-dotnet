@@ -4,6 +4,32 @@ A ready-to-use full-stack seed/starter application, designed as a starting point
 
 ---
 
+## Quick Start
+
+1. **Database** — set up the environment and start PostgreSQL:
+   ```bash
+   cd docker
+   cp .env.example .env
+   docker compose up postgres
+   ```
+
+2. **Backend** — start the API:
+   ```bash
+   cd backend
+   dotnet run --project src/Seed.Api
+   ```
+
+3. **Frontend** — start the Angular dev server:
+   ```bash
+   cd frontend/web
+   npm install
+   npm start
+   ```
+
+The app will be available at `http://localhost:4200`, the API at `http://localhost:5000`.
+
+---
+
 ## Repository Structure
 
 ```
@@ -67,11 +93,6 @@ JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management i
 
 Uses `Asp.Versioning.Mvc`. Follow existing conventions when adding new controllers.
 
-### Tests
-
-- **`Seed.UnitTests`** — xUnit + NSubstitute + FluentAssertions. Covers Application and Domain.
-- **`Seed.IntegrationTests`** — xUnit + Testcontainers (PostgreSQL) + `Microsoft.AspNetCore.Mvc.Testing`. Tests the full Api + Infrastructure stack.
-
 ### Commands (run from `backend/`)
 
 ```bash
@@ -80,16 +101,6 @@ dotnet build Seed.slnx
 
 # Run the API
 dotnet run --project src/Seed.Api
-
-# All tests
-dotnet test Seed.slnx
-
-# Specific test project
-dotnet test tests/Seed.UnitTests
-dotnet test tests/Seed.IntegrationTests
-
-# Single test
-dotnet test tests/Seed.UnitTests --filter "FullyQualifiedName~MyTestMethod"
 
 # EF Core — add migration
 dotnet ef migrations add <MigrationName> \
@@ -131,15 +142,6 @@ npm start
 # Production build
 npm run build
 
-# All tests
-npm test
-
-# Tests for a specific project
-ng test app
-ng test shared-auth
-ng test shared-core
-ng test shared-ui
-
 # Start SSR server (after build)
 npm run serve:ssr:app
 
@@ -158,9 +160,55 @@ Project at `frontend/mobile/` (`Seed.Mobile.csproj`). A cross-platform .NET MAUI
 
 ---
 
-## Docker Infrastructure
+## Running Tests
 
-Docker Compose in `docker/` that starts the full local stack.
+### Local
+
+**Backend** (run from `backend/`):
+
+```bash
+# All tests
+dotnet test Seed.slnx
+
+# Specific test project
+dotnet test tests/Seed.UnitTests
+dotnet test tests/Seed.IntegrationTests
+
+# Single test
+dotnet test tests/Seed.UnitTests --filter "FullyQualifiedName~MyTestMethod"
+```
+
+- **`Seed.UnitTests`** — xUnit + NSubstitute + FluentAssertions. Covers Application and Domain.
+- **`Seed.IntegrationTests`** — xUnit + Testcontainers (PostgreSQL) + `Microsoft.AspNetCore.Mvc.Testing`. Tests the full Api + Infrastructure stack.
+
+**Frontend** (run from `frontend/web/`):
+
+```bash
+# All tests
+npm test
+
+# Tests for a specific project
+ng test app
+ng test shared-auth
+ng test shared-core
+ng test shared-ui
+```
+
+### Docker
+
+A .NET console tool (`docker/TestRunner`) runs all tests inside Docker containers — no local SDK or database required, just Docker.
+
+```bash
+dotnet run --project docker/TestRunner -- frontend      # Frontend tests only
+dotnet run --project docker/TestRunner -- unit           # Backend unit tests only
+dotnet run --project docker/TestRunner -- integration    # Backend integration tests only
+dotnet run --project docker/TestRunner -- backend        # All backend tests
+dotnet run --project docker/TestRunner -- all            # Everything (default)
+```
+
+---
+
+## Docker Infrastructure
 
 ### Environment Setup
 
@@ -207,45 +255,6 @@ docker compose up postgres
 ```
 Host=localhost;Database=seeddb;Username=seed;Password=seed_password
 ```
-
-### Running Tests in Docker
-
-A .NET console tool (`docker/TestRunner`) runs all tests inside Docker containers. No local SDK or database is required — just Docker.
-
-```bash
-# Run from anywhere in the repository
-dotnet run --project docker/TestRunner -- frontend      # Frontend tests only
-dotnet run --project docker/TestRunner -- unit           # Backend unit tests only
-dotnet run --project docker/TestRunner -- integration    # Backend integration tests only
-dotnet run --project docker/TestRunner -- backend        # All backend tests
-dotnet run --project docker/TestRunner -- all            # Everything (default)
-```
-
----
-
-## Quick Start (local development without Docker)
-
-1. **Database** — set up the environment and start PostgreSQL:
-   ```bash
-   cd docker
-   cp .env.example .env
-   docker compose up postgres
-   ```
-
-2. **Backend** — start the API:
-   ```bash
-   cd backend
-   dotnet run --project src/Seed.Api
-   ```
-
-3. **Frontend** — start the Angular dev server:
-   ```bash
-   cd frontend/web
-   npm install
-   npm start
-   ```
-
-The app will be available at `http://localhost:4200`, the API at `http://localhost:5000`.
 
 ---
 
