@@ -1,0 +1,182 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using FluentAssertions;
+using Seed.IntegrationTests.Infrastructure;
+
+namespace Seed.IntegrationTests.Auth;
+
+public class AuthEndpointsTests(CustomWebApplicationFactory factory)
+    : IClassFixture<CustomWebApplicationFactory>
+{
+    private readonly HttpClient _client = factory.CreateClient();
+
+    private async Task<AuthResponseDto> RegisterUserAsync(
+        string email = "test@example.com",
+        string password = "Password1",
+        string firstName = "John",
+        string lastName = "Doe")
+    {
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email, password, firstName, lastName
+        });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AuthResponseDto>())!;
+    }
+
+    [Fact]
+    public async Task Register_With_Valid_Data_Returns_Ok_With_Tokens()
+    {
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email = "register-ok@example.com",
+            password = "Password1",
+            firstName = "John",
+            lastName = "Doe"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+        body.Should().NotBeNull();
+        body!.AccessToken.Should().NotBeNullOrEmpty();
+        body.RefreshToken.Should().NotBeNullOrEmpty();
+        body.User.Email.Should().Be("register-ok@example.com");
+    }
+
+    [Fact]
+    public async Task Register_With_Invalid_Data_Returns_BadRequest()
+    {
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email = "", password = "", firstName = "", lastName = ""
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Register_With_Duplicate_Email_Returns_BadRequest()
+    {
+        await RegisterUserAsync("duplicate@example.com");
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email = "duplicate@example.com",
+            password = "Password1",
+            firstName = "Jane",
+            lastName = "Doe"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Login_With_Valid_Credentials_Returns_Ok()
+    {
+        await RegisterUserAsync("login-ok@example.com");
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
+        {
+            email = "login-ok@example.com",
+            password = "Password1"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+        body!.AccessToken.Should().NotBeNullOrEmpty();
+        body.User.Email.Should().Be("login-ok@example.com");
+    }
+
+    [Fact]
+    public async Task Login_With_Wrong_Password_Returns_Unauthorized()
+    {
+        await RegisterUserAsync("login-wrong@example.com");
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
+        {
+            email = "login-wrong@example.com",
+            password = "WrongPass1"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Valid_Token_Returns_New_Tokens()
+    {
+        var auth = await RegisterUserAsync("refresh-ok@example.com");
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/refresh", new
+        {
+            refreshToken = auth.RefreshToken
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+        body!.AccessToken.Should().NotBeNullOrEmpty();
+        body.AccessToken.Should().NotBe(auth.AccessToken);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Invalid_Token_Returns_Unauthorized()
+    {
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/refresh", new
+        {
+            refreshToken = "invalid-token"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Logout_Without_Auth_Returns_Unauthorized()
+    {
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/logout", new
+        {
+            refreshToken = "some-token"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Logout_With_Auth_Returns_NoContent()
+    {
+        var auth = await RegisterUserAsync("logout-ok@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/logout", new
+        {
+            refreshToken = auth.RefreshToken
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Me_Without_Auth_Returns_Unauthorized()
+    {
+        var response = await _client.GetAsync("/api/v1.0/auth/me");
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Me_With_Auth_Returns_User_Data()
+    {
+        var auth = await RegisterUserAsync("me-ok@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.GetAsync("/api/v1.0/auth/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<UserResponseDto>();
+        body!.Email.Should().Be("me-ok@example.com");
+        body.FirstName.Should().Be("John");
+    }
+
+    private record AuthResponseDto(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User);
+    private record UserResponseDto(Guid Id, string Email, string FirstName, string LastName);
+}

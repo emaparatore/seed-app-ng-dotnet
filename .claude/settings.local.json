@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm run build)",
-      "Bash(dotnet build Seed.slnx)"
+      "Bash(dotnet build Seed.slnx)",
+      "Bash(npx ng test shared-auth --watch=false)",
+      "Bash(npx ng test app --watch=false)",
+      "Bash(npx ng test shared-core --watch=false)",
+      "Bash(npx ng test shared-ui --watch=false)",
+      "Bash(dotnet test tests/Seed.UnitTests)"
     ]
   }
 }

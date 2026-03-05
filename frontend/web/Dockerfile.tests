@@ -1,0 +1,11 @@
+FROM node:22-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+RUN npx ng build shared-auth && npx ng build shared-core && npx ng build shared-ui
+
+ENTRYPOINT ["npm", "test", "--", "--watch=false"]

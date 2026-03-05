@@ -1,0 +1,24 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS base
+WORKDIR /src
+
+# Copy project files for restore cache
+COPY Seed.slnx .
+COPY src/Seed.Api/Seed.Api.csproj src/Seed.Api/
+COPY src/Seed.Application/Seed.Application.csproj src/Seed.Application/
+COPY src/Seed.Domain/Seed.Domain.csproj src/Seed.Domain/
+COPY src/Seed.Infrastructure/Seed.Infrastructure.csproj src/Seed.Infrastructure/
+COPY src/Seed.Shared/Seed.Shared.csproj src/Seed.Shared/
+COPY tests/Seed.UnitTests/Seed.UnitTests.csproj tests/Seed.UnitTests/
+COPY tests/Seed.IntegrationTests/Seed.IntegrationTests.csproj tests/Seed.IntegrationTests/
+
+RUN dotnet restore Seed.slnx
+
+COPY . .
+
+# --- Unit tests ---
+FROM base AS unit-tests
+ENTRYPOINT ["dotnet", "test", "tests/Seed.UnitTests", "--no-restore", "--verbosity", "normal"]
+
+# --- Integration tests (no Testcontainers, uses external postgres-test service) ---
+FROM base AS integration-tests
+ENTRYPOINT ["dotnet", "test", "tests/Seed.IntegrationTests", "--no-restore", "--verbosity", "normal"]

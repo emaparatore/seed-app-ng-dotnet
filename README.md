@@ -208,6 +208,19 @@ docker compose up postgres
 Host=localhost;Database=seeddb;Username=seed;Password=seed_password
 ```
 
+### Running Tests in Docker
+
+A .NET console tool (`docker/TestRunner`) runs all tests inside Docker containers. No local SDK or database is required — just Docker.
+
+```bash
+# Run from anywhere in the repository
+dotnet run --project docker/TestRunner -- frontend      # Frontend tests only
+dotnet run --project docker/TestRunner -- unit           # Backend unit tests only
+dotnet run --project docker/TestRunner -- integration    # Backend integration tests only
+dotnet run --project docker/TestRunner -- backend        # All backend tests
+dotnet run --project docker/TestRunner -- all            # Everything (default)
+```
+
 ---
 
 ## Quick Start (local development without Docker)

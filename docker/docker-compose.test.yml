@@ -1,0 +1,50 @@
+name: seed-app-tests
+
+services:
+  backend-unit-tests:
+    container_name: seed-backend-unit-tests
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.tests
+      target: unit-tests
+    profiles: [backend, unit, all]
+
+  backend-integration-tests:
+    container_name: seed-backend-integration-tests
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.tests
+      target: integration-tests
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      - TEST_CONNECTION_STRING=Host=postgres-test;Database=seeddb_test;Username=seed;Password=seed_password
+      - ConnectionStrings__DefaultConnection=Host=postgres-test;Database=seeddb_test;Username=seed;Password=seed_password
+      - JwtSettings__Secret=YourSuperSecretKeyThatIsAtLeast32CharactersLong_ForDevelopmentOnly!
+      - JwtSettings__Issuer=SeedApp
+      - JwtSettings__Audience=SeedApp
+    profiles: [backend, integration, all]
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: seed-postgres-test
+    environment:
+      POSTGRES_DB: seeddb_test
+      POSTGRES_USER: seed
+      POSTGRES_PASSWORD: seed_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seed -d seeddb_test"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    profiles: [backend, integration, all]
+
+  frontend-tests:
+    container_name: seed-frontend-tests
+    build:
+      context: ../frontend/web
+      dockerfile: Dockerfile.tests
+    profiles: [frontend, all]
