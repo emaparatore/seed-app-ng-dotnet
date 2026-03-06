@@ -1,0 +1,47 @@
+name: Hotfix Back-merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  backmerge:
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create back-merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HOTFIX_BRANCH="${{ github.event.pull_request.head.ref }}"
+          PR_TITLE="chore: back-merge main into dev after ${HOTFIX_BRANCH}"
+
+          # Check if a back-merge PR already exists
+          EXISTING=$(gh pr list --base dev --head main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "Back-merge PR #${EXISTING} already exists, skipping."
+            exit 0
+          fi
+
+          gh pr create \
+            --base dev \
+            --head main \
+            --title "${PR_TITLE}" \
+            --body "## Automatic back-merge
+
+          The hotfix branch \`${HOTFIX_BRANCH}\` was merged into \`main\` via PR #${{ github.event.pull_request.number }}.
+
+          This PR merges those changes back into \`dev\` to keep the branches in sync.
+
+          > Review for merge conflicts before merging."
