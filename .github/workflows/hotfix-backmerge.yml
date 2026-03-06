@@ -3,7 +3,7 @@ name: Hotfix Back-merge
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [master]
 
 jobs:
   backmerge:
@@ -25,10 +25,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           HOTFIX_BRANCH="${{ github.event.pull_request.head.ref }}"
-          PR_TITLE="chore: back-merge main into dev after ${HOTFIX_BRANCH}"
+          PR_TITLE="chore: back-merge master into dev after ${HOTFIX_BRANCH}"
 
           # Check if a back-merge PR already exists
-          EXISTING=$(gh pr list --base dev --head main --state open --json number --jq '.[0].number // empty')
+          EXISTING=$(gh pr list --base dev --head master --state open --json number --jq '.[0].number // empty')
           if [ -n "$EXISTING" ]; then
             echo "Back-merge PR #${EXISTING} already exists, skipping."
             exit 0
@@ -36,11 +36,11 @@ jobs:
 
           gh pr create \
             --base dev \
-            --head main \
+            --head master \
             --title "${PR_TITLE}" \
             --body "## Automatic back-merge
 
-          The hotfix branch \`${HOTFIX_BRANCH}\` was merged into \`main\` via PR #${{ github.event.pull_request.number }}.
+          The hotfix branch \`${HOTFIX_BRANCH}\` was merged into \`master\` via PR #${{ github.event.pull_request.number }}.
 
           This PR merges those changes back into \`dev\` to keep the branches in sync.
 
