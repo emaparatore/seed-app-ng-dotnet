@@ -179,6 +179,21 @@ npm install
 npm start
 ```
 
+## CI/CD
+
+The project uses GitHub Actions with a branch strategy:
+
+- `master` (production) ← `dev` (staging) ← `feature/*`
+- `hotfix/*` → direct PR to `master` with automatic back-merge to `dev`
+
+Workflows:
+- **CI** - Build and test on every PR (`ci.yml`)
+- **Docker Publish** - Build and push images to ghcr.io on merge (`docker-publish.yml`)
+- **Deploy** - Deployment skeleton, ready to configure (`deploy.yml`)
+- **Hotfix Back-merge** - Auto PR `master` → `dev` after hotfix (`hotfix-backmerge.yml`)
+
+See [docs/ci-cd.md](docs/ci-cd.md) for full documentation.
+
 ## Repository structure
 
 ```text
