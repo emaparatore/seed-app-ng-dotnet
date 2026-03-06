@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docker Publish"]
+    types: [completed]
+    branches: [main, dev]
+
+concurrency:
+  group: deploy-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  determine-environment:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.name }}
+      image_tag: ${{ steps.env.outputs.tag }}
+    steps:
+      - name: Determine target environment
+        id: env
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          SHORT_SHA="${{ github.event.workflow_run.head_sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=production" >> "$GITHUB_OUTPUT"
+            echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          elif [ "$BRANCH" = "dev" ]; then
+            echo "name=staging" >> "$GITHUB_OUTPUT"
+            echo "tag=dev-sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: determine-environment
+    if: needs.determine-environment.outputs.environment != ''
+    runs-on: ubuntu-latest
+    environment: ${{ needs.determine-environment.outputs.environment }}
+    # Configure in repo Settings > Environments:
+    #   - "staging":  no approval required (auto-deploy)
+    #   - "production": required reviewers + wait timer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy info
+        run: |
+          echo "Deploying to: ${{ needs.determine-environment.outputs.environment }}"
+          echo "Image tag:    ${{ needs.determine-environment.outputs.image_tag }}"
+          echo "API image:    ghcr.io/${{ github.repository }}/api:${{ needs.determine-environment.outputs.image_tag }}"
+          echo "Web image:    ghcr.io/${{ github.repository }}/web:${{ needs.determine-environment.outputs.image_tag }}"
+
+      # ============================================================
+      # OPTION A: Docker Compose on VPS via SSH
+      # ============================================================
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+      #     script: |
+      #       cd /opt/seed-app
+      #       export IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}
+      #       docker compose pull
+      #       docker compose up -d --remove-orphans
+
+      # ============================================================
+      # OPTION B: Azure Container Apps
+      # ============================================================
+      # - name: Azure Login
+      #   uses: azure/login@v2
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+      #
+      # - name: Deploy API to Azure Container Apps
+      #   uses: azure/container-apps-deploy-action@v2
+      #   with:
+      #     containerAppName: seed-api
+      #     resourceGroup: seed-rg
+      #     imageToDeploy: ghcr.io/${{ github.repository }}/api:${{ needs.determine-environment.outputs.image_tag }}
+      #
+      # - name: Deploy Web to Azure Container Apps
+      #   uses: azure/container-apps-deploy-action@v2
+      #   with:
+      #     containerAppName: seed-web
+      #     resourceGroup: seed-rg
+      #     imageToDeploy: ghcr.io/${{ github.repository }}/web:${{ needs.determine-environment.outputs.image_tag }}
+
+      # ============================================================
+      # OPTION C: Kubernetes (kubectl)
+      # ============================================================
+      # - name: Set up kubeconfig
+      #   run: |
+      #     mkdir -p ~/.kube
+      #     echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+      #
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     TAG=${{ needs.determine-environment.outputs.image_tag }}
+      #     kubectl set image deployment/seed-api api=ghcr.io/${{ github.repository }}/api:${TAG}
+      #     kubectl set image deployment/seed-web web=ghcr.io/${{ github.repository }}/web:${TAG}
+      #     kubectl rollout status deployment/seed-api --timeout=120s
+      #     kubectl rollout status deployment/seed-web --timeout=120s
+
+      - name: Placeholder
+        run: echo "Deploy step placeholder - uncomment your target infrastructure above."
