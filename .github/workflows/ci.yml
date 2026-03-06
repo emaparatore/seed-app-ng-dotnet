@@ -103,7 +103,7 @@ jobs:
 
   ci-success:
     if: always()
-    needs: [backend-build-test, frontend-build-test]
+    needs: [changes, backend-build-test, frontend-build-test]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
