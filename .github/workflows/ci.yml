@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [dev, master]
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -103,7 +103,7 @@ jobs:
 
   ci-success:
     if: always()
-    needs: [backend-build-test, frontend-build-test]
+    needs: [changes, backend-build-test, frontend-build-test]
     runs-on: ubuntu-latest
     steps:
       - name: Check results

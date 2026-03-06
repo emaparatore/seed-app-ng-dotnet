@@ -2,7 +2,7 @@ name: Docker Publish
 
 on:
   push:
-    branches: [main, dev]
+    branches: [master, dev]
 
 concurrency:
   group: docker-${{ github.ref_name }}
@@ -49,10 +49,10 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/api
           tags: |
-            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
-            type=sha,prefix=sha-,enable=${{ github.ref_name == 'main' }}
-            type=semver,pattern={{version}},enable=${{ github.ref_name == 'main' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_name == 'main' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
+            type=sha,prefix=sha-,enable=${{ github.ref_name == 'master' }}
+            type=semver,pattern={{version}},enable=${{ github.ref_name == 'master' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_name == 'master' }}
             type=raw,value=dev,enable=${{ github.ref_name == 'dev' }}
             type=sha,prefix=dev-sha-,enable=${{ github.ref_name == 'dev' }}
 
@@ -90,10 +90,10 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/web
           tags: |
-            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
-            type=sha,prefix=sha-,enable=${{ github.ref_name == 'main' }}
-            type=semver,pattern={{version}},enable=${{ github.ref_name == 'main' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_name == 'main' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
+            type=sha,prefix=sha-,enable=${{ github.ref_name == 'master' }}
+            type=semver,pattern={{version}},enable=${{ github.ref_name == 'master' }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_name == 'master' }}
             type=raw,value=dev,enable=${{ github.ref_name == 'dev' }}
             type=sha,prefix=dev-sha-,enable=${{ github.ref_name == 'dev' }}
 

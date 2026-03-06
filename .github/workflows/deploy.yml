@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["Docker Publish"]
     types: [completed]
-    branches: [main, dev]
+    branches: [master, dev]
 
 concurrency:
   group: deploy-${{ github.event.workflow_run.head_branch }}
@@ -24,7 +24,7 @@ jobs:
           BRANCH="${{ github.event.workflow_run.head_branch }}"
           SHORT_SHA="${{ github.event.workflow_run.head_sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
             echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           elif [ "$BRANCH" = "dev" ]; then
