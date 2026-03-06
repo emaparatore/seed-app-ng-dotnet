@@ -222,6 +222,30 @@ docker compose up
 
 The `.env.example` file contains sensible defaults for local development. For production, use the root `.env.example` as a template and replace placeholders with real secrets.
 
+### Fast Dev Mode (Hot Reload)
+
+Use `docker-compose.dev.yml` to run PostgreSQL + Seq + API (`dotnet watch`) + Web (`ng serve`) with source mounts.
+
+```bash
+# From repository root (Windows PowerShell)
+.\scripts\dev.ps1 up
+
+# From repository root (macOS/Linux)
+./scripts/dev.sh up
+```
+
+Useful commands:
+
+```bash
+.\scripts\dev.ps1 logs
+.\scripts\dev.ps1 down
+```
+
+```bash
+./scripts/dev.sh logs
+./scripts/dev.sh down
+```
+
 ### Available Variables
 
 | Variable | Dev Default | Description |

@@ -28,7 +28,13 @@
             "server": "projects/app/src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": ["localhost", "127.0.0.1", "host.docker.internal"]
+              "allowedHosts": [
+                "localhost",
+                "localhost:4200",
+                "127.0.0.1",
+                "127.0.0.1:4200",
+                "host.docker.internal"
+              ]
             },
             "ssr": {
               "entry": "projects/app/src/server.ts"
@@ -87,12 +93,21 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": ["localhost", "127.0.0.1", "host.docker.internal"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "app:build:production"
             },
             "development": {
               "buildTarget": "app:build:development"
+            },
+            "docker": {
+              "buildTarget": "app:build:development",
+              "host": "0.0.0.0",
+              "port": 4200,
+              "allowedHosts": ["localhost", "127.0.0.1", "host.docker.internal", "web"]
             }
           },
           "defaultConfiguration": "development"
@@ -182,4 +197,3 @@
     }
   }
 }
-

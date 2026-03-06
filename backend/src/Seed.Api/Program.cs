@@ -3,11 +3,13 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Seed.Api.Extensions;
 using Seed.Api.Middleware;
 using Seed.Application;
 using Seed.Infrastructure;
+using Seed.Infrastructure.Persistence;
 using Serilog;
 using Seed.Shared.Configuration;
 
@@ -130,6 +132,10 @@ if (app.Environment.IsProduction())
 
 if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
+
     app.UseSwaggerWithUI();
 }
 
