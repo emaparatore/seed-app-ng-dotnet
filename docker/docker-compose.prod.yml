@@ -1,9 +1,9 @@
-name: seed-app-dev
+name: seed-app
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: seed-postgres-dev
+    container_name: seed-postgres
     env_file: .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -21,7 +21,7 @@ services:
 
   seq:
     image: datalust/seq:latest
-    container_name: seed-seq-dev
+    container_name: seed-seq
     environment:
       - ACCEPT_EULA=Y
       - SEQ_FIRSTRUN_NOAUTHENTICATION=true
@@ -32,9 +32,12 @@ services:
       - seq_data:/data
 
   api:
-    image: mcr.microsoft.com/dotnet/sdk:10.0
-    container_name: seed-api-dev
-    working_dir: /src
+    container_name: seed-api
+    build:
+      context: ../backend
+      dockerfile: src/Seed.Api/Dockerfile
+    ports:
+      - "5035:8080"
     env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
@@ -42,53 +45,31 @@ services:
       - JwtSettings__Secret=${JwtSettings__Secret}
       - AllowedHosts=${AllowedHosts}
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
-    ports:
-      - "5035:8080"
-    volumes:
-      - ../backend:/src
-      - nuget_cache:/root/.nuget/packages
     depends_on:
       postgres:
         condition: service_healthy
       seq:
         condition: service_started
-    command:
-      [
-        "dotnet",
-        "watch",
-        "--project",
-        "src/Seed.Api",
-        "run",
-        "--urls=http://0.0.0.0:8080"
-      ]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   web:
-    image: node:22
-    container_name: seed-web-dev
-    working_dir: /app
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=1000
-      - CHOKIDAR_BINARY_INTERVAL=1500
-      - WATCHPACK_POLLING=true
+    container_name: seed-web
+    build:
+      context: ../frontend/web
+      dockerfile: Dockerfile
+      args:
+        ANGULAR_BUILD_CONFIGURATION: docker
     ports:
-      - "4200:4200"
-    volumes:
-      - ../frontend/web:/app
-      - web_node_modules:/app/node_modules
+      - "4200:80"
     depends_on:
       api:
-        condition: service_started
-    command: >
-      sh -c "set -e;
-      if [ ! -d node_modules/@angular ]; then npm ci; fi;
-      npx ng build shared-auth --configuration development;
-      npx ng build shared-core --configuration development;
-      npx ng build shared-ui --configuration development;
-      exec npx ng serve app --configuration docker"
+        condition: service_healthy
 
 volumes:
   postgres_data:
   seq_data:
-  nuget_cache:
-  web_node_modules:

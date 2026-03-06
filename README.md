@@ -1,85 +1,226 @@
-# Seed App — Angular + .NET Full Stack
+# Seed App - Angular + .NET Full Stack
+A ready-to-use full-stack seed/starter application, designed as a starting point for new projects. Includes: 
+- ASP.NET Core backend
+- Angular web frontend (with SSR support)
+- .NET MAUI mobile app
+- Docker setup for local development and test execution
 
-A ready-to-use full-stack seed/starter application, designed as a starting point for new projects. Includes an ASP.NET Core backend, an Angular frontend with SSR, a .NET MAUI mobile app, and Docker infrastructure.
+## Quick start
 
----
+```bash
+# 1) Prepare env
+cd docker
+cp .env.example .env
 
-## Quick Start
-
-1. **Database** — set up the environment and start PostgreSQL:
-   ```bash
-   cd docker
-   cp .env.example .env
-   docker compose up postgres
-   ```
-
-2. **Backend** — start the API:
-   ```bash
-   cd backend
-   dotnet run --project src/Seed.Api
-   ```
-
-3. **Frontend** — start the Angular dev server:
-   ```bash
-   cd frontend/web
-   npm install
-   npm start
-   ```
-
-The app will be available at `http://localhost:4200`, the API at `http://localhost:5000`.
-
----
-
-## Repository Structure
-
+# 2) Start full app (dev mode, default)
+docker compose up
 ```
+
+App URLs:
+- Web: `http://localhost:4200`
+- API: `http://localhost:5035`
+- Seq: `http://localhost:8081`
+
+Run all tests with Docker only:
+
+```bash
+dotnet run --project docker/TestRunner -- all
+```
+
+## Prerequisites
+
+- Docker Desktop (or Docker Engine + Compose)
+- .NET SDK 10 (only needed for local `dotnet` commands and `docker/TestRunner`)
+- Node.js 22 (only needed if you run frontend outside Docker)
+
+## Run with Docker (recommended)
+
+### 1) Environment file
+
+From `docker/`:
+
+```bash
+cp .env.example .env
+```
+
+### 2) Dev mode (default)
+
+File used: `docker/docker-compose.yml`
+
+This mode is optimized for local development:
+- API with `dotnet watch`
+- Web with `ng serve`
+- source mounts for hot reload
+
+```bash
+cd docker
+
+# Start
+docker compose up
+
+# Logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+### 3) Prod-like mode (local validation)
+
+File used: `docker/docker-compose.prod.yml`
+
+Use this when you want behavior closer to runtime deployment:
+- API and Web built via Dockerfiles
+- no source hot reload
+
+```bash
+cd docker
+docker compose -f docker-compose.prod.yml up --build
+```
+
+### Services and ports
+
+| Service | Port | Notes |
+|---|---|---|
+| PostgreSQL 16 | 5432 | DB `seeddb`, user `seed` |
+| API (ASP.NET Core) | 5035 | maps internal port 8080 |
+| Web | 4200 | dev mode: `ng serve`; prod-like mode: Nginx |
+| Seq | 8081 | log UI |
+| Seq ingestion | 5341 | Serilog endpoint |
+
+### Main environment variables
+
+| Variable | Dev Default | Description |
+|---|---|---|
+| `POSTGRES_DB` | `seeddb` | PostgreSQL database name |
+| `POSTGRES_USER` | `seed` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | `seed_password` | PostgreSQL password |
+| `ASPNETCORE_ENVIRONMENT` | `Development` | ASP.NET Core environment |
+| `ConnectionStrings__DefaultConnection` | `Host=postgres;Database=seeddb;...` | EF Core connection string |
+| `JwtSettings__Secret` | `YourSuperSecret...` | JWT signing key |
+| `AllowedHosts` | `*` | Allowed hosts |
+
+## Testing
+
+### Quick test commands (Docker-based)
+
+Use the Docker test runner if you want consistent execution without manual DB setup.
+
+```bash
+# Frontend tests only
+dotnet run --project docker/TestRunner -- frontend
+
+# Backend unit tests only
+dotnet run --project docker/TestRunner -- unit
+
+# Backend integration tests only
+dotnet run --project docker/TestRunner -- integration
+
+# All backend tests
+dotnet run --project docker/TestRunner -- backend
+
+# Everything (default)
+dotnet run --project docker/TestRunner -- all
+```
+
+### Local tests (without Docker test runner)
+
+Backend (run from `backend/`):
+
+```bash
+# All tests
+dotnet test Seed.slnx
+
+# Specific projects
+dotnet test tests/Seed.UnitTests
+dotnet test tests/Seed.IntegrationTests
+
+# Single test
+dotnet test tests/Seed.UnitTests --filter "FullyQualifiedName~MyTestMethod"
+```
+
+Frontend (run from `frontend/web/`):
+
+```bash
+# All frontend tests
+npm test
+
+# Per project
+ng test app
+ng test shared-auth
+ng test shared-core
+ng test shared-ui
+```
+
+## Run without Docker (optional)
+
+If you prefer running services directly on your machine:
+
+1. Start DB only:
+
+```bash
+cd docker
+cp .env.example .env
+docker compose up postgres
+```
+
+2. Start backend:
+
+```bash
+cd backend
+dotnet run --project src/Seed.Api
+```
+
+3. Start frontend:
+
+```bash
+cd frontend/web
+npm install
+npm start
+```
+
+## Repository structure
+
+```text
 seed-app-ng-dotnet/
-├── backend/          # ASP.NET Core 10 Web API
-│   ├── src/
-│   │   ├── Seed.Api
-│   │   ├── Seed.Application
-│   │   ├── Seed.Domain
-│   │   ├── Seed.Infrastructure
-│   │   └── Seed.Shared
-│   └── tests/
-│       ├── Seed.UnitTests
-│       └── Seed.IntegrationTests
-├── frontend/
-│   ├── web/          # Angular 21 SPA with SSR
-│   │   └── projects/
-│   │       ├── app
-│   │       ├── shared-ui
-│   │       ├── shared-core
-│   │       └── shared-auth
-│   └── mobile/       # .NET MAUI
-├── docker/           # Docker Compose for local infrastructure
-└── scripts/
+|-- backend/          # ASP.NET Core 10 Web API
+|   |-- src/
+|   |   |-- Seed.Api
+|   |   |-- Seed.Application
+|   |   |-- Seed.Domain
+|   |   |-- Seed.Infrastructure
+|   |   `-- Seed.Shared
+|   `-- tests/
+|       |-- Seed.UnitTests
+|       `-- Seed.IntegrationTests
+|-- frontend/
+|   |-- web/          # Angular 21 app with SSR
+|   |   `-- projects/
+|   |       |-- app
+|   |       |-- shared-ui
+|   |       |-- shared-core
+|   |       `-- shared-auth
+|   `-- mobile/       # .NET MAUI
+`-- docker/           # Docker Compose and docker-based test runner
 ```
 
----
-
-## Tech Stack
+## Tech stack
 
 | Area | Technologies |
 |---|---|
 | Backend | ASP.NET Core 10, EF Core 10, PostgreSQL 16, MediatR 14, FluentValidation 12, Mapster 7, JWT, Serilog |
 | Frontend web | Angular 21, Angular Material 21, RxJS 7, Vitest 4, SSR with Express |
 | Mobile | .NET MAUI |
-| Infrastructure | Docker Compose, PostgreSQL 16, Seq (log aggregation) |
+| Infra | Docker Compose, PostgreSQL 16, Seq |
 
----
+## Backend notes
 
-## Backend
-
-### Architecture
-
-Clean Architecture split into 5 .NET projects:
-
-- **`Seed.Api`** — Entry point. ASP.NET Core controllers, middleware, DI configuration. Depends on Application, Infrastructure, and Shared.
-- **`Seed.Application`** — Application logic. MediatR handlers (CQRS), FluentValidation validators, DTO mapping with Mapster. Depends on Domain and Shared.
-- **`Seed.Domain`** — Domain entities and pure business logic. No external dependencies.
-- **`Seed.Infrastructure`** — Data access. EF Core with Npgsql, ASP.NET Identity, Serilog sinks. Depends on Application.
-- **`Seed.Shared`** — Cross-cutting utilities shared between Application and Api.
+Architecture follows Clean Architecture with 5 projects:
+- `Seed.Api`: entry point, controllers, middleware, DI
+- `Seed.Application`: use cases (CQRS handlers), validation, mapping
+- `Seed.Domain`: domain model and business rules
+- `Seed.Infrastructure`: EF Core, Identity, logging sinks
+- `Seed.Shared`: shared cross-cutting utilities
 
 ### CQRS Pattern
 
@@ -93,50 +234,41 @@ JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management i
 
 Uses `Asp.Versioning.Mvc`. Follow existing conventions when adding new controllers.
 
-### Commands (run from `backend/`)
+Commands (run from `backend/`):
 
 ```bash
 # Build
 dotnet build Seed.slnx
 
-# Run the API
+# Run API
 dotnet run --project src/Seed.Api
 
-# EF Core — add migration
+# Add migration
 dotnet ef migrations add <MigrationName> \
   --project src/Seed.Infrastructure \
   --startup-project src/Seed.Api
 
-# EF Core — apply migrations to database
+# Apply migrations
 dotnet ef database update \
   --project src/Seed.Infrastructure \
   --startup-project src/Seed.Api
 ```
 
----
+## Frontend web notes
 
-## Frontend Web (Angular)
+Workspace: `frontend/web/` with projects:
+- `app`
+- `shared-ui`
+- `shared-core`
+- `shared-auth`
 
-Angular workspace at `frontend/web/` with 4 projects:
-
-- **`app`** (`projects/app/`) — Main application. SSR enabled with Express.
-- **`shared-ui`** — Reusable UI component library (`lib` prefix).
-- **`shared-core`** — Core utilities and services library.
-- **`shared-auth`** — Authentication library.
-
-The `shared-*` libraries are compiled with `ng-packagr`. In CI they must be built before the app. New shared functionality should be exported from the appropriate library's `public-api.ts`.
-
-### State and Reactivity
-
-Prefer **Angular signals** (`signal()`) over Observables for local component state.
-
-### Commands (run from `frontend/web/`)
+Commands (run from `frontend/web/`):
 
 ```bash
 # Install dependencies
 npm install
 
-# Dev server — http://localhost:4200
+# Dev server
 npm start
 
 # Production build
@@ -144,145 +276,13 @@ npm run build
 
 # Start SSR server (after build)
 npm run serve:ssr:app
-
-# Scaffold component (main app)
-ng generate component projects/app/src/app/<name>
-
-# Scaffold component (UI library)
-ng generate component projects/shared-ui/src/lib/<name>
 ```
 
----
+## Frontend mobile
 
-## Frontend Mobile (.NET MAUI)
+Mobile app lives in `frontend/mobile/` (`Seed.Mobile.csproj`).
 
-Project at `frontend/mobile/` (`Seed.Mobile.csproj`). A cross-platform .NET MAUI app as a starting point for native mobile clients.
+## .NET conventions
 
----
-
-## Running Tests
-
-### Local
-
-**Backend** (run from `backend/`):
-
-```bash
-# All tests
-dotnet test Seed.slnx
-
-# Specific test project
-dotnet test tests/Seed.UnitTests
-dotnet test tests/Seed.IntegrationTests
-
-# Single test
-dotnet test tests/Seed.UnitTests --filter "FullyQualifiedName~MyTestMethod"
-```
-
-- **`Seed.UnitTests`** — xUnit + NSubstitute + FluentAssertions. Covers Application and Domain.
-- **`Seed.IntegrationTests`** — xUnit + Testcontainers (PostgreSQL) + `Microsoft.AspNetCore.Mvc.Testing`. Tests the full Api + Infrastructure stack.
-
-**Frontend** (run from `frontend/web/`):
-
-```bash
-# All tests
-npm test
-
-# Tests for a specific project
-ng test app
-ng test shared-auth
-ng test shared-core
-ng test shared-ui
-```
-
-### Docker
-
-A .NET console tool (`docker/TestRunner`) runs all tests inside Docker containers — no local SDK or database required, just Docker.
-
-```bash
-dotnet run --project docker/TestRunner -- frontend      # Frontend tests only
-dotnet run --project docker/TestRunner -- unit           # Backend unit tests only
-dotnet run --project docker/TestRunner -- integration    # Backend integration tests only
-dotnet run --project docker/TestRunner -- backend        # All backend tests
-dotnet run --project docker/TestRunner -- all            # Everything (default)
-```
-
----
-
-## Docker Infrastructure
-
-### Environment Setup
-
-Environment variables are managed via a `.env` file. To get started:
-
-```bash
-cd docker
-cp .env.example .env
-docker compose up
-```
-
-The `.env.example` file contains sensible defaults for local development. For production, use the root `.env.example` as a template and replace placeholders with real secrets.
-
-### Fast Dev Mode (Hot Reload)
-
-Use `docker-compose.dev.yml` to run PostgreSQL + Seq + API (`dotnet watch`) + Web (`ng serve`) with source mounts.
-
-```bash
-# From repository root (Windows PowerShell)
-.\scripts\dev.ps1 up
-
-# From repository root (macOS/Linux)
-./scripts/dev.sh up
-```
-
-Useful commands:
-
-```bash
-.\scripts\dev.ps1 logs
-.\scripts\dev.ps1 down
-```
-
-```bash
-./scripts/dev.sh logs
-./scripts/dev.sh down
-```
-
-### Available Variables
-
-| Variable | Dev Default | Description |
-|---|---|---|
-| `POSTGRES_DB` | `seeddb` | PostgreSQL database name |
-| `POSTGRES_USER` | `seed` | PostgreSQL username |
-| `POSTGRES_PASSWORD` | `seed_password` | PostgreSQL password |
-| `ASPNETCORE_ENVIRONMENT` | `Development` | ASP.NET Core environment |
-| `ConnectionStrings__DefaultConnection` | `Host=postgres;Database=seeddb;...` | EF Core connection string |
-| `JwtSettings__Secret` | `YourSuperSecret...` | JWT signing key |
-| `AllowedHosts` | `*` | Allowed CORS hosts |
-
-### Services & Ports
-
-| Service | Port | Notes |
-|---|---|---|
-| PostgreSQL 16 | 5432 | DB `seeddb`, user `seed` |
-| API (ASP.NET Core) | 5035 | Maps internal port 8080 |
-| Web (Angular SSR) | 4200 | Nginx |
-
-```bash
-# Start the full stack
-docker compose up
-
-# Database only
-docker compose up postgres
-```
-
-### Database connection (local development)
-
-```
-Host=localhost;Database=seeddb;Username=seed;Password=seed_password
-```
-
----
-
-## .NET Conventions
-
-- `<Nullable>enable</Nullable>` enabled in all projects.
-- `<ImplicitUsings>enable</ImplicitUsings>` enabled in all projects.
+- `<Nullable>enable</Nullable>` enabled
+- `<ImplicitUsings>enable</ImplicitUsings>` enabled
