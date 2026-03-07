@@ -52,19 +52,26 @@ jobs:
           echo "Web image:    ghcr.io/${{ github.repository }}/web:${{ needs.determine-environment.outputs.image_tag }}"
 
       # ============================================================
-      # OPTION A: Docker Compose on VPS via SSH
+      # OPTION A: Docker Compose on VPS via SSH (ACTIVE)
       # ============================================================
-      # - name: Deploy via SSH
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.DEPLOY_HOST }}
-      #     username: ${{ secrets.DEPLOY_USER }}
-      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
-      #     script: |
-      #       cd /opt/seed-app
-      #       export IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}
-      #       docker compose pull
-      #       docker compose up -d --remove-orphans
+      # Required secrets (configure in repo Settings > Secrets):
+      #   DEPLOY_HOST    — VPS IP or hostname
+      #   DEPLOY_USER    — SSH user (e.g. "deploy")
+      #   DEPLOY_SSH_KEY — Private SSH key
+      #   GHCR_TOKEN     — GitHub PAT with read:packages scope
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/seed-app
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.DEPLOY_USER }}" --password-stdin
+            export IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}
+            docker compose -f docker-compose.deploy.yml pull api web
+            docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+            docker image prune -f
 
       # ============================================================
       # OPTION B: Azure Container Apps
@@ -104,5 +111,5 @@ jobs:
       #     kubectl rollout status deployment/seed-api --timeout=120s
       #     kubectl rollout status deployment/seed-web --timeout=120s
 
-      - name: Placeholder
-        run: echo "Deploy step placeholder - uncomment your target infrastructure above."
+      # - name: Placeholder
+      #   run: echo "Deploy step placeholder - uncomment your target infrastructure above."
