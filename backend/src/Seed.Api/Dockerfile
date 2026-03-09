@@ -24,6 +24,8 @@ ENV PATH="$PATH:/root/.dotnet/tools"
 RUN dotnet ef migrations bundle \
     --project src/Seed.Infrastructure \
     --startup-project src/Seed.Api \
+    --configuration Release \
+    --no-build \
     -o /app/efbundle \
     --self-contained \
     -r linux-x64 \

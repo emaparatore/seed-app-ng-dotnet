@@ -97,6 +97,8 @@ jobs:
           dotnet ef migrations bundle \
             --project src/Seed.Infrastructure \
             --startup-project src/Seed.Api \
+            --configuration Release \
+            --no-build \
             -o /tmp/efbundle-test \
             --force
           echo "Migration bundle built successfully"
