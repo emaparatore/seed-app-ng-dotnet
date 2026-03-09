@@ -68,7 +68,7 @@ jobs:
           script: |
             cd /opt/seed-app
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.DEPLOY_USER }}" --password-stdin
-            export IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}
+            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
             docker compose -f docker-compose.deploy.yml pull api web
             docker compose -f docker-compose.deploy.yml up -d --remove-orphans
             docker image prune -f

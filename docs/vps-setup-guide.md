@@ -439,7 +439,51 @@ docker compose -f docker-compose.deploy.yml logs web
 
 ## 10. Configurazione GitHub Actions Secrets
 
-Per abilitare il deploy automatico dal CI/CD:
+Per abilitare il deploy automatico dal CI/CD servono una chiave SSH dedicata e alcuni secrets su GitHub.
+
+### 10.1 Genera una chiave SSH dedicata al deploy
+
+Usa una chiave separata da quella personale, senza passphrase (le CI/CD non possono inserirla interattivamente — la chiave è già protetta dalla cifratura dei GitHub Secrets).
+
+**Dal tuo PC locale** (PowerShell o Git Bash su Windows):
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
+```
+
+Quando chiede la passphrase, premi **Invio** due volte senza scrivere nulla.
+
+> Su Windows il file viene creato in `C:\Users\TUO_UTENTE\.ssh\deploy_key`.
+
+### 10.2 Aggiungi la chiave pubblica sul VPS
+
+Copia il contenuto della chiave **pubblica** e aggiungilo alle authorized_keys dell'utente `deploy` sul server:
+
+```bash
+# Mostra la chiave pubblica (Windows)
+type %USERPROFILE%\.ssh\deploy_key.pub
+
+# Oppure su Git Bash / Linux / macOS
+cat ~/.ssh/deploy_key.pub
+```
+
+Connettiti al VPS e aggiungi la chiave:
+
+```bash
+ssh deploy@TUO_IP_VPS
+echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
+exit
+```
+
+### 10.3 Verifica la connessione
+
+```bash
+ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
+```
+
+Deve entrare senza chiedere password né passphrase.
+
+### 10.4 Configura i secrets su GitHub
 
 1. Vai nel tuo repository GitHub > **Settings** > **Secrets and variables** > **Actions**
 2. Aggiungi questi **Repository secrets**:
@@ -448,13 +492,17 @@ Per abilitare il deploy automatico dal CI/CD:
 |--------|--------|-------------|
 | `DEPLOY_HOST` | IP del tuo VPS | Indirizzo del server |
 | `DEPLOY_USER` | `deploy` | Utente SSH |
-| `DEPLOY_SSH_KEY` | Contenuto di `~/.ssh/id_ed25519` | Chiave privata SSH |
+| `DEPLOY_SSH_KEY` | Contenuto di `~/.ssh/deploy_key` | Chiave privata SSH (dedicata, senza passphrase) |
 | `GHCR_TOKEN` | Il PAT creato al punto 9.1 | Token per pull immagini |
 
 Per ottenere la chiave privata SSH (dal tuo PC locale):
 
 ```bash
-cat ~/.ssh/id_ed25519
+# Windows
+type %USERPROFILE%\.ssh\deploy_key
+
+# Git Bash / Linux / macOS
+cat ~/.ssh/deploy_key
 ```
 
 > Copia **tutto** il contenuto, incluse le righe `-----BEGIN` e `-----END`.
@@ -558,9 +606,9 @@ docker exec seed-api curl -f http://localhost:8080/health/ready
 
 ### Angular SSR: "URL with hostname is not allowed"
 
-**Causa**: Angular SSR (Express/Node.js) controlla l'header `Host` della richiesta HTTP contro la lista `allowedHosts` in `angular.json`. Se il dominio non e nella lista, la richiesta viene rifiutata.
+**Causa**: Angular SSR (Express/Node.js) controlla l'header `Host` della richiesta HTTP contro la lista `allowedHosts` in `angular.json`. Se il dominio non e nella lista, la richiesta viene rifiutata. Il wildcard `"*"` non funziona perche viene interpretato come stringa letterale, non come glob.
 
-**Soluzione**: in `angular.json`, la proprieta `security.allowedHosts` e impostata su `["*"]`. Questo e sicuro perche Nginx fa gia da filtro con `server_name` — le richieste con Host non valido non arrivano mai a Express. Evita di hardcodare domini specifici per mantenere il repo indipendente dall'ambiente di deploy.
+**Soluzione**: un middleware Express in `server.ts` normalizza l'header `Host` a `localhost` prima che Angular lo controlli. In questo modo `allowedHosts` in `angular.json` contiene solo `["localhost"]` e il check passa sempre. La validazione reale del dominio e delegata a Nginx tramite `server_name` — le richieste con Host non valido non arrivano mai a Express. Se servisse leggere il dominio originale nel SSR, usare l'header `X-Forwarded-Host` inoltrato da Nginx.
 
 ### Nginx non si avvia
 
