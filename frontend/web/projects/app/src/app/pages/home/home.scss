@@ -7,6 +7,7 @@
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
   color: #1f2937;
+  overflow-x: hidden;
 }
 
 .hero {
@@ -19,6 +20,8 @@
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+  word-wrap: break-word;
 }
 
 .badge {
@@ -142,6 +145,7 @@ h1 {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .steps.compact li {
@@ -162,6 +166,7 @@ h1 {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .tool-copy h3 {
@@ -180,6 +185,11 @@ pre {
   color: #e2e8f0;
   border-radius: 8px;
   padding: 0.8rem;
+  max-width: 100%;
+
+  code {
+    font-size: 0.85rem;
+  }
 }
 
 .tool-row pre {
@@ -210,5 +220,13 @@ pre {
 
   .hero-inner {
     padding: 1.4rem;
+  }
+
+  pre code {
+    font-size: 0.75rem;
+  }
+
+  .steps {
+    padding-left: 0.75rem;
   }
 }
