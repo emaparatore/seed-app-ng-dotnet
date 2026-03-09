@@ -560,19 +560,15 @@ docker exec seed-api curl -f http://localhost:8080/health/ready
 
 **Causa**: Angular SSR (Express/Node.js) controlla l'header `Host` della richiesta HTTP contro la lista `allowedHosts` in `angular.json`. Se il dominio non e nella lista, la richiesta viene rifiutata.
 
-**Soluzione**: aggiungi il tuo dominio alla lista `security.allowedHosts` in `angular.json` (sezione `build > options`). Angular SSR non supporta `"*"` come wildcard — richiede i domini esplicitamente elencati. Nota: Nginx inoltra l'header `Host` originale (`proxy_set_header Host $host`), quindi Angular SSR riceve il dominio del client, non il nome del container Docker.
+**Soluzione**: imposta `security.allowedHosts` a `true` in `angular.json` (sezione `build > options`) per accettare tutti gli host. Questo e sicuro perche Nginx fa da reverse proxy e filtra il traffico prima che arrivi ad Angular SSR.
 
 ```json
 "security": {
-  "allowedHosts": [
-    "localhost",
-    "127.0.0.1",
-    "host.docker.internal",
-    "tuodominio.com",
-    "www.tuodominio.com"
-  ]
+  "allowedHosts": true
 }
 ```
+
+> **Nota**: `allowedHosts` accetta un **array di stringhe** (lista esplicita di domini) oppure un **booleano** (`true` per accettare tutti gli host). Non supporta il wildcard `"*"` come stringa. Nginx inoltra l'header `Host` originale (`proxy_set_header Host $host`), quindi Angular SSR riceve il dominio del client, non il nome del container Docker.
 
 ### Nginx non si avvia
 
