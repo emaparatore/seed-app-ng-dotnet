@@ -1,8 +1,11 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Seed.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 
@@ -39,6 +42,29 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             // Add test DbContext
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(ConnectionString));
+
+            // Replace health check to use the test connection string
+            services.Configure<HealthCheckServiceOptions>(options =>
+            {
+                options.Registrations.Clear();
+            });
+            services.AddHealthChecks()
+                .AddNpgSql(ConnectionString, name: "postgresql", tags: ["db", "ready"]);
+
+            // Disable rate limiting for tests
+            services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("auth", limiter =>
+                {
+                    limiter.PermitLimit = int.MaxValue;
+                    limiter.Window = TimeSpan.FromMinutes(1);
+                });
+                options.AddFixedWindowLimiter("auth-sensitive", limiter =>
+                {
+                    limiter.PermitLimit = int.MaxValue;
+                    limiter.Window = TimeSpan.FromMinutes(1);
+                });
+            });
 
             // Ensure database is created and migrated
             using var scope = services.BuildServiceProvider().CreateScope();
