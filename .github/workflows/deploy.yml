@@ -22,14 +22,12 @@ jobs:
         id: env
         run: |
           BRANCH="${{ github.event.workflow_run.head_branch }}"
-          SHORT_SHA="${{ github.event.workflow_run.head_sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
           if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
-            echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
           elif [ "$BRANCH" = "dev" ]; then
             echo "name=staging" >> "$GITHUB_OUTPUT"
-            echo "tag=dev-sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "tag=dev" >> "$GITHUB_OUTPUT"
           fi
 
   deploy:
@@ -94,10 +92,16 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/seed-app
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.DEPLOY_USER }}" --password-stdin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
-            docker compose -f docker-compose.deploy.yml pull ${{ steps.check.outputs.services }}
-            docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+            if [ "${{ steps.check.outputs.api }}" = "success" ]; then
+              docker compose -f docker-compose.deploy.yml pull api
+              docker compose -f docker-compose.deploy.yml up -d --no-deps api
+            fi
+            if [ "${{ steps.check.outputs.web }}" = "success" ]; then
+              docker compose -f docker-compose.deploy.yml pull web
+              docker compose -f docker-compose.deploy.yml up -d --no-deps web
+            fi
             docker image prune -f
 
       # ============================================================
