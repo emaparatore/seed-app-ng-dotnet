@@ -1,6 +1,6 @@
 # Guida: Deploy su VPS con Docker Compose
 
-Questa guida spiega come deployare l'applicazione Seed App su un VPS (Virtual Private Server) usando Docker Compose, Nginx come reverse proxy, Cloudflare come CDN/protezione e SSL con Let's Encrypt.
+Questa guida spiega come deployare l'applicazione Seed App su un VPS (Virtual Private Server) usando Docker Compose, Nginx come reverse proxy, Cloudflare come CDN/protezione e SSL con Cloudflare Origin Certificate.
 
 ## Architettura
 
@@ -8,7 +8,6 @@ Questa guida spiega come deployare l'applicazione Seed App su un VPS (Virtual Pr
 Utente --> Cloudflare (CDN, DDoS protection, SSL edge)
               --> VPS (HTTPS/443) --> Nginx --> Angular SSR (frontend)
                                            --> .NET API (backend)
-                                  Certbot (rinnovo automatico SSL)
                                   PostgreSQL (solo rete interna)
                                   Seq (log, accessibile via SSH tunnel)
 ```
@@ -238,14 +237,15 @@ POSTGRES_PASSWORD=UnaPasswordMoltoForte123!
 ASPNETCORE_ENVIRONMENT=Production
 ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=UnaPasswordMoltoForte123!
 JwtSettings__Secret=UnaSuperSecretKeyRandomDiAlmeno32Caratteri!abc123
-AllowedHosts=tuodominio.com
+AllowedHosts=*
 
 # --- VPS Deployment ---
 DOMAIN_NAME=tuodominio.com
 GHCR_OWNER=tuo-github-username
 IMAGE_TAG=latest
-CERTBOT_EMAIL=tua-email@example.com
 ```
+
+> **Nota su `AllowedHosts`**: il valore `*` e sicuro in questo setup perche l'API non e esposta direttamente — solo Nginx riceve traffico esterno e fa da reverse proxy. L'healthcheck interno usa `localhost`, quindi un valore restrittivo (es. solo il dominio) causerebbe il fallimento dell'healthcheck e il container risulterebbe "unhealthy".
 
 > **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
 
@@ -293,7 +293,7 @@ Nel pannello Cloudflare > **SSL/TLS** > **Overview**:
 
 Questo significa:
 - Utente <-> Cloudflare: HTTPS (certificato Cloudflare, automatico)
-- Cloudflare <-> Tuo VPS: HTTPS (certificato Let's Encrypt, configurato al punto 8)
+- Cloudflare <-> Tuo VPS: HTTPS (Cloudflare Origin Certificate, configurato al punto 8)
 
 ### 7.5 Impostazioni consigliate
 
@@ -337,57 +337,42 @@ curl -I https://tuodominio.com 2>/dev/null | grep -i cf-ray
 
 ---
 
-## 8. Certificato SSL Iniziale
+## 8. Certificato SSL (Cloudflare Origin Certificate)
 
-Prima di avviare lo stack completo, dobbiamo ottenere il certificato SSL per il tratto Cloudflare <-> VPS (modalita Full Strict).
+Prima di avviare lo stack, dobbiamo configurare il certificato SSL per il tratto Cloudflare <-> VPS (modalita Full Strict). Usiamo un **Cloudflare Origin Certificate**, gratuito e valido 15 anni, senza bisogno di rinnovo.
 
-> **Nota con Cloudflare**: dato che Cloudflare proxifica il traffico HTTP, per la prima volta dobbiamo temporaneamente disabilitare il proxy (nuvola grigia) nel pannello DNS di Cloudflare, ottenere il certificato, e poi riattivare il proxy.
+### 8.1 Genera il certificato su Cloudflare
 
-### 8.1 Disabilita temporaneamente il proxy Cloudflare
+1. Nel pannello Cloudflare > **SSL/TLS** > **Origin Server**
+2. Clicca **Create Certificate**
+3. Lascia le impostazioni di default (RSA 2048, validita 15 anni, hostname `tuodominio.com` e `*.tuodominio.com`)
+4. Clicca **Create**
+5. **Copia subito** il certificato (Origin Certificate) e la chiave privata (Private Key) — la chiave privata non sara piu visibile dopo aver chiuso la pagina
 
-Nel pannello Cloudflare > **DNS** > **Records**:
-- Clicca sul record A del tuo dominio
-- Cambia da **Proxied** (nuvola arancione) a **DNS only** (nuvola grigia)
-- Salva e attendi 1-2 minuti
-
-### 8.2 Ottieni il certificato
-
-```bash
-# Installa certbot
-sudo apt install -y certbot
-
-# Ottieni il certificato (la porta 80 deve essere libera)
-sudo certbot certonly --standalone \
-  -d tuodominio.com \
-  --email tua-email@example.com \
-  --agree-tos \
-  --no-eff-email
-```
-
-### 8.3 Copia i certificati nel volume Docker
+### 8.2 Salva i certificati sul server
 
 ```bash
-# Crea il volume e copia i certificati
+# Crea il volume Docker e la directory per i certificati
 docker volume create seed-app-deploy_certbot_conf
+sudo mkdir -p /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
 
-# Copia i certificati nel volume Docker
-sudo cp -rL /etc/letsencrypt/live /etc/letsencrypt/archive /etc/letsencrypt/renewal \
-  /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/ 2>/dev/null || true
+# Salva il certificato (incolla il contenuto di "Origin Certificate")
+sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/fullchain.pem
 
-# Metodo alternativo se il precedente non funziona: usa un container temporaneo
-sudo docker run --rm \
-  -v seed-app-deploy_certbot_conf:/etc/letsencrypt \
-  -v /etc/letsencrypt:/source:ro \
-  alpine sh -c "cp -a /source/* /etc/letsencrypt/"
+# Salva la chiave privata (incolla il contenuto di "Private Key")
+sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/privkey.pem
 ```
 
-> **Nota**: il nome del volume Docker include il nome del progetto compose (`seed-app-deploy_certbot_conf`).
+> **Nota**: sostituisci `tuodominio.com` con il tuo dominio reale. Il percorso deve corrispondere alla variabile `DOMAIN_NAME` nel file `.env`.
 
-### 8.4 Riattiva il proxy Cloudflare
+### 8.3 Verifica
 
-Nel pannello Cloudflare > **DNS** > **Records**:
-- Riporta il record A a **Proxied** (nuvola arancione)
-- Salva
+```bash
+# Controlla che i file esistano e non siano vuoti
+sudo ls -la /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
+```
+
+Dovresti vedere `fullchain.pem` e `privkey.pem`, entrambi con dimensione > 0.
 
 ---
 
@@ -484,56 +469,16 @@ Se usi VPS separati per staging e production, configura secrets diversi per ogni
 
 ---
 
-## 11. Rinnovo Automatico dei Certificati SSL
+## 11. Certificato SSL — Note
 
-Il container `certbot` nel compose file controlla il rinnovo ogni 12 ore. Con Cloudflare in modalita proxy, il rinnovo HTTP-01 potrebbe non funzionare direttamente perche Cloudflare intercetta le richieste sulla porta 80.
-
-### Opzione consigliata: Cloudflare Origin Certificate (alternativa semplice)
-
-Se non vuoi gestire il rinnovo Let's Encrypt con Cloudflare, puoi usare un **Origin Certificate** di Cloudflare (valido 15 anni, gratis):
+Il Cloudflare Origin Certificate configurato al punto 8 ha una validita di **15 anni** e non richiede rinnovo automatico. Se in futuro dovesse scadere o avessi bisogno di rigenerarlo:
 
 1. Nel pannello Cloudflare > **SSL/TLS** > **Origin Server** > **Create Certificate**
-2. Lascia le impostazioni di default e clicca **Create**
-3. Copia il certificato e la chiave privata
-4. Sul server, salvali nel volume Docker:
+2. Sostituisci i file `fullchain.pem` e `privkey.pem` sul server (vedi punto 8.2)
+3. Riavvia Nginx:
 
 ```bash
-# Crea la directory per i certificati
-sudo mkdir -p /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
-
-# Salva il certificato
-sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/fullchain.pem
-# Incolla il certificato
-
-sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/privkey.pem
-# Incolla la chiave privata
-```
-
-Con questa opzione il certbot container non serve e puoi rimuoverlo dal compose se preferisci. Il certificato dura 15 anni.
-
-### Opzione alternativa: Rinnovo Let's Encrypt con Cloudflare
-
-Se preferisci continuare con Let's Encrypt, configura un cron job che:
-1. Mette temporaneamente Cloudflare in "DNS only" via API
-2. Rinnova il certificato
-3. Riattiva il proxy Cloudflare
-
-Configura un cron job per ricaricare Nginx dopo il rinnovo:
-
-```bash
-crontab -e
-```
-
-Aggiungi questa riga:
-
-```
-0 0 * * * docker exec seed-nginx nginx -s reload 2>/dev/null
-```
-
-Per testare il rinnovo manualmente:
-
-```bash
-docker compose -f docker-compose.deploy.yml exec certbot certbot renew --dry-run
+docker compose -f docker-compose.deploy.yml restart nginx
 ```
 
 ---
@@ -588,16 +533,45 @@ docker volume prune -f          # Volumi non utilizzati (ATTENZIONE: puo cancell
 
 ## 13. Troubleshooting
 
+### API esce con codice 139 (Serilog)
+
+**Causa**: la variabile d'ambiente `Serilog__WriteTo__1__Args__serverUrl` crea un sink Serilog senza il campo `Name`, causando un crash all'avvio.
+
+**Soluzione**: assicurati che nel docker-compose.deploy.yml ci sia anche la variabile `Serilog__WriteTo__1__Name=Seq`:
+
+```yaml
+environment:
+  - Serilog__WriteTo__1__Name=Seq
+  - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
+```
+
+### API risulta "unhealthy" (Bad Request - Invalid Hostname)
+
+**Causa**: `AllowedHosts` nel `.env` e impostato solo sul dominio (es. `tuodominio.com`) ma l'healthcheck chiama `localhost:8080`. Kestrel rifiuta la richiesta con HTTP 400.
+
+**Soluzione**: imposta `AllowedHosts=*` nel `.env`. E sicuro perche l'API non e esposta direttamente — Nginx fa da reverse proxy.
+
+```bash
+# Verifica dall'interno del container
+docker exec seed-api curl -f http://localhost:8080/health/ready
+```
+
+### Angular SSR: "URL with hostname is not allowed"
+
+**Causa**: Angular SSR (Express/Node.js) controlla l'header `Host` della richiesta HTTP contro la lista `allowedHosts` in `angular.json`. Se il dominio non e nella lista, la richiesta viene rifiutata.
+
+**Soluzione**: in `angular.json`, la proprieta `security.allowedHosts` e impostata su `["*"]`. Questo e sicuro perche Nginx fa gia da filtro con `server_name` — le richieste con Host non valido non arrivano mai a Express. Evita di hardcodare domini specifici per mantenere il repo indipendente dall'ambiente di deploy.
+
 ### Nginx non si avvia
 
-**Causa**: i file del certificato SSL non esistono.
+**Causa**: i file del certificato SSL non esistono o sono vuoti.
 
 ```bash
 # Verifica che i certificati esistano
-docker compose -f docker-compose.deploy.yml exec nginx ls -la /etc/letsencrypt/live/
+sudo ls -la /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
 ```
 
-Se non ci sono, ripeti il punto 8.
+Se mancano o sono vuoti, ripeti il punto 8 (Cloudflare Origin Certificate).
 
 ### Errore 502 Bad Gateway
 
