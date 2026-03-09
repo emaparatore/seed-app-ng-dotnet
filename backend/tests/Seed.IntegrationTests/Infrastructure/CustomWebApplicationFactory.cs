@@ -1,7 +1,5 @@
-using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,26 +49,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.AddHealthChecks()
                 .AddNpgSql(ConnectionString, name: "postgresql", tags: ["db", "ready"]);
 
-            // Disable rate limiting for tests
-            services.AddRateLimiter(options =>
-            {
-                options.AddFixedWindowLimiter("auth", limiter =>
-                {
-                    limiter.PermitLimit = int.MaxValue;
-                    limiter.Window = TimeSpan.FromMinutes(1);
-                });
-                options.AddFixedWindowLimiter("auth-sensitive", limiter =>
-                {
-                    limiter.PermitLimit = int.MaxValue;
-                    limiter.Window = TimeSpan.FromMinutes(1);
-                });
-            });
-
             // Ensure database is created and migrated
             using var scope = services.BuildServiceProvider().CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.Database.Migrate();
         });
+
+        // Disable rate limiting for tests
+        builder.UseSetting("RateLimiting:Auth:PermitLimit", int.MaxValue.ToString());
+        builder.UseSetting("RateLimiting:AuthSensitive:PermitLimit", int.MaxValue.ToString());
 
         builder.UseEnvironment("Development");
     }
