@@ -556,6 +556,12 @@ environment:
 docker exec seed-api curl -f http://localhost:8080/health/ready
 ```
 
+### Angular SSR: "URL with hostname is not allowed"
+
+**Causa**: Angular SSR (Express/Node.js) controlla l'header `Host` della richiesta HTTP contro la lista `allowedHosts` in `angular.json`. Se il dominio non e nella lista, la richiesta viene rifiutata.
+
+**Soluzione**: in `angular.json`, la proprieta `security.allowedHosts` e impostata su `["*"]`. Questo e sicuro perche Nginx fa gia da filtro con `server_name` — le richieste con Host non valido non arrivano mai a Express. Evita di hardcodare domini specifici per mantenere il repo indipendente dall'ambiente di deploy.
+
 ### Nginx non si avvia
 
 **Causa**: i file del certificato SSL non esistono o sono vuoti.

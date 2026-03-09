@@ -28,13 +28,7 @@
             "server": "projects/app/src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": [
-                "localhost",
-                "localhost:4200",
-                "127.0.0.1",
-                "127.0.0.1:4200",
-                "host.docker.internal"
-              ]
+              "allowedHosts": ["*"]
             },
             "ssr": {
               "entry": "projects/app/src/server.ts"
