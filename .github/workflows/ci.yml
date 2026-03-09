@@ -70,7 +70,9 @@ jobs:
           set +e
           ef_output=$(dotnet ef migrations has-pending-model-changes \
             --project src/Seed.Infrastructure \
-            --startup-project src/Seed.Api 2>&1)
+            --startup-project src/Seed.Api \
+            --configuration Release \
+            --no-build 2>&1)
           ef_exit_code=$?
           set -e
 
