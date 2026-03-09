@@ -85,7 +85,7 @@ jobs:
       #   GHCR_TOKEN     — GitHub PAT with read:packages scope
 
       - name: Sync migration scripts to VPS
-        if: steps.check.outputs.should_deploy == 'true' && steps.check.outputs.api == 'success'
+        if: steps.check.outputs.should_deploy == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -114,14 +114,13 @@ jobs:
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
+            # Always run migrations (efbundle is idempotent — safe to run even with no pending changes)
+            echo "Running database migrations..."
+            bash scripts/migrate.sh
+            echo "Migrations complete."
+
             if [ "${{ steps.check.outputs.api }}" = "success" ]; then
               docker compose -f docker-compose.deploy.yml pull api
-
-              # Run database backup + migrations before restarting API
-              echo "Running database migrations..."
-              bash scripts/migrate.sh
-              echo "Migrations complete."
-
               docker compose -f docker-compose.deploy.yml up -d --no-deps api
 
               # Wait for API to become healthy

@@ -23,40 +23,63 @@ BACKUP_FILE="${BACKUP_DIR}/seeddb_${TIMESTAMP}.sql.gz"
 
 echo "=== Database Migration Script ==="
 
-# Step 1: Create backup directory
-mkdir -p "$BACKUP_DIR"
+# Step 1: Ensure postgres is running
+echo "[1/5] Ensuring postgres is running..."
+docker compose -f "$COMPOSE_FILE" up -d postgres
+echo "  Waiting for postgres to be ready..."
+for i in $(seq 1 30); do
+  if docker compose -f "$COMPOSE_FILE" exec -T postgres \
+    pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" > /dev/null 2>&1; then
+    echo "  Postgres is ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: Postgres did not become ready after 30 attempts."
+    exit 1
+  fi
+  sleep 2
+done
 
-# Step 2: Backup the database
-echo "[1/4] Backing up database..."
-docker compose -f "$COMPOSE_FILE" exec -T postgres \
-  pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  --no-owner --no-privileges \
-  | gzip > "$BACKUP_FILE"
+# Step 2: Backup the database (skip on first deploy when DB has no tables)
+echo "[2/5] Backing up database..."
+HAS_TABLES=$(docker compose -f "$COMPOSE_FILE" exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+  "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null || echo "0")
 
-if [ ! -s "$BACKUP_FILE" ]; then
-  echo "ERROR: Backup file is empty. Aborting migration."
-  rm -f "$BACKUP_FILE"
-  exit 1
+if [ "$HAS_TABLES" -gt 0 ] 2>/dev/null; then
+  mkdir -p "$BACKUP_DIR"
+  docker compose -f "$COMPOSE_FILE" exec -T postgres \
+    pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+    --no-owner --no-privileges \
+    | gzip > "$BACKUP_FILE"
+
+  if [ -s "$BACKUP_FILE" ]; then
+    BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+    echo "  Backup saved: $BACKUP_FILE ($BACKUP_SIZE)"
+  else
+    echo "  WARNING: Backup file is empty, removing it."
+    rm -f "$BACKUP_FILE"
+  fi
+else
+  echo "  No tables found (first deploy). Skipping backup."
 fi
 
-BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-echo "  Backup saved: $BACKUP_FILE ($BACKUP_SIZE)"
-
 # Step 3: Apply migrations using EF Core bundle
-echo "[2/4] Applying migrations..."
-docker compose -f "$COMPOSE_FILE" run --rm --no-deps \
+echo "[3/5] Applying migrations..."
+docker compose -f "$COMPOSE_FILE" run --rm \
   -e ConnectionStrings__DefaultConnection="$ConnectionStrings__DefaultConnection" \
+  --no-deps \
   --entrypoint /app/efbundle \
   api \
   --connection "$ConnectionStrings__DefaultConnection"
 
 # Step 4: Verify database health
-echo "[3/4] Verifying database health..."
+echo "[4/5] Verifying database health..."
 docker compose -f "$COMPOSE_FILE" exec -T postgres \
   pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 
 # Step 5: Clean up old backups
-echo "[4/4] Cleaning up backups older than ${RETENTION_DAYS} days..."
-find "$BACKUP_DIR" -name "seeddb_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+echo "[5/5] Cleaning up backups older than ${RETENTION_DAYS} days..."
+find "$BACKUP_DIR" -name "seeddb_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete 2>/dev/null || true
 
 echo "=== Migration complete ==="
