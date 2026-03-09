@@ -44,12 +44,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check which images were built
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JOBS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/jobs)
+          API_RESULT=$(echo "$JOBS" | jq -r '[.jobs[] | select(.name == "build-api") | .conclusion] | first // "skipped"')
+          WEB_RESULT=$(echo "$JOBS" | jq -r '[.jobs[] | select(.name == "build-web") | .conclusion] | first // "skipped"')
+
+          echo "api=$API_RESULT" >> "$GITHUB_OUTPUT"
+          echo "web=$WEB_RESULT" >> "$GITHUB_OUTPUT"
+
+          SERVICES=""
+          if [ "$API_RESULT" = "success" ]; then SERVICES="api"; fi
+          if [ "$WEB_RESULT" = "success" ]; then SERVICES="$SERVICES web"; fi
+          SERVICES=$(echo "$SERVICES" | xargs)
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$SERVICES" ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "No images were built — skipping deploy."
+          else
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "Deploying services: $SERVICES"
+          fi
+
       - name: Deploy info
+        if: steps.check.outputs.should_deploy == 'true'
         run: |
           echo "Deploying to: ${{ needs.determine-environment.outputs.environment }}"
           echo "Image tag:    ${{ needs.determine-environment.outputs.image_tag }}"
-          echo "API image:    ghcr.io/${{ github.repository }}/api:${{ needs.determine-environment.outputs.image_tag }}"
-          echo "Web image:    ghcr.io/${{ github.repository }}/web:${{ needs.determine-environment.outputs.image_tag }}"
+          echo "Services:     ${{ steps.check.outputs.services }}"
 
       # ============================================================
       # OPTION A: Docker Compose on VPS via SSH (ACTIVE)
@@ -60,6 +86,7 @@ jobs:
       #   DEPLOY_SSH_KEY — Private SSH key
       #   GHCR_TOKEN     — GitHub PAT with read:packages scope
       - name: Deploy via SSH
+        if: steps.check.outputs.should_deploy == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -69,7 +96,7 @@ jobs:
             cd /opt/seed-app
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.DEPLOY_USER }}" --password-stdin
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
-            docker compose -f docker-compose.deploy.yml pull api web
+            docker compose -f docker-compose.deploy.yml pull ${{ steps.check.outputs.services }}
             docker compose -f docker-compose.deploy.yml up -d --remove-orphans
             docker image prune -f
 
