@@ -404,7 +404,19 @@ Crea un Personal Access Token (PAT) su GitHub:
 echo "IL_TUO_GITHUB_PAT" | docker login ghcr.io -u TUO_GITHUB_USERNAME --password-stdin
 ```
 
-### 9.2 Avvia lo stack
+### 9.2 Pubblica le immagini Docker (prima volta)
+
+Prima di poter fare il pull, le immagini devono esistere su GitHub Container Registry. Il workflow **Docker Publish** (`docker-publish.yml`) le pubblica automaticamente su push a `master` o `dev`, ma solo se ci sono modifiche in `backend/` o `frontend/web/`.
+
+Se le immagini non sono ancora state pubblicate, puoi triggerare il workflow manualmente:
+
+1. Vai su GitHub → **Actions** → **Docker Publish**
+2. Clicca **Run workflow** → seleziona il branch (`master` o `dev`) → **Run workflow**
+3. Attendi che il workflow completi con successo
+
+Puoi verificare che le immagini esistano su: `https://github.com/TUO_USERNAME/TUO_REPO/pkgs/container`
+
+### 9.3 Avvia lo stack
 
 ```bash
 cd /opt/seed-app    # o /opt/seed-app/docker se hai clonato il repo
@@ -416,7 +428,7 @@ docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-### 9.3 Verifica
+### 9.4 Verifica
 
 ```bash
 # Controlla che tutti i container siano running
