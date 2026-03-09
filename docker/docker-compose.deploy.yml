@@ -41,6 +41,7 @@ services:
       - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
       - JwtSettings__Secret=${JwtSettings__Secret}
       - AllowedHosts=${AllowedHosts}
+      - Serilog__WriteTo__1__Name=Seq
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
     depends_on:
       postgres:
@@ -51,8 +52,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 30s
     networks:
       - app-network
 
