@@ -61,6 +61,48 @@ jobs:
         working-directory: backend
         run: dotnet test tests/Seed.IntegrationTests --no-build -c Release --logger "trx;LogFileName=integration-results.trx"
 
+      - name: Verify no pending model changes
+        working-directory: backend
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.*
+          set +e
+          ef_output=$(dotnet ef migrations has-pending-model-changes \
+            --project src/Seed.Infrastructure \
+            --startup-project src/Seed.Api \
+            --configuration Release \
+            --no-build 2>&1)
+          ef_exit_code=$?
+          set -e
+
+          echo "$ef_output"
+
+          if [ $ef_exit_code -eq 0 ]; then
+            echo "No pending model changes"
+          elif echo "$ef_output" | grep -qi "changes have been made to the model"; then
+            echo "ERROR: Model changes detected without a migration. Run 'dotnet ef migrations add <Name>'"
+            exit 1
+          else
+            echo "ERROR: dotnet ef check failed for a reason unrelated to pending model changes."
+            echo "Run 'dotnet ef migrations has-pending-model-changes --verbose' to investigate."
+            exit 1
+          fi
+
+      - name: Build migration bundle
+        working-directory: backend
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          dotnet ef migrations bundle \
+            --project src/Seed.Infrastructure \
+            --startup-project src/Seed.Api \
+            --configuration Release \
+            --no-build \
+            -o /tmp/efbundle-test \
+            --force
+          echo "Migration bundle built successfully"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

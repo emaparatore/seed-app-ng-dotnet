@@ -127,6 +127,18 @@ Sostituisci `seed-app-ng-dotnet` con `nuovo-progetto` nelle righe delle immagini
 
 Cambia anche il `name:` del progetto compose (es. `nuovo-progetto-deploy`) per evitare conflitti con altre app sullo stesso VPS.
 
+### Configura i backup per le migrazioni
+
+```bash
+sudo mkdir -p /opt/nuovo-progetto/backups
+sudo chown deploy:deploy /opt/nuovo-progetto/backups
+
+# Copia gli script di migrazione dal tuo PC locale
+scp -r docker/scripts deploy@TUO_IP_VPS:/opt/nuovo-progetto/
+```
+
+> Il deploy automatico aggiorna gli script ad ogni rilascio e esegue backup + migrazioni prima di riavviare l'API. Vedi [Strategia Migration in Produzione](production-migrations.md) per dettagli.
+
 ---
 
 ## 5. Cloudflare — Aggiungi il Nuovo Dominio

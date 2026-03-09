@@ -435,6 +435,33 @@ docker compose -f docker-compose.deploy.yml logs api
 docker compose -f docker-compose.deploy.yml logs web
 ```
 
+### 9.5 Setup Migrazioni Database
+
+Dopo il primo deploy, configura la directory per i backup automatici del database. I backup vengono creati automaticamente prima di ogni migrazione durante il deploy.
+
+```bash
+# Crea la directory per i backup
+sudo mkdir -p /opt/seed-app/backups
+sudo chown deploy:deploy /opt/seed-app/backups
+```
+
+Copia gli script di migrazione dal repository (il deploy automatico li aggiorna ad ogni rilascio, ma per il primo deploy servono manualmente):
+
+```bash
+# Dal tuo PC locale
+scp -r docker/scripts deploy@TUO_IP_VPS:/opt/seed-app/
+```
+
+Verifica che gli script siano eseguibili:
+
+```bash
+ssh deploy@TUO_IP_VPS
+ls -la /opt/seed-app/scripts/
+# Devi vedere migrate.sh e restore.sh con permessi di esecuzione
+```
+
+> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Strategia Migration in Produzione](production-migrations.md).
+
 ---
 
 ## 10. Configurazione GitHub Actions Secrets
@@ -703,9 +730,18 @@ docker compose -f docker-compose.deploy.yml ps
 docker compose -f docker-compose.deploy.yml exec api sh
 docker compose -f docker-compose.deploy.yml exec postgres psql -U seed -d seeddb
 
-# Backup del database
+# Backup del database (manuale)
 docker compose -f docker-compose.deploy.yml exec postgres pg_dump -U seed seeddb > backup_$(date +%Y%m%d).sql
 
-# Restore del database
+# Restore del database (manuale)
 cat backup.sql | docker compose -f docker-compose.deploy.yml exec -T postgres psql -U seed seeddb
+
+# Esegui migrazioni manualmente (backup + migrazione)
+bash scripts/migrate.sh
+
+# Restore da backup pre-migrazione (interattivo)
+bash scripts/restore.sh /opt/seed-app/backups/seeddb_YYYYMMDD_HHMMSS.sql.gz
+
+# Lista backup disponibili
+ls -lh /opt/seed-app/backups/
 ```

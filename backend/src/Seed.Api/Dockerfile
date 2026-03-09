@@ -18,9 +18,23 @@ RUN dotnet publish src/Seed.Api/Seed.Api.csproj \
     -o /app/publish \
     --no-restore
 
+# Build EF Core migration bundle
+RUN dotnet tool install --global dotnet-ef --version 10.0.*
+ENV PATH="$PATH:/root/.dotnet/tools"
+RUN dotnet ef migrations bundle \
+    --project src/Seed.Infrastructure \
+    --startup-project src/Seed.Api \
+    --configuration Release \
+    --no-build \
+    -o /app/efbundle \
+    --self-contained \
+    -r linux-x64 \
+    --force
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish .
+COPY --from=build /app/efbundle ./efbundle
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Seed.Api.dll"]

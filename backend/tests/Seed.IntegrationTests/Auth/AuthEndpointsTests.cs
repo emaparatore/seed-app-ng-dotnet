@@ -52,7 +52,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
             email = "", password = "", firstName = "", lastName = ""
         });
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]
