@@ -108,6 +108,31 @@ Database: PostgreSQL 16, DB `seeddb`, user `seed`, password `seed_password`, por
 
 Connection string for local development: `Host=localhost;Database=seeddb;Username=seed;Password=seed_password`
 
+## Database Migrations
+
+See `docs/production-migrations.md` for the full production migration strategy.
+
+**Rules for production-safe migrations:**
+- **Always safe:** new table, nullable column, column with default value, new index
+- **Two-deploy pattern:** rename column, change column type (add new → migrate data → drop old)
+- **Three-step pattern:** add NOT NULL column (add nullable → backfill → alter to NOT NULL)
+- **Never in a single deploy:** drop a column/table in active use by the running code
+- **Large tables (100K+ rows):** use `CREATE INDEX CONCURRENTLY` via raw SQL in migrations
+- **Never modify** an existing migration that has been applied to any environment — always create a new one
+- **Name descriptively:** `AddOrdersTable`, `AddEmailIndexToUsers`, not `Update1` or `Fix`
+
+**Commands (run from `backend/`):**
+```bash
+# Add a new migration
+dotnet ef migrations add <MigrationName> --project src/Seed.Infrastructure --startup-project src/Seed.Api
+
+# Build migration bundle locally (to verify it compiles)
+dotnet ef migrations bundle --project src/Seed.Infrastructure --startup-project src/Seed.Api -o efbundle --force
+
+# Check for pending model changes (CI runs this automatically)
+dotnet ef migrations has-pending-model-changes --project src/Seed.Infrastructure --startup-project src/Seed.Api
+```
+
 ## Development Patterns
 
 - **Backend CQRS:** New features go as MediatR `IRequest`/`IRequestHandler` pairs in `Seed.Application`. Validators use FluentValidation. DTOs use Mapster mapping configs.

@@ -84,20 +84,23 @@ builder.Services.AddCors(options =>
     });
 });
 
+var rateLimitAuth = builder.Configuration.GetValue("RateLimiting:Auth:PermitLimit", 10);
+var rateLimitAuthSensitive = builder.Configuration.GetValue("RateLimiting:AuthSensitive:PermitLimit", 5);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     options.AddFixedWindowLimiter("auth", limiter =>
     {
-        limiter.PermitLimit = 10;
+        limiter.PermitLimit = rateLimitAuth;
         limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
     });
 
     options.AddFixedWindowLimiter("auth-sensitive", limiter =>
     {
-        limiter.PermitLimit = 5;
+        limiter.PermitLimit = rateLimitAuthSensitive;
         limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
     });

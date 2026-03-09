@@ -83,6 +83,18 @@ jobs:
       #   DEPLOY_USER    — SSH user (e.g. "deploy")
       #   DEPLOY_SSH_KEY — Private SSH key
       #   GHCR_TOKEN     — GitHub PAT with read:packages scope
+
+      - name: Sync migration scripts to VPS
+        if: steps.check.outputs.should_deploy == 'true' && steps.check.outputs.api == 'success'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "docker/scripts/"
+          target: "/opt/seed-app/"
+          strip_components: 1
+
       - name: Deploy via SSH
         if: steps.check.outputs.should_deploy == 'true'
         uses: appleboy/ssh-action@v1
@@ -104,7 +116,27 @@ jobs:
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
             if [ "${{ steps.check.outputs.api }}" = "success" ]; then
               docker compose -f docker-compose.deploy.yml pull api
+
+              # Run database backup + migrations before restarting API
+              echo "Running database migrations..."
+              bash scripts/migrate.sh
+              echo "Migrations complete."
+
               docker compose -f docker-compose.deploy.yml up -d --no-deps api
+
+              # Wait for API to become healthy
+              echo "Waiting for API health check..."
+              for i in $(seq 1 30); do
+                if docker compose -f docker-compose.deploy.yml exec -T api curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; then
+                  echo "API is healthy."
+                  break
+                fi
+                if [ "$i" -eq 30 ]; then
+                  echo "ERROR: API health check failed after 30 attempts."
+                  exit 1
+                fi
+                sleep 2
+              done
             fi
             if [ "${{ steps.check.outputs.web }}" = "success" ]; then
               docker compose -f docker-compose.deploy.yml pull web
