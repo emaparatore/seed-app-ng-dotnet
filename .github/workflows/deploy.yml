@@ -91,7 +91,15 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/seed-app
+            if [ -f /opt/seed-app/docker-compose.deploy.yml ]; then
+              DEPLOY_DIR=/opt/seed-app
+            elif [ -f /opt/seed-app/docker/docker-compose.deploy.yml ]; then
+              DEPLOY_DIR=/opt/seed-app/docker
+            else
+              echo "docker-compose.deploy.yml not found in /opt/seed-app or /opt/seed-app/docker"
+              exit 1
+            fi
+            cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
             if [ "${{ steps.check.outputs.api }}" = "success" ]; then
