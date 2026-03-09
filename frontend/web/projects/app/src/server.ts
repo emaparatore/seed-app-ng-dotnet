@@ -24,6 +24,15 @@ app.use(
 );
 
 /**
+ * Normalize the Host header so Angular's allowedHosts check always passes.
+ * Real host validation is handled by the reverse proxy (Nginx).
+ */
+app.use((req, _res, next) => {
+  req.headers['host'] = 'localhost';
+  next();
+});
+
+/**
  * Handle all other requests by rendering the Angular application.
  */
 app.use((req, res, next) => {

@@ -28,7 +28,7 @@
             "server": "projects/app/src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": ["*"]
+              "allowedHosts": ["localhost"]
             },
             "ssr": {
               "entry": "projects/app/src/server.ts"
