@@ -68,7 +68,6 @@ fi
 echo "[3/5] Applying migrations..."
 docker compose -f "$COMPOSE_FILE" run --rm \
   -e ConnectionStrings__DefaultConnection="$ConnectionStrings__DefaultConnection" \
-  --no-deps \
   --entrypoint /app/efbundle \
   api \
   --connection "$ConnectionStrings__DefaultConnection"
