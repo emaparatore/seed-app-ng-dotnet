@@ -3,10 +3,11 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from 'shared-auth';
+import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule],
+  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, PwaInstallPrompt],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
