@@ -189,7 +189,7 @@ The project uses GitHub Actions with a branch strategy:
 Workflows:
 - **CI** - Build and test on every PR (`ci.yml`)
 - **Docker Publish** - Build and push images to ghcr.io on merge (`docker-publish.yml`)
-- **Deploy** - Deployment skeleton, ready to configure (`deploy.yml`)
+- **Deploy** - Deploy to VPS via SSH with Docker Compose (`deploy.yml`)
 - **Hotfix Back-merge** - Auto PR `master` → `dev` after hotfix (`hotfix-backmerge.yml`)
 
 See [docs/ci-cd.md](docs/ci-cd.md) for full documentation.

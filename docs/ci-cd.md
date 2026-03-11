@@ -76,8 +76,9 @@ Path filtering applies here too - only changed images are rebuilt.
 
 **Trigger:** After successful Docker Publish workflow
 
-**Status:** Skeleton with three commented options:
-- **Option A:** Docker Compose on VPS via SSH
+**Active method:** Docker Compose on VPS via SSH — pulls images from GHCR, runs EF Core migrations, deploys with health checks, and prunes old images.
+
+Alternative options (commented out in the workflow):
 - **Option B:** Azure Container Apps
 - **Option C:** Kubernetes (kubectl)
 

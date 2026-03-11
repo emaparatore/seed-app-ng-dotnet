@@ -74,6 +74,29 @@ cp .env.example .env</code></pre>
   </section>
 
   <section class="section">
+    <h2>CI / CD</h2>
+    <p class="subtle-note">GitHub Actions pipelines automate the full path from code to production.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>CI</h3>
+        <p>Build and test on every pull request (<code>ci.yml</code>)</p>
+      </div>
+      <div class="card">
+        <h3>Docker Publish</h3>
+        <p>Build and push images to ghcr.io on merge (<code>docker-publish.yml</code>)</p>
+      </div>
+      <div class="card">
+        <h3>Deploy</h3>
+        <p>Deploy to VPS via SSH with Docker Compose, EF Core migrations, and health checks (<code>deploy.yml</code>)</p>
+      </div>
+      <div class="card">
+        <h3>Hotfix Back-merge</h3>
+        <p>Auto PR <code>master</code> → <code>dev</code> after hotfix (<code>hotfix-backmerge.yml</code>)</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
     <h2>Project structure</h2>
     <pre class="tree"><code>seed-app/
 |-- backend/
@@ -93,8 +116,6 @@ cp .env.example .env</code></pre>
 |   `-- mobile/
 `-- docker/</code></pre>
   </section>
-
-  # powered by CI/CD pipelines, GitHub Actions, and a commitment to best practices in both frontend and backend development.
 
   <footer class="footer">
     <p>Open the API at <code>http://localhost:5000/swagger</code> &middot; Frontend at <code>http://localhost:4200</code></p>
