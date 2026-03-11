@@ -1,89 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="sGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0%" stop-color="#29B5D5"/>
-      <stop offset="55%" stop-color="#3DB560"/>
-      <stop offset="100%" stop-color="#4CAF50"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0C1210"/>
+      <stop offset="1" stop-color="#0F1F1B"/>
     </linearGradient>
-    <linearGradient id="sGradInner" x1="0.5" y1="0" x2="0.5" y2="1">
-      <stop offset="0%" stop-color="#5DD0EA" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#6DC86E" stop-opacity="0.3"/>
+    <linearGradient id="sGrad" x1="100" y1="40" x2="420" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="0.5" stop-color="#0D9488"/>
+      <stop offset="1" stop-color="#134E4A"/>
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#00000025"/>
-    </filter>
+    <linearGradient id="leafG" x1="200" y1="290" x2="320" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <linearGradient id="seedG" x1="225" y1="370" x2="295" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FCD34D"/>
+      <stop offset="0.6" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#B45309"/>
+    </linearGradient>
+    <pattern id="diamonds" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+      <polygon points="24,4 44,24 24,44 4,24" fill="none" stroke="#5EEAD4" stroke-width="0.5" opacity="0.08"/>
+    </pattern>
   </defs>
 
-  <!-- S shape: two thick rounded arcs forming the letter S -->
-  <!-- Upper arc (curves right, blue-ish) -->
-  <path
-    d="M 60,30
-       C 60,15 75,8 95,8
-       L 130,8
-       C 160,8 178,24 178,50
-       C 178,76 158,92 128,96
-       L 100,100"
-    fill="none"
-    stroke="url(#sGrad)"
-    stroke-width="36"
-    stroke-linecap="round"
-    filter="url(#shadow)"
-  />
-  <!-- Lower arc (curves left, green-ish) -->
-  <path
-    d="M 140,100
-       C 140,100 100,104 72,108
-       C 42,112 22,128 22,154
-       C 22,180 42,196 72,196
-       L 108,196
-       C 138,196 158,180 158,158"
-    fill="none"
-    stroke="#3DB560"
-    stroke-width="36"
-    stroke-linecap="round"
-    filter="url(#shadow)"
-  />
-  <!-- Highlight/gloss on upper arc -->
-  <path
-    d="M 72,22
-       C 72,14 82,10 95,10
-       L 128,10
-       C 152,10 166,22 166,44"
-    fill="none"
-    stroke="white"
-    stroke-width="8"
-    stroke-linecap="round"
-    stroke-opacity="0.35"
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#diamonds)"/>
+  <rect x="2" y="2" width="508" height="508" rx="94" fill="none" stroke="#14B8A6" stroke-width="1.5" opacity="0.1"/>
+
+  <!-- S -->
+  <path d="
+    M 340 100
+    C 314 68, 272 54, 232 62
+    C 186 72, 160 104, 166 142
+    C 172 176, 204 198, 256 214
+    L 276 220
+    C 348 242, 400 278, 396 344
+    C 392 406, 340 448, 264 454
+    C 198 458, 142 428, 112 384
+  "
+  fill="none"
+  stroke="url(#sGrad)"
+  stroke-width="72"
+  stroke-linecap="square"
+  stroke-linejoin="miter"
   />
 
-  <!-- Seed (brown oval) in lower inner curve -->
-  <ellipse cx="90" cy="158" rx="18" ry="12"
-    fill="#C96F30"
-    transform="rotate(-15, 90, 158)"
-    filter="url(#shadow)"
-  />
-  <!-- Seed highlight -->
-  <ellipse cx="86" cy="154" rx="7" ry="4"
-    fill="#E8944A"
-    transform="rotate(-15, 86, 154)"
-    opacity="0.7"
-  />
+  <!-- Leaf -->
+  <path d="M 256 300 L 192 262 C 184 284, 206 314, 248 312 Z" fill="url(#leafG)"/>
 
   <!-- Stem -->
-  <line x1="90" y1="144" x2="90" y2="124"
-    stroke="#388E3C" stroke-width="4" stroke-linecap="round"/>
+  <line x1="256" y1="314" x2="256" y2="344" stroke="#0F766E" stroke-width="4" stroke-linecap="square"/>
 
-  <!-- Left leaf -->
-  <path d="M 90,136 C 74,126 62,110 72,112 C 80,114 88,128 90,136 Z"
-    fill="#4CAF50"/>
-  <!-- Left leaf vein -->
-  <path d="M 90,136 C 80,126 72,118 72,112"
-    fill="none" stroke="#388E3C" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
-
-  <!-- Right leaf -->
-  <path d="M 90,136 C 106,126 118,110 108,112 C 100,114 92,128 90,136 Z"
-    fill="#66BB6A"/>
-  <!-- Right leaf vein -->
-  <path d="M 90,136 C 100,126 108,118 108,112"
-    fill="none" stroke="#388E3C" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+  <!-- Seed -->
+  <ellipse cx="256" cy="372" rx="42" ry="30" fill="url(#seedG)"/>
+  <ellipse cx="248" cy="364" rx="15" ry="10" fill="#FDE68A" opacity="0.35"/>
 </svg>
