@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="sGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#29B5D5"/>
+      <stop offset="55%" stop-color="#3DB560"/>
+      <stop offset="100%" stop-color="#4CAF50"/>
+    </linearGradient>
+    <linearGradient id="sGradInner" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#5DD0EA" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#6DC86E" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#00000025"/>
+    </filter>
+  </defs>
+
+  <!-- S shape: two thick rounded arcs forming the letter S -->
+  <!-- Upper arc (curves right, blue-ish) -->
+  <path
+    d="M 60,30
+       C 60,15 75,8 95,8
+       L 130,8
+       C 160,8 178,24 178,50
+       C 178,76 158,92 128,96
+       L 100,100"
+    fill="none"
+    stroke="url(#sGrad)"
+    stroke-width="36"
+    stroke-linecap="round"
+    filter="url(#shadow)"
+  />
+  <!-- Lower arc (curves left, green-ish) -->
+  <path
+    d="M 140,100
+       C 140,100 100,104 72,108
+       C 42,112 22,128 22,154
+       C 22,180 42,196 72,196
+       L 108,196
+       C 138,196 158,180 158,158"
+    fill="none"
+    stroke="#3DB560"
+    stroke-width="36"
+    stroke-linecap="round"
+    filter="url(#shadow)"
+  />
+  <!-- Highlight/gloss on upper arc -->
+  <path
+    d="M 72,22
+       C 72,14 82,10 95,10
+       L 128,10
+       C 152,10 166,22 166,44"
+    fill="none"
+    stroke="white"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-opacity="0.35"
+  />
+
+  <!-- Seed (brown oval) in lower inner curve -->
+  <ellipse cx="90" cy="158" rx="18" ry="12"
+    fill="#C96F30"
+    transform="rotate(-15, 90, 158)"
+    filter="url(#shadow)"
+  />
+  <!-- Seed highlight -->
+  <ellipse cx="86" cy="154" rx="7" ry="4"
+    fill="#E8944A"
+    transform="rotate(-15, 86, 154)"
+    opacity="0.7"
+  />
+
+  <!-- Stem -->
+  <line x1="90" y1="144" x2="90" y2="124"
+    stroke="#388E3C" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Left leaf -->
+  <path d="M 90,136 C 74,126 62,110 72,112 C 80,114 88,128 90,136 Z"
+    fill="#4CAF50"/>
+  <!-- Left leaf vein -->
+  <path d="M 90,136 C 80,126 72,118 72,112"
+    fill="none" stroke="#388E3C" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Right leaf -->
+  <path d="M 90,136 C 106,126 118,110 108,112 C 100,114 92,128 90,136 Z"
+    fill="#66BB6A"/>
+  <!-- Right leaf vein -->
+  <path d="M 90,136 C 100,126 108,118 108,112"
+    fill="none" stroke="#388E3C" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+</svg>

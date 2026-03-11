@@ -11,6 +11,15 @@
 .brand {
   cursor: pointer;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
 }
 
 .spacer {

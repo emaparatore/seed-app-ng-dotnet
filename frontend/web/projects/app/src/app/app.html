@@ -1,5 +1,8 @@
 <mat-toolbar color="primary" class="top-nav">
-  <span class="brand" routerLink="/">Seed App</span>
+  <span class="brand" routerLink="/">
+    <img src="/logo.svg" alt="Seed App" class="nav-logo" />
+    Seed App
+  </span>
   <span class="spacer"></span>
 
   @if (authService.isAuthenticated()) {
