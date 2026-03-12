@@ -5,10 +5,12 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Seed.Application.Auth.Commands.ForgotPassword;
 using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
+using Seed.Application.Auth.Commands.ResetPassword;
 using Seed.Application.Auth.Queries.GetCurrentUser;
 
 namespace Seed.Api.Controllers;
@@ -48,6 +50,22 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.Succeeded ? NoContent() : BadRequest(new { errors = result.Errors });
+    }
+
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordCommand command)
+    {
+        var result = await sender.Send(command);
+        return Ok(new { message = result.Data });
+    }
+
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordCommand command)
+    {
+        var result = await sender.Send(command);
+        return result.Succeeded ? Ok(new { message = result.Data }) : BadRequest(new { errors = result.Errors });
     }
 
     [Authorize]

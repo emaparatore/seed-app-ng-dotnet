@@ -32,6 +32,17 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddScoped<ITokenService, TokenService>();
 
+        var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
+        if (smtpSection.Exists() && !string.IsNullOrWhiteSpace(smtpSection[nameof(SmtpSettings.Host)]))
+        {
+            services.Configure<SmtpSettings>(smtpSection);
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
+        else
+        {
+            services.AddScoped<IEmailService, ConsoleEmailService>();
+        }
+
         return services;
     }
 }
