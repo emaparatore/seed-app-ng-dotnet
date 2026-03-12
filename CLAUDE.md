@@ -20,7 +20,7 @@ This is a full-stack seed/starter application with three main areas:
 - `Seed.Infrastructure` — EF Core with Npgsql (PostgreSQL), ASP.NET Identity, Serilog sinks. References Application.
 - `Seed.Shared` — Cross-cutting utilities shared by Application and Api.
 
-**Key packages:** MediatR 14, FluentValidation 12, Mapster 7, EF Core 10, Npgsql EF 10, Asp.Versioning, JWT Bearer auth, Serilog (Console + Seq sinks), Swashbuckle/OpenAPI.
+**Key packages:** MediatR 14, FluentValidation 12, Mapster 7, EF Core 10, Npgsql EF 10, Asp.Versioning, JWT Bearer auth, MailKit (SMTP email), Serilog (Console + Seq sinks), Swashbuckle/OpenAPI.
 
 **Test projects** (`backend/tests/`):
 - `Seed.UnitTests` — xUnit + NSubstitute + FluentAssertions. Tests Application and Domain.
@@ -139,4 +139,5 @@ dotnet ef migrations has-pending-model-changes --project src/Seed.Infrastructure
 - **API versioning:** Uses `Asp.Versioning.Mvc` — follow existing versioning conventions when adding new controllers.
 - **Angular libraries:** When adding shared functionality, export it from the appropriate library's `public-api.ts`. Build libraries before the app in CI.
 - **Angular signals:** The app uses Angular signals (`signal()`) — prefer signals over observables for local component state.
+- **Email service:** SMTP configuration is optional (`Smtp` section in `appsettings.json`). If `Smtp:Host` is set, uses `SmtpEmailService` (MailKit); otherwise falls back to `ConsoleEmailService` (logs to console). See `docs/AUTH_IMPLEMENTATION.md` for details.
 - **Nullable references:** All .NET projects have `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`.

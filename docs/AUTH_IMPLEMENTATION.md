@@ -33,6 +33,19 @@ E' stato implementato un sistema completo di autenticazione JWT con refresh toke
 4. LOGOUT
    Client → POST /api/v1/auth/logout { refreshToken: "..." }
    Server → revoca il refresh token nel DB
+
+5. RESET PASSWORD
+   Client → POST /api/v1/auth/forgot-password { email: "..." }
+   Server → cerca utente per email
+          → se esiste e attivo: genera token di reset (ASP.NET Identity)
+          → invia email con token via IEmailService
+          → ritorna SEMPRE successo (protezione email enumeration)
+
+   Client → POST /api/v1/auth/reset-password { email, token, newPassword }
+   Server → valida utente (esiste e attivo)
+          → valida token via Identity (ResetPasswordAsync)
+          → resetta la password
+          → ritorna successo o errore
 ```
 
 ### Token Rotation
@@ -61,6 +74,7 @@ Questo limita i danni in caso di furto del token.
 | File | Descrizione |
 |------|-------------|
 | `JwtSettings.cs` | POCO con Secret, Issuer, Audience, AccessTokenExpirationMinutes (default 60), RefreshTokenExpirationDays (default 30) |
+| `SmtpSettings.cs` | POCO con Host, Port (587), Username, Password, FromEmail, FromName ("Seed App"), UseSsl (true) |
 
 ### Application Layer (`Seed.Application/`)
 
@@ -69,11 +83,14 @@ Questo limita i danni in caso di furto del token.
 | `Common/Result.cs` | Tipo generico `Result<T>` con Succeeded, Data, Errors |
 | `Common/Models/` | AuthResponse, UserDto, TokenResult — record immutabili per le risposte |
 | `Common/Interfaces/ITokenService.cs` | Interfaccia per generazione/refresh/revoca token |
+| `Common/Interfaces/IEmailService.cs` | Interfaccia per invio email (metodo `SendPasswordResetEmailAsync`) |
 | `DependencyInjection.cs` | Registra MediatR e FluentValidation |
 | `Auth/Commands/Register/` | RegisterCommand + Validator + Handler |
 | `Auth/Commands/Login/` | LoginCommand + Validator + Handler |
 | `Auth/Commands/RefreshToken/` | RefreshTokenCommand + Handler |
 | `Auth/Commands/Logout/` | LogoutCommand + Handler |
+| `Auth/Commands/ForgotPassword/` | ForgotPasswordCommand + Validator + Handler. Genera token e invia email. Ritorna sempre successo (anti-enumeration) |
+| `Auth/Commands/ResetPassword/` | ResetPasswordCommand + Validator + Handler. Valida token e resetta password via Identity |
 | `Auth/Queries/GetCurrentUser/` | GetCurrentUserQuery + Handler |
 
 Ogni command/query segue il pattern CQRS con MediatR:
@@ -88,13 +105,15 @@ Ogni command/query segue il pattern CQRS con MediatR:
 | `Persistence/ApplicationDbContext.cs` | Estende `IdentityDbContext`, include `DbSet<RefreshToken>` |
 | `Persistence/Configurations/` | EF Core fluent configurations per ApplicationUser e RefreshToken |
 | `Services/TokenService.cs` | Implementa ITokenService: genera JWT con claims, gestisce refresh token su DB |
-| `DependencyInjection.cs` | Registra DbContext, Identity, JwtSettings, TokenService |
+| `Services/SmtpEmailService.cs` | Implementa IEmailService via MailKit. Invia email HTML con token di reset |
+| `Services/ConsoleEmailService.cs` | Implementa IEmailService come fallback: logga il token su console (per sviluppo) |
+| `DependencyInjection.cs` | Registra DbContext, Identity, JwtSettings, TokenService. Auto-switch email service: se `Smtp:Host` e' configurato usa SmtpEmailService, altrimenti ConsoleEmailService |
 
 ### API Layer (`Seed.Api/`)
 
 | File | Descrizione |
 |------|-------------|
-| `Controllers/AuthController.cs` | 5 endpoint sotto `/api/v1/auth/` |
+| `Controllers/AuthController.cs` | 7 endpoint sotto `/api/v1/auth/` |
 | `Program.cs` | Configura JWT authentication, CORS, DI |
 | `appsettings.json` | ConnectionStrings e JwtSettings |
 
@@ -107,6 +126,8 @@ Ogni command/query segue il pattern CQRS con MediatR:
 | POST | `/api/v1/auth/refresh` | No | Rinnovo token con refresh token |
 | POST | `/api/v1/auth/logout` | Si | Revoca del refresh token |
 | GET | `/api/v1/auth/me` | Si | Dati dell'utente corrente |
+| POST | `/api/v1/auth/forgot-password` | No | Richiesta reset password (invia email con token). Rate limited |
+| POST | `/api/v1/auth/reset-password` | No | Reset password con token ricevuto via email. Rate limited |
 
 ---
 
@@ -116,7 +137,7 @@ Ogni command/query segue il pattern CQRS con MediatR:
 
 | File | Descrizione |
 |------|-------------|
-| `models/auth.models.ts` | Interfacce TypeScript: User, LoginRequest, RegisterRequest, AuthResponse |
+| `models/auth.models.ts` | Interfacce TypeScript: User, LoginRequest, RegisterRequest, AuthResponse, ForgotPasswordRequest, ResetPasswordRequest, MessageResponse |
 | `services/auth.service.ts` | Servizio singleton con Angular signals per lo stato auth |
 | `interceptors/auth.interceptor.ts` | HTTP interceptor funzionale per Bearer token + auto-refresh |
 | `guards/auth.guard.ts` | Protegge rotte che richiedono autenticazione |
@@ -136,6 +157,8 @@ Metodi principali:
 - `refreshToken()` → rinnova i token usando il refresh token (con protezione chiamate concorrenti)
 - `logout()` → revoca il token lato server, pulisce localStorage e signals, redirect a /login
 - `getProfile()` → carica dati utente dall'endpoint /me
+- `forgotPassword(request)` → chiama API forgot-password, ritorna Observable con messaggio di conferma
+- `resetPassword(request)` → chiama API reset-password con email, token e nuova password
 - `initializeAuth()` → ripristina lo stato auth da localStorage al boot dell'app (usato da `APP_INITIALIZER`)
 
 SSR-safe: tutti gli accessi a `localStorage` sono protetti da `typeof window !== 'undefined'`.
@@ -155,6 +178,8 @@ L'interceptor funzionale (`HttpInterceptorFn`):
 |--------|------|-------|-------------|
 | Login | `/login` | guestGuard | Form email + password con Angular Material |
 | Register | `/register` | guestGuard | Form nome, cognome, email, password |
+| Forgot Password | `/forgot-password` | guestGuard | Form email per richiedere reset password |
+| Reset Password | `/reset-password` | guestGuard | Form email + token + nuova password |
 | Home | `/` | authGuard | Pagina protetta con info utente |
 
 Layout: toolbar Material in cima con nome utente + bottone Logout (visibili solo se autenticato).
@@ -224,6 +249,33 @@ Non e' necessario modificare il codice: l'interceptor e il meccanismo di refresh
 
 Il backend e' configurato per accettare richieste da `http://localhost:4200` (Angular dev server).
 
+### Configurazione SMTP (per reset password)
+
+```json
+{
+  "Smtp": {
+    "Host": "",
+    "Port": 587,
+    "Username": "",
+    "Password": "",
+    "FromEmail": "noreply@seedapp.com",
+    "FromName": "Seed App",
+    "UseSsl": true
+  }
+}
+```
+
+**Auto-switch del servizio email:**
+- Se `Smtp:Host` e' configurato (non vuoto) → viene usato `SmtpEmailService` (invio reale via MailKit)
+- Se `Smtp:Host` e' vuoto o assente → viene usato `ConsoleEmailService` (logga il token su console, utile in sviluppo)
+
+Non e' necessario modificare il codice: basta compilare la sezione `Smtp` in `appsettings.json` (o variabili d'ambiente) per attivare l'invio reale delle email.
+
+**Dettagli email di reset:**
+- Formato HTML con token in evidenza (l'utente lo copia e incolla nel form di reset)
+- Il token scade dopo 1 ora (default ASP.NET Identity)
+- L'email include un disclaimer: "If you did not request this, please ignore this email"
+
 ### Password Policy
 
 - Minimo 8 caratteri
@@ -279,15 +331,25 @@ Il frontend sara' su `http://localhost:4200`.
 6. Effettuare login con le credenziali create
 7. Testare anche da Swagger: copiare l'access token e usarlo nel pulsante "Authorize"
 
+### 6. Test del flusso reset password
+
+1. Dalla pagina di login, cliccare "Forgot password?"
+2. Inserire l'email dell'utente registrato e inviare
+3. Se SMTP non configurato: cercare il token nei log della console del backend
+4. Se SMTP configurato: controllare l'email ricevuta con il token
+5. Navigare a `/reset-password`
+6. Inserire email, token copiato, e nuova password (min 8 caratteri, maiuscola, minuscola, numero)
+7. Dopo il successo, cliccare "Go to Login" e accedere con la nuova password
+
 ---
 
 ## Cosa NON e' stato implementato (Fase 4 — opzionale)
 
 - Ruoli e autorizzazione basata su ruoli
 - Cambio password
-- Reset password (richiede servizio email)
 - Conferma email
-- Rate limiting
 - Account lockout
 
 Queste feature sono descritte nel file `AUTH_PROPOSAL.md` e possono essere aggiunte in seguito.
+
+> **Nota:** Il reset password e il rate limiting sono stati implementati. Vedi le sezioni sopra per i dettagli.
