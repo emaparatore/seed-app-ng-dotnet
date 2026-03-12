@@ -110,12 +110,23 @@ ConnectionStrings__DefaultConnection=Host=postgres;Database=nuovoprogettoDb;User
 JwtSettings__Secret=<generata con: openssl rand -base64 32>
 AllowedHosts=nuovodominio.com
 
+# --- SMTP (opzionale, per invio email) ---
+Smtp__Host=smtp-relay.brevo.com
+Smtp__Port=587
+Smtp__Username=tua-email@brevo.com
+Smtp__Password=<SMTP key da Brevo>
+Smtp__FromEmail=noreply@nuovodominio.com
+Smtp__FromName=Nuovo Progetto
+Smtp__UseSsl=true
+
 # --- VPS Deployment ---
 DOMAIN_NAME=nuovodominio.com
 GHCR_OWNER=tuo-github-username
 IMAGE_TAG=latest
 CERTBOT_EMAIL=tua-email@example.com
 ```
+
+> **SMTP**: Se non configuri `Smtp__Host`, le email vengono loggate in console (utile per debug). Per la guida completa alla configurazione SMTP (Gmail per dev, Brevo per prod, DNS setup) vedi [Configurazione SMTP](smtp-configuration.md).
 
 ### Aggiorna i nomi delle immagini nel compose
 

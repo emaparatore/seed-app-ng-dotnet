@@ -111,8 +111,8 @@
 
 #### 4.2 Cambio e reset password
 - `POST /api/v1/auth/change-password` — richiede password corrente + nuova
-- `POST /api/v1/auth/forgot-password` — invia email con token di reset (richiede servizio email)
-- `POST /api/v1/auth/reset-password` — valida token e imposta nuova password
+- ~~`POST /api/v1/auth/forgot-password` — invia email con token di reset (richiede servizio email)~~ ✅ Implementato (PR #56). Vedi `AUTH_IMPLEMENTATION.md`
+- ~~`POST /api/v1/auth/reset-password` — valida token e imposta nuova password~~ ✅ Implementato (PR #56). Vedi `AUTH_IMPLEMENTATION.md`
 
 #### 4.3 Conferma email
 - Invio email di conferma alla registrazione
@@ -205,7 +205,7 @@ frontend/web/projects/
 | P1 | Ruoli e autorizzazione | Basso |
 | P2 | Cambio password | Basso |
 | P2 | Rate limiting e account lockout | Basso |
-| P3 | Forgot/reset password (richiede email service) | Medio |
+| ~~P3~~ | ~~Forgot/reset password (richiede email service)~~ ✅ Implementato (PR #56) | ~~Medio~~ |
 | P3 | Conferma email | Medio |
 
 ## Note tecniche

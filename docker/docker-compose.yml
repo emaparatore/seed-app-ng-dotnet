@@ -81,7 +81,12 @@ services:
         condition: service_started
     command: >
       sh -c "set -e;
-      if [ ! -d node_modules/@angular ]; then npm ci; fi;
+      LOCK_HASH=$$(sha256sum package-lock.json | cut -d' ' -f1);
+      if [ ! -f node_modules/.lock-hash ] || [ \"$$LOCK_HASH\" != \"$$(cat node_modules/.lock-hash)\" ]; then
+        echo 'package-lock.json changed — running npm ci...';
+        npm ci;
+        echo $$LOCK_HASH > node_modules/.lock-hash;
+      fi;
       npx ng build shared-auth --configuration development;
       npx ng build shared-core --configuration development;
       npx ng build shared-ui --configuration development;
