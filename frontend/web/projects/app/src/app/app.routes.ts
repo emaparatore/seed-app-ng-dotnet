@@ -13,6 +13,16 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+    canActivate: [guestGuard],
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+    canActivate: [guestGuard],
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
     pathMatch: 'full',

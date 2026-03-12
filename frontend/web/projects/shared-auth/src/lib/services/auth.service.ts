@@ -2,7 +2,15 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, throwError, shareReplay, finalize, firstValueFrom } from 'rxjs';
-import { AuthResponse, LoginRequest, RegisterRequest, User } from '../models/auth.models';
+import {
+  AuthResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  MessageResponse,
+  RegisterRequest,
+  ResetPasswordRequest,
+  User,
+} from '../models/auth.models';
 import { AUTH_CONFIG } from '../auth.config';
 
 @Injectable({ providedIn: 'root' })
@@ -59,6 +67,14 @@ export class AuthService {
     }
     this.clearAuth();
     this.router.navigate(['/login']);
+  }
+
+  forgotPassword(request: ForgotPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/forgot-password`, request);
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/reset-password`, request);
   }
 
   getProfile(): Observable<User> {
