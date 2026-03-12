@@ -4,7 +4,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideServiceWorker } from '@angular/service-worker';
-import { AUTH_CONFIG, authInterceptor } from 'shared-auth';
+import { AUTH_CONFIG, authInterceptor, provideAuthInitializer } from 'shared-auth';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -21,5 +21,6 @@ export const appConfig: ApplicationConfig = {
       registrationStrategy: 'registerWhenStable:30000',
     }),
     { provide: AUTH_CONFIG, useValue: { apiUrl: environment.apiUrl } },
+    provideAuthInitializer(),
   ],
 };

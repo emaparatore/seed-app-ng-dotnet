@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, throwError } from 'rxjs';
+import { Observable, tap, catchError, throwError, shareReplay, finalize, firstValueFrom } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '../models/auth.models';
 import { AUTH_CONFIG } from '../auth.config';
 
@@ -13,14 +13,11 @@ export class AuthService {
 
   private readonly _currentUser = signal<User | null>(null);
   private readonly _accessToken = signal<string | null>(null);
+  private _refreshInProgress: Observable<AuthResponse> | null = null;
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly accessToken = this._accessToken.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
-
-  constructor() {
-    this.loadFromStorage();
-  }
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
@@ -35,14 +32,24 @@ export class AuthService {
   }
 
   refreshToken(): Observable<AuthResponse> {
+    if (this._refreshInProgress) {
+      return this._refreshInProgress;
+    }
+
     const refreshToken = this.getRefreshToken();
-    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
-      tap((response) => this.handleAuthResponse(response)),
-      catchError((error) => {
-        this.clearAuth();
-        return throwError(() => error);
-      }),
-    );
+    this._refreshInProgress = this.http
+      .post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken })
+      .pipe(
+        tap((response) => this.handleAuthResponse(response)),
+        catchError((error) => {
+          this.clearAuth();
+          return throwError(() => error);
+        }),
+        shareReplay(1),
+        finalize(() => (this._refreshInProgress = null)),
+      );
+
+    return this._refreshInProgress;
   }
 
   logout(): void {
@@ -81,14 +88,15 @@ export class AuthService {
     return localStorage.getItem('refreshToken');
   }
 
-  private loadFromStorage(): void {
-    if (typeof window === 'undefined') return;
+  initializeAuth(): Promise<void> {
+    if (typeof window === 'undefined') return Promise.resolve();
     const token = localStorage.getItem('accessToken');
-    if (token) {
-      this._accessToken.set(token);
-      this.getProfile().subscribe({
-        error: () => this.clearAuth(),
-      });
-    }
+    if (!token) return Promise.resolve();
+
+    this._accessToken.set(token);
+    return firstValueFrom(this.getProfile()).then(
+      () => {},
+      () => this.clearAuth(),
+    );
   }
 }

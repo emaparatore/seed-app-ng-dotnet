@@ -14,8 +14,8 @@ E' stato implementato un sistema completo di autenticazione JWT con refresh toke
 1. REGISTRAZIONE / LOGIN
    Client → POST /api/v1/auth/register (o /login)
    Server → crea utente (o verifica credenziali)
-          → genera Access Token JWT (15 min)
-          → genera Refresh Token opaco (7 giorni, salvato su DB)
+          → genera Access Token JWT (60 min)
+          → genera Refresh Token opaco (30 giorni, salvato su DB)
           → ritorna entrambi i token + dati utente
 
 2. RICHIESTE AUTENTICATE
@@ -60,7 +60,7 @@ Questo limita i danni in caso di furto del token.
 
 | File | Descrizione |
 |------|-------------|
-| `JwtSettings.cs` | POCO con Secret, Issuer, Audience, AccessTokenExpirationMinutes (default 15), RefreshTokenExpirationDays (default 7) |
+| `JwtSettings.cs` | POCO con Secret, Issuer, Audience, AccessTokenExpirationMinutes (default 60), RefreshTokenExpirationDays (default 30) |
 
 ### Application Layer (`Seed.Application/`)
 
@@ -121,6 +121,7 @@ Ogni command/query segue il pattern CQRS con MediatR:
 | `interceptors/auth.interceptor.ts` | HTTP interceptor funzionale per Bearer token + auto-refresh |
 | `guards/auth.guard.ts` | Protegge rotte che richiedono autenticazione |
 | `guards/guest.guard.ts` | Impedisce accesso a login/register se gia' autenticati |
+| `providers/auth-initializer.provider.ts` | `APP_INITIALIZER` che ripristina la sessione al boot dell'app |
 
 ### AuthService (dettaglio)
 
@@ -132,9 +133,10 @@ Stato reattivo basato su **Angular signals**:
 Metodi principali:
 - `login(request)` → chiama API, salva token in localStorage, aggiorna signals
 - `register(request)` → come login ma per registrazione
-- `refreshToken()` → rinnova i token usando il refresh token
+- `refreshToken()` → rinnova i token usando il refresh token (con protezione chiamate concorrenti)
 - `logout()` → revoca il token lato server, pulisce localStorage e signals, redirect a /login
 - `getProfile()` → carica dati utente dall'endpoint /me
+- `initializeAuth()` → ripristina lo stato auth da localStorage al boot dell'app (usato da `APP_INITIALIZER`)
 
 SSR-safe: tutti gli accessi a `localStorage` sono protetti da `typeof window !== 'undefined'`.
 
@@ -161,6 +163,42 @@ Tutte le rotte usano **lazy loading** con `loadComponent`.
 
 ---
 
+## Persistenza sessione
+
+L'autenticazione persiste tra refresh della pagina e riapertura del browser grazie a due meccanismi:
+
+### APP_INITIALIZER
+
+Al boot dell'applicazione Angular, un `APP_INITIALIZER` (`provideAuthInitializer()`) esegue `AuthService.initializeAuth()` **prima** che il routing venga attivato. Questo garantisce che:
+
+1. I token vengono letti da `localStorage`
+2. Se l'access token esiste, viene chiamato `GET /auth/me` per caricare il profilo utente
+3. Se l'access token e' scaduto, l'interceptor esegue automaticamente il refresh
+4. Solo dopo che lo stato auth e' stato determinato, Angular attiva il routing e i guard
+
+Senza questo meccanismo, i guard valuterebbero `isAuthenticated()` prima che la chiamata HTTP ritorni, risultando in un redirect a `/login` anche con token validi.
+
+### Protezione refresh concorrente
+
+Se piu' richieste HTTP ricevono 401 contemporaneamente, il metodo `refreshToken()` condivide un'unica chiamata di refresh tra tutti i subscriber (tramite `shareReplay`). Questo evita che vengano fatte N chiamate di refresh in parallelo, che fallirebbero a causa della token rotation (il primo refresh revoca il token, i successivi troverebbero un token gia' revocato).
+
+### Personalizzazione durate token
+
+Per applicazioni che richiedono maggiore sicurezza, e' sufficiente modificare i valori in `appsettings.json`:
+
+```json
+{
+  "JwtSettings": {
+    "AccessTokenExpirationMinutes": 15,
+    "RefreshTokenExpirationDays": 7
+  }
+}
+```
+
+Non e' necessario modificare il codice: l'interceptor e il meccanismo di refresh funzionano indipendentemente dalla durata dei token.
+
+---
+
 ## Configurazione
 
 ### Backend (`appsettings.json`)
@@ -174,8 +212,8 @@ Tutte le rotte usano **lazy loading** con `loadComponent`.
     "Secret": "YourSuperSecretKeyThatIsAtLeast32CharactersLong_ForDevelopmentOnly!",
     "Issuer": "SeedApp",
     "Audience": "SeedApp",
-    "AccessTokenExpirationMinutes": 15,
-    "RefreshTokenExpirationDays": 7
+    "AccessTokenExpirationMinutes": 60,
+    "RefreshTokenExpirationDays": 30
   }
 }
 ```
