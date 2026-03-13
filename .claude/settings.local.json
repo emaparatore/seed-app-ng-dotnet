@@ -7,7 +7,9 @@
       "Bash(npx ng test app --watch=false)",
       "Bash(npx ng test shared-core --watch=false)",
       "Bash(npx ng test shared-ui --watch=false)",
-      "Bash(dotnet test tests/Seed.UnitTests)"
+      "Bash(dotnet test tests/Seed.UnitTests)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)"
     ]
   }
 }
