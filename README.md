@@ -219,6 +219,20 @@ seed-app-ng-dotnet/
 `-- docker/           # Docker Compose and docker-based test runner
 ```
 
+## Documentation
+
+Detailed documentation is available in the [`docs/`](docs/) folder:
+
+| Document | Description |
+|---|---|
+| [Authentication](docs/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
+| [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
+| [Production Migrations](docs/production-migrations.md) | EF Core migration strategy, rollback, backup procedures |
+| [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
+| [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
+| [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
+
 ## Tech stack
 
 | Area | Technologies |
@@ -243,7 +257,7 @@ New features are implemented as `IRequest` / `IRequestHandler` pairs in `Seed.Ap
 
 ### Authentication
 
-JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management in `Seed.Infrastructure`.
+JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management in `Seed.Infrastructure`. See [docs/authentication.md](docs/authentication.md) for full details.
 
 ### API Versioning
 
@@ -268,6 +282,8 @@ dotnet ef database update \
   --project src/Seed.Infrastructure \
   --startup-project src/Seed.Api
 ```
+
+See [docs/production-migrations.md](docs/production-migrations.md) for the production migration strategy and [docs/smtp-configuration.md](docs/smtp-configuration.md) for email service setup.
 
 ## Frontend web notes
 

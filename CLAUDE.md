@@ -141,3 +141,71 @@ dotnet ef migrations has-pending-model-changes --project src/Seed.Infrastructure
 - **Angular signals:** The app uses Angular signals (`signal()`) — prefer signals over observables for local component state.
 - **Email service:** SMTP configuration is optional (`Smtp` section in `appsettings.json`). If `Smtp:Host` is set, uses `SmtpEmailService` (MailKit); otherwise falls back to `ConsoleEmailService` (logs to console). See `docs/AUTH_IMPLEMENTATION.md` for details.
 - **Nullable references:** All .NET projects have `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`.
+
+## Documentation
+
+All project documentation lives in `docs/`. **After completing any code change** (feature, bug fix, refactor that changes behavior), evaluate whether documentation needs updating before considering the task done. This check should be lightweight — not a full audit, just a quick assessment based on what was changed.
+
+**When to update docs:**
+- **New feature or behavioral change:** Update the relevant existing doc, or create a new one in `docs/` if no existing doc covers the topic. If a new file is created, add it to the index table in `README.md` and to the list below.
+- **Bug fix:** If the root cause or resolution would help someone in the future, add it to the "Troubleshooting" section of the relevant doc. If not tied to a specific topic, add it to `docs/troubleshooting.md`.
+- **No doc update needed:** Pure refactors with no behavioral change, test-only changes, or trivial fixes (typos, formatting) don't require doc updates.
+
+Documentation changes should be included in the same PR as the code change.
+
+## Branches
+
+Branch naming convention:
+- **Feature branches:** `feature/<nome-branch>` — always branch off from `dev`
+- **Hotfix branches:** `hotfix/<nome-branch>` — always branch off from `master`
+
+When creating a new branch (e.g. when the user asks to checkout a new branch), always follow this convention:
+```bash
+# Feature branch
+git checkout dev && git pull origin dev && git checkout -b feature/<nome-branch>
+
+# Hotfix branch
+git checkout master && git pull origin master && git checkout -b hotfix/<nome-branch>
+```
+
+## Commits
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<scope>): <short description>
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `style`, `perf`
+Scopes: `api`, `app`, `auth`, `infra`, `ui`, `core`, `docker`, `ci`, `mobile`
+
+Examples:
+- `feat(api): add password reset endpoint`
+- `fix(app): prevent double submit on login form`
+- `docs(auth): add troubleshooting section for token refresh`
+- `refactor(infra): extract email service interface`
+- `chore(docker): update postgres to 16.2`
+
+Rules:
+- Subject line max 72 chars, lowercase, no period at end
+- Use imperative mood ("add" not "added")
+- When asked to commit, propose the message and wait for user confirmation before executing
+- **Do not** add `Co-Authored-By` trailers to commit messages
+
+## Pull Requests
+
+When creating a PR (via `gh pr create`), structure the description as follows:
+- **Summary:** What was changed and why (1-3 bullet points)
+- **Key decisions:** Design choices worth noting, if any
+- **How to test:** Steps or commands to verify the change
+
+Keep the title short (<70 chars). Put details in the body, not the title. The PR description should be useful to a reviewer who has no prior context.
+
+Existing docs:
+- `docs/authentication.md` — Auth flows (JWT, refresh tokens, password reset)
+- `docs/ci-cd.md` — CI/CD pipelines and branch strategy
+- `docs/production-migrations.md` — EF Core migrations for production
+- `docs/smtp-configuration.md` — Email service configuration
+- `docs/vps-setup-guide.md` — VPS deployment guide
+- `docs/new-project-deploy-guide.md` — New project deployment checklist
+- `docs/troubleshooting.md` — Generic troubleshooting
