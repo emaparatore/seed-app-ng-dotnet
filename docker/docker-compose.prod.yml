@@ -44,6 +44,13 @@ services:
       - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
       - JwtSettings__Secret=${JwtSettings__Secret}
       - AllowedHosts=${AllowedHosts}
+      - Smtp__Host=${Smtp__Host:-}
+      - Smtp__Port=${Smtp__Port:-587}
+      - Smtp__Username=${Smtp__Username:-}
+      - Smtp__Password=${Smtp__Password:-}
+      - Smtp__FromEmail=${Smtp__FromEmail:-}
+      - Smtp__FromName=${Smtp__FromName:-Seed App}
+      - Smtp__UseSsl=${Smtp__UseSsl:-true}
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
     depends_on:
       postgres:

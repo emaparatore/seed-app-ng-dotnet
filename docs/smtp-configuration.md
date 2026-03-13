@@ -70,6 +70,32 @@ dotnet user-secrets set "Smtp:FromName" "Seed App Dev"
 dotnet user-secrets set "Smtp:UseSsl" "true"
 ```
 
+Per gestire i secrets configurati:
+
+```bash
+cd backend/src/Seed.Api
+
+# Visualizzare tutti i secrets configurati
+dotnet user-secrets list
+
+# Rimuovere un singolo secret
+dotnet user-secrets remove "Smtp:Host"
+
+# Rimuovere tutti i secrets SMTP
+dotnet user-secrets remove "Smtp:Host"
+dotnet user-secrets remove "Smtp:Port"
+dotnet user-secrets remove "Smtp:Username"
+dotnet user-secrets remove "Smtp:Password"
+dotnet user-secrets remove "Smtp:FromEmail"
+dotnet user-secrets remove "Smtp:FromName"
+dotnet user-secrets remove "Smtp:UseSsl"
+
+# Oppure rimuovere TUTTI i secrets (attenzione: cancella anche quelli non SMTP)
+dotnet user-secrets clear
+```
+
+> **Nota:** i User Secrets sono salvati fuori dal progetto (in `%APPDATA%\Microsoft\UserSecrets\` su Windows, `~/.microsoft/usersecrets/` su Linux/macOS), quindi non c'e' rischio di committarli accidentalmente.
+
 ### 3. Oppure tramite appsettings.Development.json
 
 Crea o modifica `backend/src/Seed.Api/appsettings.Development.json`:
@@ -125,10 +151,12 @@ Brevo offre un piano gratuito con 300 email/giorno, sufficiente per molte applic
 
 Senza questa configurazione le email finiranno in spam o verranno rifiutate.
 
-### 3. Configurare tramite variabili d'ambiente (consigliato per prod)
+### 3. Configurare tramite file `.env` (consigliato per prod)
 
-```bash
-# Variabili d'ambiente sul server/container
+Le variabili SMTP vanno aggiunte allo stesso file `docker/.env` gia' usato per le altre configurazioni (database, JWT, ecc.). Il file `docker/.env.prod.example` contiene il template completo con tutte le variabili, incluse quelle SMTP.
+
+```env
+# Nel file docker/.env
 Smtp__Host=smtp-relay.brevo.com
 Smtp__Port=587
 Smtp__Username=tuaemail@brevo.com
@@ -138,25 +166,9 @@ Smtp__FromName=Seed App
 Smtp__UseSsl=true
 ```
 
-> **Nota:** ASP.NET Core usa `__` (doppio underscore) come separatore per le sezioni nested nelle variabili d'ambiente.
+Il `docker-compose.deploy.yml` e il `docker-compose.prod.yml` passano automaticamente queste variabili al container API.
 
-### 4. Oppure tramite appsettings.Production.json
-
-```json
-{
-  "Smtp": {
-    "Host": "smtp-relay.brevo.com",
-    "Port": 587,
-    "Username": "tuaemail@brevo.com",
-    "Password": "USARE_VARIABILE_AMBIENTE_NON_COMMITTARE",
-    "FromEmail": "noreply@tuodominio.com",
-    "FromName": "Seed App",
-    "UseSsl": true
-  }
-}
-```
-
-> **Best practice:** Non mettere la password nel file. Usa variabili d'ambiente o un secret manager per `Smtp__Password`.
+> **Nota:** ASP.NET Core usa `__` (doppio underscore) come separatore per le sezioni nested nelle variabili d'ambiente. Se `Smtp__Host` e' vuoto, il sistema usa automaticamente il fallback console (vedi [Come funziona](#come-funziona)).
 
 ### Limiti Brevo
 
@@ -169,27 +181,9 @@ Smtp__UseSsl=true
 
 ## Configurazione Docker
 
-Nel `docker-compose.yml`, passa le variabili SMTP al container API:
+Le variabili SMTP sono gia' configurate in `docker-compose.deploy.yml` e `docker-compose.prod.yml` per essere lette dal file `.env`. Basta compilare le variabili `Smtp__*` nel file `docker/.env` come descritto nella [sezione Brevo](#3-configurare-tramite-file-env-consigliato-per-prod).
 
-```yaml
-services:
-  api:
-    environment:
-      - Smtp__Host=smtp-relay.brevo.com
-      - Smtp__Port=587
-      - Smtp__Username=${SMTP_USERNAME}
-      - Smtp__Password=${SMTP_PASSWORD}
-      - Smtp__FromEmail=noreply@tuodominio.com
-      - Smtp__FromName=Seed App
-      - Smtp__UseSsl=true
-```
-
-E definisci `SMTP_USERNAME` e `SMTP_PASSWORD` in un file `.env` (non committato):
-
-```env
-SMTP_USERNAME=tuaemail@brevo.com
-SMTP_PASSWORD=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
+Per il template completo di tutte le variabili d'ambiente (incluse SMTP), vedi `docker/.env.prod.example`.
 
 ---
 
@@ -237,5 +231,5 @@ docker compose logs --tail 100 api | grep "Password Reset Email"
 | Ambiente    | Provider | Host                     | Porta | Metodo configurazione        |
 |-------------|----------|--------------------------|-------|------------------------------|
 | Development | Gmail    | `smtp.gmail.com`         | 587   | `dotnet user-secrets`        |
-| Production  | Brevo    | `smtp-relay.brevo.com`   | 587   | Variabili d'ambiente         |
+| Production  | Brevo    | `smtp-relay.brevo.com`   | 587   | File `.env` (vedi `.env.prod.example`) |
 | Locale      | Nessuno  | *(vuoto)*                | —     | Default (console fallback)   |

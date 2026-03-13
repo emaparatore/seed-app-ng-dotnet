@@ -247,6 +247,8 @@ IMAGE_TAG=latest
 
 > **Nota su `AllowedHosts`**: il valore `*` e sicuro in questo setup perche l'API non e esposta direttamente — solo Nginx riceve traffico esterno e fa da reverse proxy. L'healthcheck interno usa `localhost`, quindi un valore restrittivo (es. solo il dominio) causerebbe il fallimento dell'healthcheck e il container risulterebbe "unhealthy".
 
+> **Email SMTP (opzionale):** il file `.env.prod.example` include anche le variabili `Smtp__*` per l'invio di email transazionali (reset password, notifiche). Se non le configuri, il sistema logga le email in console. Per la configurazione completa (provider, record DNS, verifica dominio), vedi [Configurazione SMTP](smtp-configuration.md).
+
 > **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
 
 Per generare una password sicura:
