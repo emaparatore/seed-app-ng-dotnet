@@ -200,9 +200,18 @@ SMTP_PASSWORD=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Avvia il backend senza configurare `Smtp:Host`. Quando richiedi un reset password, il token apparira' nei log:
 
 ```
-info: Seed.Infrastructure.Services.ConsoleEmailService
-      Password reset token for user@example.com: CfDJ8N...
+[HH:mm:ss WRN] SMTP not configured — logging email to console
+[HH:mm:ss INF] Password Reset Email → To: user@example.com, Token: CfDJ8N...
 ```
+
+Per trovare il token nei log Docker:
+
+```bash
+# Da docker/
+docker compose logs --tail 100 api | grep "Password Reset Email"
+```
+
+> **Nota:** Il token viene generato solo se l'email corrisponde a un utente esistente e attivo. Per motivi di sicurezza (prevenzione email enumeration), l'API restituisce sempre lo stesso messaggio di successo anche se l'utente non esiste.
 
 ### 2. Con SMTP configurato
 
