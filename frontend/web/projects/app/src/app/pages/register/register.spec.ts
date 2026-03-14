@@ -47,6 +47,21 @@ describe('Register', () => {
     expect(form.controls.lastName.hasError('required')).toBe(true);
     expect(form.controls.email.hasError('required')).toBe(true);
     expect(form.controls.password.hasError('required')).toBe(true);
+    expect(form.controls.confirmPassword.hasError('required')).toBe(true);
+  });
+
+  it('should show passwordMismatch error when passwords do not match', () => {
+    const form = component['form'];
+    form.controls.password.setValue('Password1');
+    form.controls.confirmPassword.setValue('Different1');
+    expect(form.hasError('passwordMismatch')).toBe(true);
+  });
+
+  it('should not show passwordMismatch error when passwords match', () => {
+    const form = component['form'];
+    form.controls.password.setValue('Password1');
+    form.controls.confirmPassword.setValue('Password1');
+    expect(form.hasError('passwordMismatch')).toBe(false);
   });
 
   it('should validate email format', () => {
@@ -73,6 +88,7 @@ describe('Register', () => {
       lastName: 'Doe',
       email: 'test@example.com',
       password: 'Password1',
+      confirmPassword: 'Password1',
     });
     component.onSubmit();
 
@@ -89,6 +105,7 @@ describe('Register', () => {
       lastName: 'Doe',
       email: 'test@example.com',
       password: 'Password1',
+      confirmPassword: 'Password1',
     });
     component.onSubmit();
 
