@@ -8,4 +8,5 @@ public interface ITokenService
     Task<TokenResult> GenerateTokensAsync(ApplicationUser user);
     Task<TokenResult?> RefreshTokenAsync(string refreshToken);
     Task RevokeTokenAsync(string refreshToken);
+    Task RevokeAllUserTokensAsync(Guid userId);
 }

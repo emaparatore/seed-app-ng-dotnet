@@ -30,8 +30,16 @@
       }
     </mat-card-content>
 
-    <mat-card-actions>
+    <mat-card-actions class="card-actions">
       <a mat-button routerLink="/">Back to Home</a>
+      <button
+        mat-button
+        color="warn"
+        (click)="deleteAccount()"
+        [disabled]="deleting()"
+      >
+        {{ deleting() ? 'Deleting...' : 'Delete Account' }}
+      </button>
     </mat-card-actions>
   </mat-card>
 </section>

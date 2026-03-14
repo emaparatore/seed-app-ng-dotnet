@@ -2,7 +2,9 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from 'shared-auth';
+import { ConfirmDeleteDialog } from './confirm-delete-dialog';
 
 @Component({
   selector: 'app-profile',
@@ -12,10 +14,12 @@ import { AuthService } from 'shared-auth';
 })
 export class Profile implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly user = this.authService.currentUser;
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly deleting = signal(false);
 
   ngOnInit(): void {
     this.authService.getProfile().subscribe({
@@ -25,5 +29,24 @@ export class Profile implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  deleteAccount(): void {
+    this.dialog
+      .open(ConfirmDeleteDialog, { width: '480px', disableClose: true })
+      .afterClosed()
+      .subscribe((password: string | undefined) => {
+        if (!password) return;
+
+        this.deleting.set(true);
+        this.error.set(null);
+
+        this.authService.deleteAccount(password).subscribe({
+          error: (err: { error?: { errors?: string[] } }) => {
+            this.error.set(err.error?.errors?.[0] ?? 'Failed to delete account.');
+            this.deleting.set(false);
+          },
+        });
+      });
   }
 }

@@ -77,6 +77,15 @@ export class AuthService {
     return this.http.post<MessageResponse>(`${this.apiUrl}/reset-password`, request);
   }
 
+  deleteAccount(password: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/account`, { body: { password } }).pipe(
+      tap(() => {
+        this.clearAuth();
+        this.router.navigate(['/login']);
+      }),
+    );
+  }
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(tap((user) => this._currentUser.set(user)));
   }
