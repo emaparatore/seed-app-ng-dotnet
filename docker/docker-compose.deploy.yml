@@ -47,7 +47,7 @@ services:
       - Smtp__Password=${Smtp__Password:-}
       - Smtp__FromEmail=${Smtp__FromEmail:-}
       - Smtp__FromName=${Smtp__FromName:-Seed App}
-      - Smtp__UseSsl=${Smtp__UseSsl:-true}
+      - Smtp__Security=${Smtp__Security:-StartTls}
       - Serilog__WriteTo__1__Name=Seq
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
     depends_on:

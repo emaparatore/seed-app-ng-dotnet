@@ -55,7 +55,7 @@ services:
       - Smtp__Password=
       - Smtp__FromEmail=noreply@seedapp.local
       - Smtp__FromName=Seed App Dev
-      - Smtp__UseSsl=false
+      - Smtp__Security=None
     ports:
       - "5035:8080"
     volumes:

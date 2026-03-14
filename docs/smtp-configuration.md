@@ -46,7 +46,7 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
     "Password": "",
     "FromEmail": "noreply@example.com",
     "FromName": "Seed App",
-    "UseSsl": true
+    "Security": "StartTls"
   }
 }
 ```
@@ -59,7 +59,7 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
 | `Password`  | Password o App Password per autenticazione SMTP  | `""`           |
 | `FromEmail` | Indirizzo mittente                               | `""`           |
 | `FromName`  | Nome visualizzato del mittente                   | `"Seed App"`   |
-| `UseSsl`    | Usa STARTTLS per la connessione                  | `true`         |
+| `Security`  | Sicurezza connessione: `None`, `StartTls`, `SslOnConnect` | `"StartTls"` |
 
 ---
 
@@ -91,7 +91,7 @@ dotnet user-secrets set "Smtp:Username" "tuaemail@gmail.com"
 dotnet user-secrets set "Smtp:Password" "abcd efgh ijkl mnop"
 dotnet user-secrets set "Smtp:FromEmail" "tuaemail@gmail.com"
 dotnet user-secrets set "Smtp:FromName" "Seed App Dev"
-dotnet user-secrets set "Smtp:UseSsl" "true"
+dotnet user-secrets set "Smtp:Security" "StartTls"
 ```
 
 Per gestire i secrets configurati:
@@ -112,7 +112,7 @@ dotnet user-secrets remove "Smtp:Username"
 dotnet user-secrets remove "Smtp:Password"
 dotnet user-secrets remove "Smtp:FromEmail"
 dotnet user-secrets remove "Smtp:FromName"
-dotnet user-secrets remove "Smtp:UseSsl"
+dotnet user-secrets remove "Smtp:Security"
 
 # Oppure rimuovere TUTTI i secrets (attenzione: cancella anche quelli non SMTP)
 dotnet user-secrets clear
@@ -133,7 +133,7 @@ Crea o modifica `backend/src/Seed.Api/appsettings.Development.json`:
     "Password": "abcd efgh ijkl mnop",
     "FromEmail": "tuaemail@gmail.com",
     "FromName": "Seed App Dev",
-    "UseSsl": true
+    "Security": "StartTls"
   }
 }
 ```
@@ -187,7 +187,7 @@ Smtp__Username=tuaemail@brevo.com
 Smtp__Password=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Smtp__FromEmail=noreply@tuodominio.com
 Smtp__FromName=Seed App
-Smtp__UseSsl=true
+Smtp__Security=StartTls
 ```
 
 Il `docker-compose.deploy.yml` passa automaticamente queste variabili al container API.
