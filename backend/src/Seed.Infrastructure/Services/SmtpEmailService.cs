@@ -33,7 +33,10 @@ public sealed class SmtpEmailService(
         using var client = new SmtpClient();
 
         await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl, cancellationToken);
-        await client.AuthenticateAsync(_settings.Username, _settings.Password, cancellationToken);
+
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, cancellationToken);
+
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
 

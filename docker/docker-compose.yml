@@ -31,6 +31,13 @@ services:
     volumes:
       - seq_data:/data
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: seed-mailpit-dev
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   api:
     image: mcr.microsoft.com/dotnet/sdk:10.0
     container_name: seed-api-dev
@@ -42,6 +49,13 @@ services:
       - JwtSettings__Secret=${JwtSettings__Secret}
       - AllowedHosts=${AllowedHosts}
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
+      - Smtp__Host=mailpit
+      - Smtp__Port=1025
+      - Smtp__Username=
+      - Smtp__Password=
+      - Smtp__FromEmail=noreply@seedapp.local
+      - Smtp__FromName=Seed App Dev
+      - Smtp__UseSsl=false
     ports:
       - "5035:8080"
     volumes:
@@ -51,6 +65,8 @@ services:
       postgres:
         condition: service_healthy
       seq:
+        condition: service_started
+      mailpit:
         condition: service_started
     command:
       [
