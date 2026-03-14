@@ -141,3 +141,98 @@ dotnet ef migrations has-pending-model-changes --project src/Seed.Infrastructure
 - **Angular signals:** The app uses Angular signals (`signal()`) — prefer signals over observables for local component state.
 - **Email service:** SMTP configuration is optional (`Smtp` section in `appsettings.json`). If `Smtp:Host` is set, uses `SmtpEmailService` (MailKit); otherwise falls back to `ConsoleEmailService` (logs to console). See `docs/AUTH_IMPLEMENTATION.md` for details.
 - **Nullable references:** All .NET projects have `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`.
+
+## Testing Strategy
+
+When completing a code change, evaluate whether tests are needed before considering the task done.
+
+**Always write tests for:**
+- New features (handlers, endpoints, services, components with logic)
+- Bug fixes (write a test that reproduces the bug, then fix it)
+- Changes to business logic or validation rules
+
+**No tests needed for:**
+- Pure refactors with no behavioral change (existing tests should still pass)
+- Documentation, config, or style-only changes
+- Scaffolding or boilerplate with no logic
+
+**Guidelines:**
+- Prefer unit tests. Use integration tests only when the change involves database queries, HTTP pipeline, or cross-layer behavior.
+- When planning a task, include a "Tests" step that lists which test cases to add — keep it to the essential cases, not exhaustive.
+- When fixing a bug, write the failing test first, then apply the fix.
+- Follow existing test conventions in the project (naming, structure, patterns). Look at nearby test files for reference.
+- Run the relevant test suite after writing tests to confirm they pass.
+
+## Documentation
+
+All project documentation lives in `docs/`. **After completing any code change** (feature, bug fix, refactor that changes behavior), evaluate whether documentation needs updating before considering the task done. This check should be lightweight — not a full audit, just a quick assessment based on what was changed.
+
+**When to update docs:**
+- **New feature or behavioral change:** Update the relevant existing doc, or create a new one in `docs/` if no existing doc covers the topic. If a new file is created, add it to the index table in `README.md` and to the list below. When updating an existing doc, check if its description in the index below still matches the content — update it if needed.
+- **Bug fix:** If the root cause or resolution would help someone in the future, add it to the "Troubleshooting" section of the relevant doc. If not tied to a specific topic, add it to `docs/troubleshooting.md`.
+- **No doc update needed:** Pure refactors with no behavioral change, test-only changes, or trivial fixes (typos, formatting) don't require doc updates.
+
+**When to update CLAUDE.md:**
+- New development pattern, library, or architectural change that affects how future code should be written
+- New commands, tools, or workflows that Claude should know about
+- Changes to conventions (naming, branching, testing) that override existing instructions
+- Do NOT update CLAUDE.md for feature-specific details — those belong in `docs/`
+
+Documentation changes should be included in the same PR as the code change.
+
+## Branches
+
+Branch naming convention:
+- **Feature branches:** `feature/<nome-branch>` — always branch off from `dev`
+- **Hotfix branches:** `hotfix/<nome-branch>` — always branch off from `master`
+
+When creating a new branch (e.g. when the user asks to checkout a new branch), always follow this convention:
+```bash
+# Feature branch
+git checkout dev && git pull origin dev && git checkout -b feature/<nome-branch>
+
+# Hotfix branch
+git checkout master && git pull origin master && git checkout -b hotfix/<nome-branch>
+```
+
+## Commits
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<scope>): <short description>
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `style`, `perf`
+Scopes: `api`, `app`, `auth`, `infra`, `ui`, `core`, `docker`, `ci`, `mobile`
+
+Examples:
+- `feat(api): add password reset endpoint`
+- `fix(app): prevent double submit on login form`
+- `docs(auth): add troubleshooting section for token refresh`
+- `refactor(infra): extract email service interface`
+- `chore(docker): update postgres to 16.2`
+
+Rules:
+- Subject line max 72 chars, lowercase, no period at end
+- Use imperative mood ("add" not "added")
+- When asked to commit, propose the message and wait for user confirmation before executing
+- **Do not** add `Co-Authored-By` trailers to commit messages
+
+## Pull Requests
+
+When creating a PR (via `gh pr create`), structure the description as follows:
+- **Summary:** What was changed and why (1-3 bullet points)
+- **Key decisions:** Design choices worth noting, if any
+- **How to test:** Steps or commands to verify the change
+
+Keep the title short (<70 chars). Put details in the body, not the title. The PR description should be useful to a reviewer who has no prior context.
+
+Existing docs:
+- `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
+- `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
+- `docs/production-migrations.md` — Migration bundles, backup procedures, expand-contract patterns, rollback. Read before creating or modifying any EF Core migration.
+- `docs/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
+- `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
+- `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
+- `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
