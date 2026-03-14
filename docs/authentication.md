@@ -343,6 +343,44 @@ Il frontend sara' su `http://localhost:4200`.
 
 ---
 
+## Cancellazione Account
+
+### Flusso
+
+```
+1. L'utente naviga alla pagina Profilo (/profile)
+2. Clicca "Delete Account"
+3. Si apre un dialog di conferma con:
+   - Messaggio di avvertimento sulla perdita permanente dei dati
+   - Campo password per conferma identità
+   - Checkbox "Ho capito che questa azione è permanente"
+4. Dopo la conferma:
+   Client → DELETE /api/v1/auth/account { password: "..." }
+   Server → verifica password
+          → disattiva account (IsActive = false)
+          → revoca tutti i refresh token attivi
+          → ritorna 204 No Content
+5. Frontend pulisce auth state (token, localStorage)
+6. Redirect a /login
+```
+
+### Dettagli tecnici
+
+- **Soft-delete**: l'account viene disattivato (`IsActive = false`), non eliminato dal DB. L'utente non potrà più effettuare login, refresh token, o reset password.
+- **Conferma password**: richiesta per prevenire cancellazioni da sessioni rubate.
+- **Revoca token**: tutti i refresh token attivi vengono revocati tramite `RevokeAllUserTokensAsync`.
+- **Rate limiting**: l'endpoint usa la policy `auth-sensitive`.
+
+### File coinvolti
+
+- Backend: `Seed.Application/Auth/Commands/DeleteAccount/` (Command, Handler, Validator, Request)
+- Backend: `Seed.Api/Controllers/AuthController.cs` (`DELETE /account`)
+- Frontend: `shared-auth/services/auth.service.ts` (`deleteAccount()`)
+- Frontend: `app/pages/profile/confirm-delete-dialog.ts` (dialog di conferma)
+- Frontend: `app/pages/profile/profile.ts` (integrazione nel profilo)
+
+---
+
 ## Cosa NON e' stato implementato (Fase 4 — opzionale)
 
 - Ruoli e autorizzazione basata su ruoli

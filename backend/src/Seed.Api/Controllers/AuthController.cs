@@ -10,6 +10,7 @@ using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
+using Seed.Application.Auth.Commands.DeleteAccount;
 using Seed.Application.Auth.Commands.ResetPassword;
 using Seed.Application.Auth.Queries.GetCurrentUser;
 
@@ -66,6 +67,17 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.Succeeded ? Ok(new { message = result.Data }) : BadRequest(new { errors = result.Errors });
+    }
+
+    [Authorize]
+    [HttpDelete("account")]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountRequest request)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var command = new DeleteAccountCommand(userId, request.Password);
+        var result = await sender.Send(command);
+        return result.Succeeded ? NoContent() : BadRequest(new { errors = result.Errors });
     }
 
     [Authorize]
