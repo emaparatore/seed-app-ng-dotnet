@@ -66,6 +66,20 @@ public sealed class TokenService(
         }
     }
 
+    public async Task RevokeAllUserTokensAsync(Guid userId)
+    {
+        var activeTokens = await dbContext.RefreshTokens
+            .Where(r => r.UserId == userId && r.RevokedAt == null)
+            .ToListAsync();
+
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
     private string GenerateAccessToken(ApplicationUser user, DateTime expiresAt)
     {
         var claims = new List<Claim>
