@@ -65,26 +65,13 @@ docker compose logs -f
 docker compose down
 ```
 
-### 3) Prod-like mode (local validation)
-
-File used: `docker/docker-compose.prod.yml`
-
-Use this when you want behavior closer to runtime deployment:
-- API and Web built via Dockerfiles
-- no source hot reload
-
-```bash
-cd docker
-docker compose -f docker-compose.prod.yml up --build
-```
-
 ### Services and ports
 
 | Service | Port | Notes |
 |---|---|---|
 | PostgreSQL 16 | 5432 | DB `seeddb`, user `seed` |
 | API (ASP.NET Core) | 5035 | maps internal port 8080 |
-| Web | 4200 | dev mode: `ng serve`; prod-like mode: Nginx |
+| Web | 4200 | `ng serve` (dev) |
 | Seq | 8081 | log UI |
 | Seq ingestion | 5341 | Serilog endpoint |
 
