@@ -10,5 +10,8 @@ public sealed class SmtpSettings
     public string Password { get; init; } = string.Empty;
     public string FromEmail { get; init; } = string.Empty;
     public string FromName { get; init; } = "Seed App";
-    public bool UseSsl { get; init; } = true;
+    /// <summary>
+    /// Connection security: "None", "StartTls", or "SslOnConnect".
+    /// </summary>
+    public string Security { get; init; } = "StartTls";
 }
