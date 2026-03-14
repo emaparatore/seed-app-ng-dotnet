@@ -15,6 +15,26 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
 
 ---
 
+## Development locale con Docker: Mailpit
+
+[Mailpit](https://github.com/axllent/mailpit) e' un server SMTP locale che cattura tutte le email in uscita e le mostra in una web UI. E' incluso nel `docker-compose.yml` e funziona automaticamente con `docker compose up`.
+
+**Vantaggi:**
+- Nessuna configurazione necessaria — gia' pre-configurato nel compose
+- Web UI su `http://localhost:8025` per visualizzare tutte le email (HTML, testo, allegati)
+- Le email non vengono mai inviate esternamente
+- Non servono account Gmail, app password o credenziali
+
+**Come usarlo:**
+
+1. Avvia lo stack dev: `docker compose up` da `docker/`
+2. Apri `http://localhost:8025` nel browser — vedrai la inbox di Mailpit (inizialmente vuota)
+3. Quando l'applicazione invia un'email (es. reset password), questa appare automaticamente nella inbox
+
+> **Nota:** Mailpit e' solo per development. In produzione si usa un provider SMTP reale (es. Brevo). Vedi la [sezione Production](#configurazione-per-production-brevo-ex-sendinblue).
+
+---
+
 ## Struttura della configurazione
 
 ```json
@@ -43,7 +63,9 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
 
 ---
 
-## Configurazione per Development: Gmail SMTP
+## Alternativa: Gmail SMTP (senza Docker)
+
+Per la maggior parte dei casi d'uso in development, [Mailpit](#development-locale-con-docker-mailpit) e' la soluzione consigliata. Gmail SMTP e' un'alternativa utile solo se hai bisogno di inviare email reali o se stai lavorando senza Docker (`dotnet run`).
 
 Gmail richiede una **App Password** (non la password dell'account). La password normale non funziona se hai il 2FA attivo (consigliato).
 
@@ -54,6 +76,8 @@ Gmail richiede una **App Password** (non la password dell'account). La password 
 3. Vai su https://myaccount.google.com/apppasswords
 4. Seleziona "Altro (nome personalizzato)" → inserisci "Seed App"
 5. Copia la password di 16 caratteri generata (es. `abcd efgh ijkl mnop`)
+
+> **Gestione e revoca:** puoi visualizzare e revocare le App Password in qualsiasi momento dalla stessa pagina https://myaccount.google.com/apppasswords. La revoca e' immediata e non impatta la password del tuo account Google.
 
 ### 2. Configurare con User Secrets (consigliato per dev)
 
@@ -189,25 +213,25 @@ Per il template completo di tutte le variabili d'ambiente (incluse SMTP), vedi `
 
 ## Verifica della configurazione
 
-### 1. Senza SMTP (console fallback)
+### 1. Con Mailpit (Docker dev)
 
-Avvia il backend senza configurare `Smtp:Host`. Quando richiedi un reset password, il token apparira' nei log:
+1. Avvia lo stack: `docker compose up` da `docker/`
+2. Apri `http://localhost:8025` — la inbox di Mailpit deve essere visibile
+3. Vai su `http://localhost:4200/forgot-password` e inserisci l'email di un utente registrato
+4. L'email di reset password apparira' nella inbox di Mailpit entro pochi secondi
+
+### 2. Senza SMTP (console fallback)
+
+Se lavori senza Docker (`dotnet run`), `Smtp:Host` e' vuoto e il sistema usa `ConsoleEmailService`. Il token apparira' nei log:
 
 ```
 [HH:mm:ss WRN] SMTP not configured — logging email to console
 [HH:mm:ss INF] Password Reset Email → To: user@example.com, Token: CfDJ8N...
 ```
 
-Per trovare il token nei log Docker:
-
-```bash
-# Da docker/
-docker compose logs --tail 100 api | grep "Password Reset Email"
-```
-
 > **Nota:** Il token viene generato solo se l'email corrisponde a un utente esistente e attivo. Per motivi di sicurezza (prevenzione email enumeration), l'API restituisce sempre lo stesso messaggio di successo anche se l'utente non esiste.
 
-### 2. Con SMTP configurato
+### 3. Con SMTP reale (Gmail o Brevo)
 
 1. Avvia il backend con la configurazione SMTP
 2. Vai su `/forgot-password` nel frontend
@@ -228,8 +252,9 @@ docker compose logs --tail 100 api | grep "Password Reset Email"
 
 ## Riepilogo rapido
 
-| Ambiente    | Provider | Host                     | Porta | Metodo configurazione        |
-|-------------|----------|--------------------------|-------|------------------------------|
-| Development | Gmail    | `smtp.gmail.com`         | 587   | `dotnet user-secrets`        |
-| Production  | Brevo    | `smtp-relay.brevo.com`   | 587   | File `.env` (vedi `.env.prod.example`) |
-| Locale      | Nessuno  | *(vuoto)*                | —     | Default (console fallback)   |
+| Ambiente         | Provider | Host                    | Porta | Metodo configurazione              |
+|------------------|----------|-------------------------|-------|------------------------------------|
+| Docker dev       | Mailpit  | `mailpit` (interno)     | 1025  | Automatico (`docker-compose.yml`)  |
+| Locale no Docker | Nessuno  | *(vuoto)*               | —     | Default (console fallback)         |
+| Locale no Docker | Gmail    | `smtp.gmail.com`        | 587   | `dotnet user-secrets` (opzionale)  |
+| Production       | Brevo    | `smtp-relay.brevo.com`  | 587   | File `.env` (`.env.prod.example`)  |
