@@ -190,7 +190,7 @@ Smtp__FromName=Seed App
 Smtp__UseSsl=true
 ```
 
-Il `docker-compose.deploy.yml` e il `docker-compose.prod.yml` passano automaticamente queste variabili al container API.
+Il `docker-compose.deploy.yml` passa automaticamente queste variabili al container API.
 
 > **Nota:** ASP.NET Core usa `__` (doppio underscore) come separatore per le sezioni nested nelle variabili d'ambiente. Se `Smtp__Host` e' vuoto, il sistema usa automaticamente il fallback console (vedi [Come funziona](#come-funziona)).
 
@@ -205,7 +205,7 @@ Il `docker-compose.deploy.yml` e il `docker-compose.prod.yml` passano automatica
 
 ## Configurazione Docker
 
-Le variabili SMTP sono gia' configurate in `docker-compose.deploy.yml` e `docker-compose.prod.yml` per essere lette dal file `.env`. Basta compilare le variabili `Smtp__*` nel file `docker/.env` come descritto nella [sezione Brevo](#3-configurare-tramite-file-env-consigliato-per-prod).
+Le variabili SMTP sono gia' configurate in `docker-compose.deploy.yml` per essere lette dal file `.env`. Basta compilare le variabili `Smtp__*` nel file `docker/.env` come descritto nella [sezione Brevo](#3-configurare-tramite-file-env-consigliato-per-prod).
 
 Per il template completo di tutte le variabili d'ambiente (incluse SMTP), vedi `docker/.env.prod.example`.
 
