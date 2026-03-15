@@ -1,6 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, afterNextRender, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -17,16 +17,31 @@ export class ResetPassword {
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly error = signal<string | null>(null);
   protected readonly success = signal<string | null>(null);
   protected readonly loading = signal(false);
+  protected readonly hasQueryParams = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     token: ['', [Validators.required]],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
   });
+
+  constructor() {
+    afterNextRender(() => {
+      const params = this.route.snapshot.queryParams;
+      const email = params['email'];
+      const token = params['token'];
+
+      if (email && token) {
+        this.form.patchValue({ email, token });
+        this.hasQueryParams.set(true);
+      }
+    });
+  }
 
   onSubmit(): void {
     if (this.form.invalid) return;

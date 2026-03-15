@@ -59,9 +59,12 @@ E' stato implementato un sistema completo di autenticazione JWT con refresh toke
    Client → POST /api/v1/auth/forgot-password { email: "..." }
    Server → cerca utente per email
           → se esiste e attivo: genera token di reset (ASP.NET Identity)
-          → invia email con token via IEmailService
+          → costruisce link: {Client:BaseUrl}/reset-password?email=...&token=...
+          → invia email con bottone/link via IEmailService
           → ritorna SEMPRE successo (protezione email enumeration)
 
+   Client riceve il link via email → naviga a /reset-password?email=...&token=...
+   Il form pre-compila email e token dai query params, mostra solo il campo password
    Client → POST /api/v1/auth/reset-password { email, token, newPassword }
    Server → valida utente (esiste e attivo)
           → valida token via Identity (ResetPasswordAsync)
@@ -112,7 +115,7 @@ Questo limita i danni in caso di furto del token.
 | `Auth/Commands/Login/` | LoginCommand + Validator + Handler |
 | `Auth/Commands/RefreshToken/` | RefreshTokenCommand + Handler |
 | `Auth/Commands/Logout/` | LogoutCommand + Handler |
-| `Auth/Commands/ForgotPassword/` | ForgotPasswordCommand + Validator + Handler. Genera token e invia email. Ritorna sempre successo (anti-enumeration) |
+| `Auth/Commands/ForgotPassword/` | ForgotPasswordCommand + Validator + Handler. Genera token, costruisce link e invia email con bottone. Ritorna sempre successo (anti-enumeration) |
 | `Auth/Commands/ResetPassword/` | ResetPasswordCommand + Validator + Handler. Valida token e resetta password via Identity |
 | `Auth/Queries/GetCurrentUser/` | GetCurrentUserQuery + Handler |
 
@@ -128,8 +131,8 @@ Ogni command/query segue il pattern CQRS con MediatR:
 | `Persistence/ApplicationDbContext.cs` | Estende `IdentityDbContext`, include `DbSet<RefreshToken>` |
 | `Persistence/Configurations/` | EF Core fluent configurations per ApplicationUser e RefreshToken |
 | `Services/TokenService.cs` | Implementa ITokenService: genera JWT con claims, gestisce refresh token su DB |
-| `Services/SmtpEmailService.cs` | Implementa IEmailService via MailKit. Invia email HTML con token di reset |
-| `Services/ConsoleEmailService.cs` | Implementa IEmailService come fallback: logga il token su console (per sviluppo) |
+| `Services/SmtpEmailService.cs` | Implementa IEmailService via MailKit. Invia email HTML con bottone di reset (link cliccabile) |
+| `Services/ConsoleEmailService.cs` | Implementa IEmailService come fallback: logga il link su console (per sviluppo) |
 | `DependencyInjection.cs` | Registra DbContext, Identity, JwtSettings, TokenService. Auto-switch email service: se `Smtp:Host` e' configurato usa SmtpEmailService, altrimenti ConsoleEmailService |
 
 ### API Layer (`Seed.Api/`)
@@ -205,7 +208,7 @@ L'interceptor funzionale (`HttpInterceptorFn`):
 | Register | `/register` | guestGuard | Form nome, cognome, email, password. Dopo invio mostra "controlla email" |
 | Confirm Email | `/confirm-email` | guestGuard | Auto-chiama API con email+token dai query param. Mostra spinner/successo/errore |
 | Forgot Password | `/forgot-password` | guestGuard | Form email per richiedere reset password |
-| Reset Password | `/reset-password` | guestGuard | Form email + token + nuova password |
+| Reset Password | `/reset-password` | guestGuard | Se aperto via link email: mostra solo campo nuova password (email e token pre-compilati dai query params). Se aperto manualmente: mostra form completo con email + token + nuova password |
 | Home | `/` | authGuard | Pagina protetta con info utente |
 
 Layout: toolbar Material in cima con nome utente + bottone Logout (visibili solo se autenticato).
@@ -271,6 +274,23 @@ Non e' necessario modificare il codice: l'interceptor e il meccanismo di refresh
 
 > **Importante**: In produzione, la `Secret` deve essere spostata in `dotnet user-secrets` o variabili d'ambiente. Non committare mai secret reali.
 
+### URL frontend nelle email (Client:BaseUrl)
+
+Il backend costruisce i link di conferma email e reset password usando `Client:BaseUrl`:
+
+```json
+{
+  "Client": {
+    "BaseUrl": "https://tuodominio.com"
+  }
+}
+```
+
+- **Sviluppo** (`appsettings.json`): default `http://localhost:4200`
+- **Produzione**: `Client__BaseUrl` viene derivato automaticamente da `DOMAIN_NAME` nel `docker-compose.deploy.yml` (`https://${DOMAIN_NAME}`). Non è necessaria una variabile separata — basta che `DOMAIN_NAME` sia impostato in `.env`.
+
+> **Importante**: Se `DOMAIN_NAME` non è configurato in `.env`, i link nelle email non punteranno al dominio corretto.
+
 ### CORS
 
 Il backend e' configurato per accettare richieste da `http://localhost:4200` (Angular dev server).
@@ -298,7 +318,8 @@ Il backend e' configurato per accettare richieste da `http://localhost:4200` (An
 Non e' necessario modificare il codice: basta compilare la sezione `Smtp` in `appsettings.json` (o variabili d'ambiente) per attivare l'invio reale delle email.
 
 **Dettagli email di reset:**
-- Formato HTML con token in evidenza (l'utente lo copia e incolla nel form di reset)
+- Formato HTML con bottone "Reset Password" cliccabile (link diretto alla pagina di reset con token e email nei query params)
+- Include anche il link in formato testo come fallback
 - Il token scade dopo 1 ora (default ASP.NET Identity)
 - L'email include un disclaimer: "If you did not request this, please ignore this email"
 
@@ -362,11 +383,12 @@ Il frontend sara' su `http://localhost:4200`.
 
 1. Dalla pagina di login, cliccare "Forgot password?"
 2. Inserire l'email dell'utente registrato e inviare
-3. Se SMTP non configurato: cercare il token nei log della console del backend
-4. Se SMTP configurato: controllare l'email ricevuta con il token
-5. Navigare a `/reset-password`
-6. Inserire email, token copiato, e nuova password (min 8 caratteri, maiuscola, minuscola, numero)
-7. Dopo il successo, cliccare "Go to Login" e accedere con la nuova password
+3. Se SMTP non configurato: cercare il link nei log della console del backend
+4. Se SMTP configurato: controllare l'email ricevuta con il bottone "Reset Password"
+5. Cliccare il bottone/link → apre `/reset-password?email=...&token=...`
+6. Il form mostra solo il campo "New Password" (email e token sono pre-compilati dai query params)
+7. Inserire nuova password (min 8 caratteri, maiuscola, minuscola, numero)
+8. Dopo il successo, cliccare "Go to Login" e accedere con la nuova password
 
 ---
 
