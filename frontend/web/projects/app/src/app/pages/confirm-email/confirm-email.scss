@@ -11,38 +11,31 @@
   max-width: 420px;
 }
 
-.full-width {
-  width: 100%;
-}
-
-mat-form-field {
-  margin-bottom: 0.5rem;
-}
-
-.error-message {
-  color: var(--mat-sys-error, #d32f2f);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.success-message {
+.status-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0;
+  gap: 1rem;
+  padding: 1.5rem 0;
   text-align: center;
-
-  mat-icon {
-    font-size: 3rem;
-    height: 3rem;
-    width: 3rem;
-    color: var(--mat-sys-primary, #1976d2);
-  }
 
   p {
     color: var(--mat-sys-on-surface-variant, #666);
     font-size: 0.9rem;
     margin: 0;
   }
+}
+
+.success-icon {
+  font-size: 3rem;
+  height: 3rem;
+  width: 3rem;
+  color: var(--mat-sys-primary, #1976d2);
+}
+
+.error-icon {
+  font-size: 3rem;
+  height: 3rem;
+  width: 3rem;
+  color: var(--mat-sys-error, #d32f2f);
 }

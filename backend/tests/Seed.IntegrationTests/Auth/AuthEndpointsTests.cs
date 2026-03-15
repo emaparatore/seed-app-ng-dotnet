@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Seed.Domain.Entities;
 using Seed.IntegrationTests.Infrastructure;
 
 namespace Seed.IntegrationTests.Auth;
@@ -11,22 +14,39 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private async Task<AuthResponseDto> RegisterUserAsync(
+    /// <summary>
+    /// Registers a user and confirms their email, returning auth tokens.
+    /// Uses UserManager directly to generate the confirmation token without needing SMTP.
+    /// </summary>
+    private async Task<AuthResponseDto> RegisterAndConfirmUserAsync(
         string email = "test@example.com",
         string password = "Password1",
         string firstName = "John",
         string lastName = "Doe")
     {
-        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        var regResponse = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
             email, password, firstName, lastName
         });
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<AuthResponseDto>())!;
+        regResponse.EnsureSuccessStatusCode();
+
+        // Generate the confirmation token directly via UserManager (no SMTP needed)
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await userManager.FindByEmailAsync(email);
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(user!);
+
+        var confirmResponse = await _client.PostAsJsonAsync("/api/v1.0/auth/confirm-email", new
+        {
+            email,
+            token
+        });
+        confirmResponse.EnsureSuccessStatusCode();
+        return (await confirmResponse.Content.ReadFromJsonAsync<AuthResponseDto>())!;
     }
 
     [Fact]
-    public async Task Register_With_Valid_Data_Returns_Ok_With_Tokens()
+    public async Task Register_With_Valid_Data_Returns_Ok_With_Message()
     {
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
@@ -37,11 +57,40 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+        var body = await response.Content.ReadFromJsonAsync<MessageResponseDto>();
         body.Should().NotBeNull();
-        body!.AccessToken.Should().NotBeNullOrEmpty();
-        body.RefreshToken.Should().NotBeNullOrEmpty();
-        body.User.Email.Should().Be("register-ok@example.com");
+        body!.Message.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ConfirmEmail_With_Valid_Token_Returns_AuthTokens()
+    {
+        var auth = await RegisterAndConfirmUserAsync("confirm-ok@example.com");
+
+        auth.Should().NotBeNull();
+        auth.AccessToken.Should().NotBeNullOrEmpty();
+        auth.RefreshToken.Should().NotBeNullOrEmpty();
+        auth.User.Email.Should().Be("confirm-ok@example.com");
+    }
+
+    [Fact]
+    public async Task ConfirmEmail_With_Invalid_Token_Returns_BadRequest()
+    {
+        await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email = "confirm-bad@example.com",
+            password = "Password1",
+            firstName = "John",
+            lastName = "Doe"
+        });
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/confirm-email", new
+        {
+            email = "confirm-bad@example.com",
+            token = "bad-token"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -58,7 +107,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     [Fact]
     public async Task Register_With_Duplicate_Email_Returns_BadRequest()
     {
-        await RegisterUserAsync("duplicate@example.com");
+        await RegisterAndConfirmUserAsync("duplicate@example.com");
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
@@ -72,9 +121,29 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task Login_With_Unverified_Email_Returns_Unauthorized()
+    {
+        await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
+        {
+            email = "unverified@example.com",
+            password = "Password1",
+            firstName = "John",
+            lastName = "Doe"
+        });
+
+        var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
+        {
+            email = "unverified@example.com",
+            password = "Password1"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Login_With_Valid_Credentials_Returns_Ok()
     {
-        await RegisterUserAsync("login-ok@example.com");
+        await RegisterAndConfirmUserAsync("login-ok@example.com");
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
         {
@@ -91,7 +160,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     [Fact]
     public async Task Login_With_Wrong_Password_Returns_Unauthorized()
     {
-        await RegisterUserAsync("login-wrong@example.com");
+        await RegisterAndConfirmUserAsync("login-wrong@example.com");
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
         {
@@ -105,7 +174,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     [Fact]
     public async Task Refresh_With_Valid_Token_Returns_New_Tokens()
     {
-        var auth = await RegisterUserAsync("refresh-ok@example.com");
+        var auth = await RegisterAndConfirmUserAsync("refresh-ok@example.com");
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/refresh", new
         {
@@ -143,7 +212,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     [Fact]
     public async Task Logout_With_Auth_Returns_NoContent()
     {
-        var auth = await RegisterUserAsync("logout-ok@example.com");
+        var auth = await RegisterAndConfirmUserAsync("logout-ok@example.com");
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", auth.AccessToken);
 
@@ -165,7 +234,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     [Fact]
     public async Task Me_With_Auth_Returns_User_Data()
     {
-        var auth = await RegisterUserAsync("me-ok@example.com");
+        var auth = await RegisterAndConfirmUserAsync("me-ok@example.com");
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", auth.AccessToken);
 
@@ -179,4 +248,5 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
 
     private record AuthResponseDto(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User);
     private record UserResponseDto(Guid Id, string Email, string FirstName, string LastName);
+    private record MessageResponseDto(string Message);
 }

@@ -15,4 +15,15 @@ public sealed class ConsoleEmailService(ILogger<ConsoleEmailService> logger) : I
 
         return Task.CompletedTask;
     }
+
+    public Task SendEmailVerificationAsync(string toEmail, string verificationLink, CancellationToken cancellationToken = default)
+    {
+        logger.LogWarning("SMTP not configured — logging email to console");
+        logger.LogInformation(
+            "Email Verification → To: {Email}, Link: {Link}",
+            toEmail,
+            verificationLink);
+
+        return Task.CompletedTask;
+    }
 }
