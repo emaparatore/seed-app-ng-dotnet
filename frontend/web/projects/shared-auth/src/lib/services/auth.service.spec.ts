@@ -69,7 +69,7 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should store tokens and user on success', () => {
+    it('should return message and not store tokens', () => {
       service
         .register({
           email: 'test@example.com',
@@ -78,13 +78,28 @@ describe('AuthService', () => {
           lastName: 'Doe',
         })
         .subscribe((res) => {
-          expect(res.accessToken).toBe('test-access-token');
-          expect(service.currentUser()?.firstName).toBe('John');
-          expect(localStorage.getItem('accessToken')).toBe('test-access-token');
+          expect(res.message).toBe('Please check your email to verify your account.');
+          expect(service.currentUser()).toBeNull();
+          expect(localStorage.getItem('accessToken')).toBeNull();
         });
 
       const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/register');
       expect(req.request.method).toBe('POST');
+      req.flush({ message: 'Please check your email to verify your account.' });
+    });
+  });
+
+  describe('confirmEmail', () => {
+    it('should store tokens and user on success', () => {
+      service.confirmEmail('test@example.com', 'valid-token').subscribe((res) => {
+        expect(res.accessToken).toBe('test-access-token');
+        expect(service.currentUser()?.email).toBe('test@example.com');
+        expect(localStorage.getItem('accessToken')).toBe('test-access-token');
+      });
+
+      const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/confirm-email');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ email: 'test@example.com', token: 'valid-token' });
       req.flush(mockAuthResponse);
     });
   });
