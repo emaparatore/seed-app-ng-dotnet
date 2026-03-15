@@ -5,13 +5,13 @@ namespace Seed.Infrastructure.Services;
 
 public sealed class ConsoleEmailService(ILogger<ConsoleEmailService> logger) : IEmailService
 {
-    public Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken cancellationToken = default)
+    public Task SendPasswordResetEmailAsync(string toEmail, string resetLink, CancellationToken cancellationToken = default)
     {
         logger.LogWarning("SMTP not configured — logging email to console");
         logger.LogInformation(
-            "Password Reset Email → To: {Email}, Token: {Token}",
+            "Password Reset Email → To: {Email}, Link: {Link}",
             toEmail,
-            resetToken);
+            resetLink);
 
         return Task.CompletedTask;
     }
