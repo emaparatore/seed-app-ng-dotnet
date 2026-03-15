@@ -24,6 +24,9 @@ public sealed class LoginCommandHandler(
         if (!validPassword)
             return Result<AuthResponse>.Failure("Invalid email or password.");
 
+        if (!user.EmailConfirmed)
+            return Result<AuthResponse>.Failure("Please verify your email address before logging in. Check your inbox for the verification link.");
+
         var tokens = await tokenService.GenerateTokensAsync(user);
 
         return Result<AuthResponse>.Success(new AuthResponse(

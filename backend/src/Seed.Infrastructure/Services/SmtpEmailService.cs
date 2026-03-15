@@ -45,4 +45,37 @@ public sealed class SmtpEmailService(
 
         logger.LogInformation("Password reset email sent to {Email}", toEmail);
     }
+
+    public async Task SendEmailVerificationAsync(string toEmail, string verificationLink, CancellationToken cancellationToken = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Verify your email address";
+        message.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Welcome!</h2>
+                <p>Thank you for registering. Please verify your email address to activate your account.</p>
+                <p><a href="{verificationLink}" style="display:inline-block;padding:12px 24px;background-color:#1976d2;color:#ffffff;text-decoration:none;border-radius:4px;">Verify Email Address</a></p>
+                <p>Or copy and paste this link into your browser:</p>
+                <p>{verificationLink}</p>
+                <p>If you did not create an account, please ignore this email.</p>
+                """
+        };
+
+        var socketOptions = Enum.Parse<SecureSocketOptions>(_settings.Security, ignoreCase: true);
+
+        using var client = new SmtpClient();
+
+        await client.ConnectAsync(_settings.Host, _settings.Port, socketOptions, cancellationToken);
+
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, cancellationToken);
+
+        await client.SendAsync(message, cancellationToken);
+        await client.DisconnectAsync(true, cancellationToken);
+
+        logger.LogInformation("Email verification link sent to {Email}", toEmail);
+    }
 }

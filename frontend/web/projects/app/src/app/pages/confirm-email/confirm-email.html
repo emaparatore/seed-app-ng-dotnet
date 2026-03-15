@@ -1,0 +1,42 @@
+<div class="auth-container">
+  <mat-card class="auth-card">
+    @switch (status()) {
+      @case ('loading') {
+        <mat-card-header>
+          <mat-card-title>Verifying your email</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="status-content">
+            <mat-spinner diameter="48" />
+            <p>Please wait...</p>
+          </div>
+        </mat-card-content>
+      }
+      @case ('success') {
+        <mat-card-header>
+          <mat-card-title>Email verified!</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="status-content">
+            <mat-icon class="success-icon">check_circle</mat-icon>
+            <p>Your email has been verified. Logging you in...</p>
+          </div>
+        </mat-card-content>
+      }
+      @case ('error') {
+        <mat-card-header>
+          <mat-card-title>Verification failed</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="status-content">
+            <mat-icon class="error-icon">error</mat-icon>
+            <p>{{ errorMessage() }}</p>
+          </div>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <a mat-button routerLink="/login">Go to login</a>
+        </mat-card-actions>
+      }
+    }
+  </mat-card>
+</div>

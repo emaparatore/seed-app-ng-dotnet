@@ -1,21 +1,26 @@
+using System.Net;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
-using Seed.Application.Common.Models;
 using Seed.Domain.Entities;
+using Seed.Shared.Configuration;
 
 namespace Seed.Application.Auth.Commands.Register;
 
 public sealed class RegisterCommandHandler(
     UserManager<ApplicationUser> userManager,
-    ITokenService tokenService) : IRequestHandler<RegisterCommand, Result<AuthResponse>>
+    IEmailService emailService,
+    IOptions<ClientSettings> clientSettings) : IRequestHandler<RegisterCommand, Result<string>>
 {
-    public async Task<Result<AuthResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    private readonly ClientSettings _clientSettings = clientSettings.Value;
+
+    public async Task<Result<string>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         var existingUser = await userManager.FindByEmailAsync(request.Email);
         if (existingUser is not null)
-            return Result<AuthResponse>.Failure("A user with this email already exists.");
+            return Result<string>.Failure("A user with this email already exists.");
 
         var user = new ApplicationUser
         {
@@ -27,14 +32,15 @@ public sealed class RegisterCommandHandler(
 
         var result = await userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
-            return Result<AuthResponse>.Failure(result.Errors.Select(e => e.Description).ToArray());
+            return Result<string>.Failure(result.Errors.Select(e => e.Description).ToArray());
 
-        var tokens = await tokenService.GenerateTokensAsync(user);
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebUtility.UrlEncode(token);
+        var encodedEmail = WebUtility.UrlEncode(request.Email);
+        var verificationLink = $"{_clientSettings.BaseUrl}/confirm-email?email={encodedEmail}&token={encodedToken}";
 
-        return Result<AuthResponse>.Success(new AuthResponse(
-            tokens.AccessToken,
-            tokens.RefreshToken,
-            tokens.ExpiresAt,
-            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName)));
+        await emailService.SendEmailVerificationAsync(request.Email, verificationLink, cancellationToken);
+
+        return Result<string>.Success("Registration successful. Please check your email to verify your account.");
     }
 }
