@@ -284,17 +284,9 @@ Il backend costruisce i link di conferma email e reset password usando `Client:B
 ```
 
 - **Sviluppo** (`appsettings.json`): default `http://localhost:4200`
-- **Produzione** (`appsettings.Production.json`): il valore è vuoto — **deve essere impostato tramite variabile d'ambiente** sul server:
+- **Produzione**: `Client__BaseUrl` viene derivato automaticamente da `DOMAIN_NAME` nel `docker-compose.deploy.yml` (`https://${DOMAIN_NAME}`). Non è necessaria una variabile separata — basta che `DOMAIN_NAME` sia impostato in `.env`.
 
-```bash
-# Docker / docker-compose
-Client__BaseUrl=https://tuodominio.com
-
-# .NET environment variable (formato con doppio underscore per i nested keys)
-export Client__BaseUrl=https://tuodominio.com
-```
-
-> **Importante**: Se `Client:BaseUrl` non è configurato in produzione, i link nelle email punteranno a `http://localhost:4200`. Assicurarsi di impostare questa variabile prima di andare in produzione.
+> **Importante**: Se `DOMAIN_NAME` non è configurato in `.env`, i link nelle email non punteranno al dominio corretto.
 
 ### CORS
 
