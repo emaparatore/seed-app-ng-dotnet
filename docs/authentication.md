@@ -271,6 +271,31 @@ Non e' necessario modificare il codice: l'interceptor e il meccanismo di refresh
 
 > **Importante**: In produzione, la `Secret` deve essere spostata in `dotnet user-secrets` o variabili d'ambiente. Non committare mai secret reali.
 
+### URL frontend nelle email (Client:BaseUrl)
+
+Il backend costruisce i link di conferma email e reset password usando `Client:BaseUrl`:
+
+```json
+{
+  "Client": {
+    "BaseUrl": "https://tuodominio.com"
+  }
+}
+```
+
+- **Sviluppo** (`appsettings.json`): default `http://localhost:4200`
+- **Produzione** (`appsettings.Production.json`): il valore è vuoto — **deve essere impostato tramite variabile d'ambiente** sul server:
+
+```bash
+# Docker / docker-compose
+Client__BaseUrl=https://tuodominio.com
+
+# .NET environment variable (formato con doppio underscore per i nested keys)
+export Client__BaseUrl=https://tuodominio.com
+```
+
+> **Importante**: Se `Client:BaseUrl` non è configurato in produzione, i link nelle email punteranno a `http://localhost:4200`. Assicurarsi di impostare questa variabile prima di andare in produzione.
+
 ### CORS
 
 Il backend e' configurato per accettare richieste da `http://localhost:4200` (Angular dev server).
