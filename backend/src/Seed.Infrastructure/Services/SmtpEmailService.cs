@@ -14,7 +14,7 @@ public sealed class SmtpEmailService(
 {
     private readonly SmtpSettings _settings = smtpSettings.Value;
 
-    public async Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken cancellationToken = default)
+    public async Task SendPasswordResetEmailAsync(string toEmail, string resetLink, CancellationToken cancellationToken = default)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
@@ -24,10 +24,12 @@ public sealed class SmtpEmailService(
         {
             Text = $"""
                 <h2>Password Reset</h2>
-                <p>You requested a password reset. Use the following token to reset your password:</p>
-                <p><strong>{resetToken}</strong></p>
+                <p>You requested a password reset. Click the button below to set a new password:</p>
+                <p><a href="{resetLink}" style="display:inline-block;padding:12px 24px;background-color:#1976d2;color:#ffffff;text-decoration:none;border-radius:4px;">Reset Password</a></p>
+                <p>Or copy and paste this link into your browser:</p>
+                <p>{resetLink}</p>
                 <p>If you did not request this, please ignore this email.</p>
-                <p>This token will expire in 1 hour.</p>
+                <p>This link will expire in 1 hour.</p>
                 """
         };
 

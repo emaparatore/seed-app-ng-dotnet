@@ -1,9 +1,12 @@
+using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Seed.Application.Auth.Commands.ForgotPassword;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
+using Seed.Shared.Configuration;
 
 namespace Seed.UnitTests.Auth.Commands;
 
@@ -19,7 +22,8 @@ public class ForgotPasswordCommandHandlerTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _emailService = Substitute.For<IEmailService>();
-        _handler = new ForgotPasswordCommandHandler(_userManager, _emailService);
+        var clientSettings = Options.Create(new ClientSettings { BaseUrl = "http://localhost:4200" });
+        _handler = new ForgotPasswordCommandHandler(_userManager, _emailService, clientSettings);
     }
 
     [Fact]
@@ -50,7 +54,7 @@ public class ForgotPasswordCommandHandlerTests
     }
 
     [Fact]
-    public async Task Should_Generate_Token_And_Send_Email_When_User_Exists()
+    public async Task Should_Generate_Token_And_Send_ResetLink_When_User_Exists()
     {
         var command = new ForgotPasswordCommand("user@test.com");
         var user = new ApplicationUser { Email = command.Email, IsActive = true };
@@ -60,7 +64,8 @@ public class ForgotPasswordCommandHandlerTests
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Succeeded.Should().BeTrue();
+        var expectedLink = $"http://localhost:4200/reset-password?email={WebUtility.UrlEncode(command.Email)}&token={WebUtility.UrlEncode("reset-token-123")}";
         await _emailService.Received(1)
-            .SendPasswordResetEmailAsync(command.Email, "reset-token-123", Arg.Any<CancellationToken>());
+            .SendPasswordResetEmailAsync(command.Email, expectedLink, Arg.Any<CancellationToken>());
     }
 }
