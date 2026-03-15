@@ -23,6 +23,11 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: 'confirm-email',
+    loadComponent: () => import('./pages/confirm-email/confirm-email').then((m) => m.ConfirmEmail),
+    canActivate: [guestGuard],
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
     pathMatch: 'full',

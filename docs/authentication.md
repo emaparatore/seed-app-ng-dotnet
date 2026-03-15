@@ -11,9 +11,30 @@ E' stato implementato un sistema completo di autenticazione JWT con refresh toke
 ### Flusso di autenticazione
 
 ```
-1. REGISTRAZIONE / LOGIN
-   Client → POST /api/v1/auth/register (o /login)
-   Server → crea utente (o verifica credenziali)
+1. REGISTRAZIONE
+   Client → POST /api/v1/auth/register
+   Server → crea utente (EmailConfirmed = false)
+          → genera token di verifica email (ASP.NET Identity)
+          → costruisce link: {Client:BaseUrl}/confirm-email?email=...&token=...
+          → invia email con link via IEmailService
+          → ritorna messaggio "controlla la tua email" (NO token JWT)
+
+   Client riceve il link via email → naviga a /confirm-email?email=...&token=...
+   Client → POST /api/v1/auth/confirm-email { email, token }
+   Server → valida token via ConfirmEmailAsync
+          → imposta EmailConfirmed = true
+          → genera Access Token JWT (60 min)
+          → genera Refresh Token opaco (30 giorni, salvato su DB)
+          → ritorna token + dati utente (auto-login)
+
+1b. LOGIN (utente non verificato)
+   Client → POST /api/v1/auth/login
+   Server → trova utente, verifica password
+          → se EmailConfirmed == false → errore "verifica la tua email"
+
+1c. LOGIN (utente verificato)
+   Client → POST /api/v1/auth/login
+   Server → verifica credenziali + EmailConfirmed
           → genera Access Token JWT (60 min)
           → genera Refresh Token opaco (30 giorni, salvato su DB)
           → ritorna entrambi i token + dati utente
@@ -74,7 +95,8 @@ Questo limita i danni in caso di furto del token.
 | File | Descrizione |
 |------|-------------|
 | `JwtSettings.cs` | POCO con Secret, Issuer, Audience, AccessTokenExpirationMinutes (default 60), RefreshTokenExpirationDays (default 30) |
-| `SmtpSettings.cs` | POCO con Host, Port (587), Username, Password, FromEmail, FromName ("Seed App"), UseSsl (true) |
+| `SmtpSettings.cs` | POCO con Host, Port (587), Username, Password, FromEmail, FromName ("Seed App"), Security ("StartTls") |
+| `ClientSettings.cs` | POCO con BaseUrl (default "http://localhost:4200"). Usato per costruire i link nelle email |
 
 ### Application Layer (`Seed.Application/`)
 
@@ -83,9 +105,10 @@ Questo limita i danni in caso di furto del token.
 | `Common/Result.cs` | Tipo generico `Result<T>` con Succeeded, Data, Errors |
 | `Common/Models/` | AuthResponse, UserDto, TokenResult — record immutabili per le risposte |
 | `Common/Interfaces/ITokenService.cs` | Interfaccia per generazione/refresh/revoca token |
-| `Common/Interfaces/IEmailService.cs` | Interfaccia per invio email (metodo `SendPasswordResetEmailAsync`) |
+| `Common/Interfaces/IEmailService.cs` | Interfaccia per invio email (`SendPasswordResetEmailAsync`, `SendEmailVerificationAsync`) |
 | `DependencyInjection.cs` | Registra MediatR e FluentValidation |
-| `Auth/Commands/Register/` | RegisterCommand + Validator + Handler |
+| `Auth/Commands/Register/` | RegisterCommand + Validator + Handler. Genera token di verifica e invia email. Ritorna messaggio (non token JWT) |
+| `Auth/Commands/ConfirmEmail/` | ConfirmEmailCommand + Validator + Handler. Valida token, imposta EmailConfirmed=true, ritorna AuthResponse (auto-login) |
 | `Auth/Commands/Login/` | LoginCommand + Validator + Handler |
 | `Auth/Commands/RefreshToken/` | RefreshTokenCommand + Handler |
 | `Auth/Commands/Logout/` | LogoutCommand + Handler |
@@ -121,8 +144,9 @@ Ogni command/query segue il pattern CQRS con MediatR:
 
 | Metodo | Path | Auth | Descrizione |
 |--------|------|------|-------------|
-| POST | `/api/v1/auth/register` | No | Registrazione nuovo utente |
-| POST | `/api/v1/auth/login` | No | Login con email/password |
+| POST | `/api/v1/auth/register` | No | Registrazione nuovo utente. Invia email di verifica. Ritorna messaggio (non token) |
+| POST | `/api/v1/auth/confirm-email` | No | Conferma email con token ricevuto via link. Ritorna AuthResponse (auto-login) |
+| POST | `/api/v1/auth/login` | No | Login con email/password. Blocca utenti non verificati |
 | POST | `/api/v1/auth/refresh` | No | Rinnovo token con refresh token |
 | POST | `/api/v1/auth/logout` | Si | Revoca del refresh token |
 | GET | `/api/v1/auth/me` | Si | Dati dell'utente corrente |
@@ -153,7 +177,8 @@ Stato reattivo basato su **Angular signals**:
 
 Metodi principali:
 - `login(request)` → chiama API, salva token in localStorage, aggiorna signals
-- `register(request)` → come login ma per registrazione
+- `register(request)` → chiama API registrazione, ritorna messaggio (non salva token — serve verifica email)
+- `confirmEmail(email, token)` → conferma email, salva token in localStorage, aggiorna signals (auto-login)
 - `refreshToken()` → rinnova i token usando il refresh token (con protezione chiamate concorrenti)
 - `logout()` → revoca il token lato server, pulisce localStorage e signals, redirect a /login
 - `getProfile()` → carica dati utente dall'endpoint /me
@@ -177,7 +202,8 @@ L'interceptor funzionale (`HttpInterceptorFn`):
 | Pagina | Path | Guard | Descrizione |
 |--------|------|-------|-------------|
 | Login | `/login` | guestGuard | Form email + password con Angular Material |
-| Register | `/register` | guestGuard | Form nome, cognome, email, password |
+| Register | `/register` | guestGuard | Form nome, cognome, email, password. Dopo invio mostra "controlla email" |
+| Confirm Email | `/confirm-email` | guestGuard | Auto-chiama API con email+token dai query param. Mostra spinner/successo/errore |
 | Forgot Password | `/forgot-password` | guestGuard | Form email per richiedere reset password |
 | Reset Password | `/reset-password` | guestGuard | Form email + token + nuova password |
 | Home | `/` | authGuard | Pagina protetta con info utente |
@@ -321,15 +347,16 @@ npm start
 
 Il frontend sara' su `http://localhost:4200`.
 
-### 5. Test del flusso
+### 5. Test del flusso di registrazione con verifica email
 
 1. Aprire `http://localhost:4200` → redirect automatico a `/login`
 2. Cliccare "Don't have an account? Register"
 3. Compilare il form di registrazione e inviare
-4. Redirect automatico alla home page con nome utente nella toolbar
-5. Cliccare "Logout" → redirect a `/login`
-6. Effettuare login con le credenziali create
-7. Testare anche da Swagger: copiare l'access token e usarlo nel pulsante "Authorize"
+4. La pagina mostra "Controlla la tua email" — NON vengono emessi token JWT
+5. Aprire Mailpit su `http://localhost:8025` per trovare l'email di verifica
+6. Cliccare il link nell'email → reindirizza a `/confirm-email?email=...&token=...`
+7. La pagina mostra uno spinner, poi "Email verificata!" e naviga alla home con auto-login
+8. Provare a fare login con un account non verificato → messaggio di errore appropriato
 
 ### 6. Test del flusso reset password
 
@@ -381,13 +408,9 @@ Il frontend sara' su `http://localhost:4200`.
 
 ---
 
-## Cosa NON e' stato implementato (Fase 4 — opzionale)
+## Cosa NON e' stato implementato (opzionale)
 
 - Ruoli e autorizzazione basata su ruoli
 - Cambio password
-- Conferma email
 - Account lockout
-
-Queste feature sono descritte nel file `AUTH_PROPOSAL.md` e possono essere aggiunte in seguito.
-
-> **Nota:** Il reset password e il rate limiting sono stati implementati. Vedi le sezioni sopra per i dettagli.
+- Re-invio email di verifica (utile se il link scade)

@@ -33,8 +33,12 @@ export class AuthService {
     );
   }
 
-  register(request: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request).pipe(
+  register(request: RegisterRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/register`, request);
+  }
+
+  confirmEmail(email: string, token: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/confirm-email`, { email, token }).pipe(
       tap((response) => this.handleAuthResponse(response)),
     );
   }

@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Seed.Application.Auth.Commands.ConfirmEmail;
 using Seed.Application.Auth.Commands.ForgotPassword;
 using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
@@ -24,6 +25,14 @@ public class AuthController(ISender sender) : ControllerBase
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterCommand command)
+    {
+        var result = await sender.Send(command);
+        return result.Succeeded ? Ok(new { message = result.Data }) : BadRequest(new { errors = result.Errors });
+    }
+
+    [HttpPost("confirm-email")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ConfirmEmail(ConfirmEmailCommand command)
     {
         var result = await sender.Send(command);
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
