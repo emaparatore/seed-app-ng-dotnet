@@ -228,6 +228,8 @@ When creating a PR (via `gh pr create`), structure the description as follows:
 
 Keep the title short (<70 chars). Put details in the body, not the title. The PR description should be useful to a reviewer who has no prior context.
 
+- **Phased execution:** For complex features (4+ phases), follow the phased-execution skill workflow. Plans are saved in `docs/plans/` and executed one phase per session with context handoff.
+
 Existing docs:
 - `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
 - `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
@@ -236,3 +238,4 @@ Existing docs:
 - `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
+- `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.
