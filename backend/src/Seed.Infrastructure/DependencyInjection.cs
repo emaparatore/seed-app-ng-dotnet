@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
 using Seed.Infrastructure.Persistence;
+using Seed.Infrastructure.Persistence.Seeders;
 using Seed.Infrastructure.Services;
 using Seed.Shared.Configuration;
 
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.Configure<ClientSettings>(configuration.GetSection(ClientSettings.SectionName));
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<RolesAndPermissionsSeeder>();
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
         if (smtpSection.Exists() && !string.IsNullOrWhiteSpace(smtpSection[nameof(SmtpSettings.Host)]))

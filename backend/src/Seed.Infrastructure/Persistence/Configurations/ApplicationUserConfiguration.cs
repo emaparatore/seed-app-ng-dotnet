@@ -13,5 +13,6 @@ public sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Appl
         builder.Property(u => u.CreatedAt).IsRequired();
         builder.Property(u => u.UpdatedAt).IsRequired();
         builder.Property(u => u.IsActive).HasDefaultValue(true);
+        builder.Property(u => u.MustChangePassword).HasDefaultValue(false);
     }
 }

@@ -10,6 +10,7 @@ using Seed.Api.Middleware;
 using Seed.Application;
 using Seed.Infrastructure;
 using Seed.Infrastructure.Persistence;
+using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
 
@@ -138,6 +139,9 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var seeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
+    await seeder.SeedAsync();
 
     app.UseSwaggerWithUI();
 }
