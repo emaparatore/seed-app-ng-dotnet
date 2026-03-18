@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** Not Started
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-18 (aggiornato con decisioni open questions)
 
 ---
 
@@ -85,7 +85,7 @@ Creare un seeder che popola il database con i 16 permessi e i 3 ruoli di sistema
 **Depends on:** T-02
 
 **What to do:**
-Implementare un sistema di autorizzazione che verifica i permessi dell'utente corrente. Creare un `IPermissionService` che carica i permessi dell'utente (con cache), un authorization handler ASP.NET che valida le policy basate su permessi, e un attributo/policy per proteggere gli endpoint. Il SuperAdmin bypassa tutti i controlli.
+Implementare un sistema di autorizzazione che verifica i permessi dell'utente corrente. Creare un `IPermissionService` che carica i permessi dell'utente (con cache), un authorization handler ASP.NET che valida le policy basate su permessi, e un attributo/policy per proteggere gli endpoint. Il SuperAdmin bypassa tutti i controlli. Implementare un `ITokenBlacklistService` basato su `IDistributedCache` per l'invalidazione immediata dei token JWT (necessario per disattivazione utenti e cambio ruoli).
 
 **Definition of Done:**
 - [ ] `IPermissionService` con metodo `GetPermissionsAsync(userId)` che restituisce i permessi effettivi (unione dei ruoli)
@@ -94,7 +94,11 @@ Implementare un sistema di autorizzazione che verifica i permessi dell'utente co
 - [ ] `HasPermissionAttribute` o policy factory per decorare gli endpoint (es. `[HasPermission(Permissions.Users.Read)]`)
 - [ ] SuperAdmin bypassa tutti i controlli di permesso
 - [ ] I permessi dell'utente vengono inclusi nella risposta di login (`LoginResponse` estesa con `permissions[]`)
+- [ ] Registrazione `IDistributedCache` con `AddDistributedMemoryCache()` (sostituibile con Redis in futuro senza modifiche al codice applicativo)
+- [ ] `ITokenBlacklistService` con metodi `BlacklistUserTokensAsync(userId)` e `IsBlacklistedAsync(tokenId)` — usa `IDistributedCache` internamente
+- [ ] Middleware/filtro JWT che controlla la blacklist ad ogni richiesta autenticata
 - [ ] Unit test per `PermissionService` (utente con ruoli multipli, SuperAdmin bypass)
+- [ ] Unit test per `TokenBlacklistService`
 - [ ] Integration test per authorization handler (endpoint protetto, accesso con/senza permesso)
 
 ---
@@ -199,6 +203,8 @@ Endpoint:
 - [ ] Ordinamento per qualsiasi colonna esposta
 - [ ] Ogni endpoint protetto dal permesso corretto
 - [ ] Regole di protezione: no auto-eliminazione, no eliminazione/disattivazione SuperAdmin, no auto-modifica ruolo SuperAdmin
+- [ ] Alla disattivazione utente: invalidazione immediata dei token attivi tramite `ITokenBlacklistService`
+- [ ] Soft delete per eliminazione utenti (flag `IsDeleted`) — l'utente non è più visibile ma i dati restano per audit
 - [ ] Tutte le operazioni loggate nell'audit log con dettaglio prima/dopo
 - [ ] FluentValidation per tutti i comandi
 - [ ] Unit test per command handler e validatori
@@ -233,6 +239,7 @@ Endpoint:
 - [ ] Eliminazione bloccata per ruoli di sistema (`IsSystemRole`)
 - [ ] Modifica permessi SuperAdmin bloccata (mantiene sempre tutti)
 - [ ] Invalidazione cache permessi alla modifica dei ruoli
+- [ ] Alla modifica ruoli: invalidazione immediata dei token attivi degli utenti impattati tramite `ITokenBlacklistService`
 - [ ] Tutte le operazioni loggate nell'audit log
 - [ ] FluentValidation per tutti i comandi
 - [ ] Unit test e integration test
@@ -272,26 +279,10 @@ Endpoint:
 **Status:** [ ] Not Started
 **Depends on:** T-03, T-06
 
-⚠️ **DECISION REQUIRED: Strategia di storage per le impostazioni**
-
-Le impostazioni di sistema devono essere persistite e sovrascrivere i valori di default. Opzioni:
-
-**Option A — Tabella `SystemSettings` con righe chiave-valore**
-- Ogni impostazione è una riga con `Key`, `Value` (stringa), `Type` (per serializzazione), `LastModifiedBy`, `LastModifiedAt`
-- Pro: flessibile, aggiungere una nuova impostazione richiede solo una nuova costante
-- Con: niente type-safety a livello DB, serializzazione manuale
-
-**Option B — Tabella `SystemSettings` con colonne tipizzate**
-- Una sola riga con una colonna per ogni impostazione
-- Pro: type-safety a livello DB, query dirette
-- Con: aggiungere un'impostazione richiede una migration
-
-**Recommendation:** Option A (chiave-valore) per la flessibilità richiesta da RNF-05 ("estensione senza modifiche strutturali").
-
-**Awaiting decision from:** user
+**Decision:** Tabella `SystemSettings` con righe chiave-valore (Option A) per la flessibilità richiesta da RNF-05. I valori di default sono definiti in una classe `SystemSettingsDefaults` e seminati nel DB al primo avvio (stesso pattern idempotente di T-02/T-04).
 
 **What to do:**
-Creare l'infrastruttura per le impostazioni di sistema: entità, servizio con cache in-memory, seeding dei valori di default, controller con endpoint lettura/modifica.
+Creare l'infrastruttura per le impostazioni di sistema: entità, servizio con cache in-memory, classe `SystemSettingsDefaults` con i valori iniziali, seeder idempotente, controller con endpoint lettura/modifica.
 
 Endpoint:
 - `GET /api/v1/admin/settings` — tutte le impostazioni raggruppate per categoria
@@ -301,7 +292,8 @@ Endpoint:
 - [ ] Entità e migration per la tabella settings
 - [ ] `ISystemSettingsService` con metodi `GetAllAsync()`, `UpdateAsync(changes)`, `GetValueAsync<T>(key)`
 - [ ] Cache in-memory con invalidazione al salvataggio
-- [ ] Seeding dei valori di default per tutte le 9 impostazioni
+- [ ] Classe `SystemSettingsDefaults` con i valori iniziali di tutte le impostazioni (incluso `AuditLog.RetentionMonths = 0` per futura retention policy)
+- [ ] Seeder idempotente che scrive i default nel DB al primo avvio (se la chiave non esiste già)
 - [ ] Ogni impostazione include: chiave, valore, tipo, categoria, chi/quando ultima modifica
 - [ ] Endpoint protetti da `Settings.Read` (lettura) e `Settings.Manage` (modifica)
 - [ ] Modifiche loggate nell'audit log con dettaglio prima/dopo
@@ -402,34 +394,13 @@ Implementare la pagina dashboard con card statistiche, grafici e widget ultime a
 **Definition of Done:**
 - [ ] Card con conteggi: utenti totali, attivi, disattivati
 - [ ] Card con registrazioni: ultimi 7 e 30 giorni
-- [ ] Grafico trend registrazioni (ultimi 30 giorni) — line chart con Angular Material o libreria leggera
-- [ ] Grafico distribuzione utenti per ruolo — donut/pie chart
+- [ ] Grafico trend registrazioni (ultimi 30 giorni) — line chart SVG custom (componente Angular isolato, zero dipendenze)
+- [ ] Grafico distribuzione utenti per ruolo — donut chart SVG custom (componente Angular isolato, zero dipendenze)
 - [ ] Widget ultime 5 attività audit con link a sezione completa
 - [ ] Skeleton loading durante il caricamento
 - [ ] Responsive: card si riorganizzano su tablet
 
-⚠️ **DECISION REQUIRED: Libreria grafici**
-
-Per i grafici della dashboard (trend registrazioni, distribuzione ruoli):
-
-**Option A — ngx-charts**
-- Libreria Angular-native, basata su D3
-- Pro: buona integrazione Angular, animazioni fluide
-- Con: bundle size significativo (~150KB), manutenzione rallentata
-
-**Option B — Chart.js + ng2-charts**
-- Wrapper Angular per Chart.js
-- Pro: leggero (~60KB), molto popolare, ben mantenuto, ampia documentazione
-- Con: non Angular-native, richiede wrapper
-
-**Option C — Grafici custom con SVG/Canvas**
-- Implementazione manuale per i 2 grafici necessari
-- Pro: zero dipendenze, dimensione minima
-- Con: più tempo di sviluppo, meno funzionalità out-of-the-box
-
-**Recommendation:** Option B (Chart.js + ng2-charts) — buon compromesso tra peso, funzionalità e manutenibilità per 2 semplici grafici.
-
-**Awaiting decision from:** user
+**Decision:** Grafici SVG custom (Option C). Zero dipendenze esterne, componenti Angular isolati e facilmente rimovibili. Coerente con l'obiettivo di mantenere la seed app leggera. Se in futuro servono grafici più complessi, si aggiunge una libreria a quel punto.
 
 ---
 

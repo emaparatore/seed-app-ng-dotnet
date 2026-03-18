@@ -365,13 +365,20 @@ US-016 (system health) ── dipende da US-017
 ## Open Questions
 
 1. **Eliminazione utenti — soft delete o hard delete?** Il documento dice "eliminare", ma per un audit log completo potrebbe essere preferibile un soft delete (flag `IsDeleted`). Questo impatta anche la possibilità di "riattivare" un utente eliminato per errore.
+ -> ok procediamo con soft deleted
 
 2. **Invalidazione sessioni alla disattivazione**: quando un utente viene disattivato (US-005), le sue sessioni attive (JWT) devono essere invalidate immediatamente o il blocco si applica solo al prossimo tentativo di refresh token?
+ -> Immediatamente. Approccio: token blacklist tramite `IDistributedCache` (in-memory per ora con `AddDistributedMemoryCache()`). Quando si scala a più istanze, si sostituisce con Redis senza modifiche al codice applicativo.
 
 3. **Invalidazione sessioni al cambio ruoli**: quando i ruoli di un utente cambiano (US-004), i permessi aggiornati si riflettono immediatamente o al prossimo login/refresh?
+ -> Immediatamente. Stesso meccanismo di blacklist del punto 2: alla modifica ruoli, i token attivi dell'utente vengono invalidati forzando un re-login con i nuovi permessi.
 
 4. **CLI per seed-admin** (menzionato in RF-01): è una priorità o può essere rimandato? L'approccio via variabili d'ambiente copre il caso principale.
+ -> Rimandato. L'approccio via variabili d'ambiente è sufficiente per v1. Un eventuale CLI potrà essere aggiunto in futuro come enhancement senza impatti sull'architettura corrente.
+
 
 5. **Data retention per audit log**: serve una policy di retention (es. eliminazione automatica dopo N mesi) o il log cresce indefinitamente?
+ -> Crescita indefinita per v1. Indici appropriati + paginazione lato server mantengono le performance accettabili. In RF-07 prevedere un campo `AuditLog.RetentionMonths` con default `0` (= nessun limite), così il giorno che serve basta implementare il job di cleanup.
 
 6. **Impostazioni di sistema — valori iniziali**: da dove vengono i valori di default delle impostazioni (RF-07)? Da `appsettings.json`? Hardcoded? Da migration?
+ -> Hardcoded con seeding al primo avvio. I default sono definiti in una classe C# (`SystemSettingsDefaults`). Al primo avvio il seeder li scrive nel DB se mancano (idempotente, stesso pattern di RF-01). Da quel momento il `SettingsService` legge sempre e solo dal DB con cache in-memory + invalidazione al salvataggio.
