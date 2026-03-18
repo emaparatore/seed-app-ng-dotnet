@@ -30,9 +30,13 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+        services.AddDistributedMemoryCache();
+
         services.Configure<ClientSettings>(configuration.GetSection(ClientSettings.SectionName));
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
         services.AddScoped<RolesAndPermissionsSeeder>();
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

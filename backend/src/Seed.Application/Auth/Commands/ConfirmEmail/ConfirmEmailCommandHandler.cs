@@ -9,7 +9,8 @@ namespace Seed.Application.Auth.Commands.ConfirmEmail;
 
 public sealed class ConfirmEmailCommandHandler(
     UserManager<ApplicationUser> userManager,
-    ITokenService tokenService) : IRequestHandler<ConfirmEmailCommand, Result<AuthResponse>>
+    ITokenService tokenService,
+    IPermissionService permissionService) : IRequestHandler<ConfirmEmailCommand, Result<AuthResponse>>
 {
     public async Task<Result<AuthResponse>> Handle(ConfirmEmailCommand request, CancellationToken cancellationToken)
     {
@@ -24,12 +25,16 @@ public sealed class ConfirmEmailCommandHandler(
         if (!result.Succeeded)
             return Result<AuthResponse>.Failure("Invalid or expired verification link.");
 
-        var tokens = await tokenService.GenerateTokensAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
+        var tokens = await tokenService.GenerateTokensAsync(user, roles);
+        var permissions = await permissionService.GetPermissionsAsync(user.Id);
 
         return Result<AuthResponse>.Success(new AuthResponse(
             tokens.AccessToken,
             tokens.RefreshToken,
             tokens.ExpiresAt,
-            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName)));
+            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToList().AsReadOnly()),
+            permissions.ToList().AsReadOnly(),
+            user.MustChangePassword));
     }
 }

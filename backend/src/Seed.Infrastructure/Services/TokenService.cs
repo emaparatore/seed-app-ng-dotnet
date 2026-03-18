@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,14 +16,15 @@ namespace Seed.Infrastructure.Services;
 
 public sealed class TokenService(
     IOptions<JwtSettings> jwtOptions,
-    ApplicationDbContext dbContext) : ITokenService
+    ApplicationDbContext dbContext,
+    UserManager<ApplicationUser> userManager) : ITokenService
 {
     private readonly JwtSettings _jwt = jwtOptions.Value;
 
-    public async Task<TokenResult> GenerateTokensAsync(ApplicationUser user)
+    public async Task<TokenResult> GenerateTokensAsync(ApplicationUser user, IList<string> roles)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwt.AccessTokenExpirationMinutes);
-        var accessToken = GenerateAccessToken(user, expiresAt);
+        var accessToken = GenerateAccessToken(user, roles, expiresAt);
         var refreshToken = await CreateRefreshTokenAsync(user.Id);
 
         return new TokenResult(accessToken, refreshToken, expiresAt, user.Id);
@@ -44,8 +46,10 @@ public sealed class TokenService(
         if (!user.IsActive)
             return null;
 
+        var roles = await userManager.GetRolesAsync(user);
+
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwt.AccessTokenExpirationMinutes);
-        var newAccessToken = GenerateAccessToken(user, expiresAt);
+        var newAccessToken = GenerateAccessToken(user, roles, expiresAt);
         var newRefreshToken = await CreateRefreshTokenAsync(user.Id);
 
         storedToken.ReplacedByToken = newRefreshToken;
@@ -80,16 +84,22 @@ public sealed class TokenService(
         await dbContext.SaveChangesAsync();
     }
 
-    private string GenerateAccessToken(ApplicationUser user, DateTime expiresAt)
+    private string GenerateAccessToken(ApplicationUser user, IList<string> roles, DateTime expiresAt)
     {
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email!),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             new("firstName", user.FirstName),
             new("lastName", user.LastName)
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

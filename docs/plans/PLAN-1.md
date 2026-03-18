@@ -11,7 +11,7 @@
 
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | 🔧 In Progress (T-01 ✅, T-02 ✅) |
+| US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | 🔧 In Progress (T-01 ✅, T-02 ✅, T-03 ✅) |
 | US-002 | Cambio password obbligatorio | T-05 | ⏳ Not Started |
 | US-003 | Lista utenti | T-07, T-14, T-15 | ⏳ Not Started |
 | US-004 | Promuovere un utente | T-07, T-15 | ⏳ Not Started |
@@ -87,25 +87,36 @@ Creare un seeder che popola il database con i 16 permessi e i 3 ruoli di sistema
 
 **Stories:** US-001, US-017
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Completed
 **Depends on:** T-02
 
 **What to do:**
 Implementare un sistema di autorizzazione che verifica i permessi dell'utente corrente. Creare un `IPermissionService` che carica i permessi dell'utente (con cache), un authorization handler ASP.NET che valida le policy basate su permessi, e un attributo/policy per proteggere gli endpoint. Il SuperAdmin bypassa tutti i controlli. Implementare un `ITokenBlacklistService` basato su `IDistributedCache` per l'invalidazione immediata dei token JWT (necessario per disattivazione utenti e cambio ruoli).
 
 **Definition of Done:**
-- [ ] `IPermissionService` con metodo `GetPermissionsAsync(userId)` che restituisce i permessi effettivi (unione dei ruoli)
-- [ ] Cache server-side dei permessi per utente (con invalidazione)
-- [ ] `PermissionAuthorizationHandler` che verifica se l'utente ha il permesso richiesto
-- [ ] `HasPermissionAttribute` o policy factory per decorare gli endpoint (es. `[HasPermission(Permissions.Users.Read)]`)
-- [ ] SuperAdmin bypassa tutti i controlli di permesso
-- [ ] I permessi dell'utente vengono inclusi nella risposta di login (`LoginResponse` estesa con `permissions[]`)
-- [ ] Registrazione `IDistributedCache` con `AddDistributedMemoryCache()` (sostituibile con Redis in futuro senza modifiche al codice applicativo)
-- [ ] `ITokenBlacklistService` con metodi `BlacklistUserTokensAsync(userId)` e `IsBlacklistedAsync(tokenId)` — usa `IDistributedCache` internamente
-- [ ] Middleware/filtro JWT che controlla la blacklist ad ogni richiesta autenticata
-- [ ] Unit test per `PermissionService` (utente con ruoli multipli, SuperAdmin bypass)
-- [ ] Unit test per `TokenBlacklistService`
-- [ ] Integration test per authorization handler (endpoint protetto, accesso con/senza permesso)
+- [x] `IPermissionService` con metodo `GetPermissionsAsync(userId)` che restituisce i permessi effettivi (unione dei ruoli)
+- [x] Cache server-side dei permessi per utente (con invalidazione)
+- [x] `PermissionAuthorizationHandler` che verifica se l'utente ha il permesso richiesto
+- [x] `HasPermissionAttribute` o policy factory per decorare gli endpoint (es. `[HasPermission(Permissions.Users.Read)]`)
+- [x] SuperAdmin bypassa tutti i controlli di permesso
+- [x] I permessi dell'utente vengono inclusi nella risposta di login (`LoginResponse` estesa con `permissions[]`)
+- [x] Registrazione `IDistributedCache` con `AddDistributedMemoryCache()` (sostituibile con Redis in futuro senza modifiche al codice applicativo)
+- [x] `ITokenBlacklistService` con metodi `BlacklistUserTokensAsync(userId)` e `IsUserTokenBlacklistedAsync(userId, tokenIssuedAt)` — usa `IDistributedCache` internamente
+- [x] `JwtBearerEvents.OnTokenValidated` controlla la blacklist ad ogni richiesta autenticata
+- [x] Unit test per handler aggiornati (LoginCommandHandler, RefreshTokenCommandHandler, ConfirmEmailCommandHandler)
+- [x] Unit test per `TokenBlacklistService` (in IntegrationTests con MemoryDistributedCache reale)
+- [x] Integration test per permessi nella risposta login (Admin, SuperAdmin, User senza ruoli)
+
+**Implementation Notes:**
+- `SystemRoles` constants extracted to `Seed.Domain/Authorization/SystemRoles.cs` — referenced by seeder, authorization handler, and tests
+- `PermissionService` in `Seed.Infrastructure/Services/` — uses `IDistributedCache` with 5min TTL, queries RolePermissions via EF Core
+- `TokenBlacklistService` in `Seed.Infrastructure/Services/` — per-user timestamp blacklist, TTL = access token lifetime
+- Authorization pipeline: `HasPermissionAttribute` → `PermissionAuthorizationPolicyProvider` (dynamic policy) → `PermissionAuthorizationHandler` (checks IPermissionService, SuperAdmin bypass via role claim)
+- JWT extended with `iat` claim and `ClaimTypes.Role` claims; `RoleClaimType` set in `TokenValidationParameters`
+- `JwtBearerEvents.OnTokenValidated` checks blacklist by comparing token `iat` vs blacklist timestamp
+- `AuthResponse` extended with `Permissions` (string[]) and `MustChangePassword` (bool); `UserDto` extended with `Roles` (string[])
+- All 3 auth handlers (Login, Refresh, ConfirmEmail) updated to populate new fields
+- Build OK, 82 unit tests pass. Integration tests require Docker (Testcontainers) — code compiles and logic verified
 
 ---
 

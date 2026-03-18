@@ -15,7 +15,9 @@ public sealed class GetCurrentUserQueryHandler(
         if (user is null || !user.IsActive)
             return Result<UserDto>.Failure("User not found.");
 
+        var roles = await userManager.GetRolesAsync(user);
+
         return Result<UserDto>.Success(
-            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName));
+            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToList().AsReadOnly()));
     }
 }

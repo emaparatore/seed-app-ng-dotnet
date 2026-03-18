@@ -9,7 +9,8 @@ namespace Seed.Application.Auth.Commands.Login;
 
 public sealed class LoginCommandHandler(
     UserManager<ApplicationUser> userManager,
-    ITokenService tokenService) : IRequestHandler<LoginCommand, Result<AuthResponse>>
+    ITokenService tokenService,
+    IPermissionService permissionService) : IRequestHandler<LoginCommand, Result<AuthResponse>>
 {
     public async Task<Result<AuthResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
@@ -27,12 +28,16 @@ public sealed class LoginCommandHandler(
         if (!user.EmailConfirmed)
             return Result<AuthResponse>.Failure("Please verify your email address before logging in. Check your inbox for the verification link.");
 
-        var tokens = await tokenService.GenerateTokensAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
+        var tokens = await tokenService.GenerateTokensAsync(user, roles);
+        var permissions = await permissionService.GetPermissionsAsync(user.Id);
 
         return Result<AuthResponse>.Success(new AuthResponse(
             tokens.AccessToken,
             tokens.RefreshToken,
             tokens.ExpiresAt,
-            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName)));
+            new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToList().AsReadOnly()),
+            permissions.ToList().AsReadOnly(),
+            user.MustChangePassword));
     }
 }

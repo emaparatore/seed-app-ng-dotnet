@@ -12,9 +12,9 @@ public class RolesAndPermissionsSeeder
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly ILogger<RolesAndPermissionsSeeder> _logger;
 
-    public const string SuperAdminRole = "SuperAdmin";
-    public const string AdminRole = "Admin";
-    public const string UserRole = "User";
+    public const string SuperAdminRole = SystemRoles.SuperAdmin;
+    public const string AdminRole = SystemRoles.Admin;
+    public const string UserRole = SystemRoles.User;
 
     private static readonly Dictionary<string, string> RoleDescriptions = new()
     {

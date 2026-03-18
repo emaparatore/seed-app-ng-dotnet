@@ -246,7 +246,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
         body.FirstName.Should().Be("John");
     }
 
-    private record AuthResponseDto(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User);
-    private record UserResponseDto(Guid Id, string Email, string FirstName, string LastName);
+    private record AuthResponseDto(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User, List<string>? Permissions = null, bool MustChangePassword = false);
+    private record UserResponseDto(Guid Id, string Email, string FirstName, string LastName, List<string>? Roles = null);
     private record MessageResponseDto(string Message);
 }

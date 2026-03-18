@@ -12,6 +12,7 @@ public class LoginCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly IPermissionService _permissionService;
     private readonly LoginCommandHandler _handler;
 
     public LoginCommandHandlerTests()
@@ -20,7 +21,12 @@ public class LoginCommandHandlerTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _tokenService = Substitute.For<ITokenService>();
-        _handler = new LoginCommandHandler(_userManager, _tokenService);
+        _permissionService = Substitute.For<IPermissionService>();
+        _permissionService.GetPermissionsAsync(Arg.Any<Guid>())
+            .Returns(new HashSet<string>() as IReadOnlySet<string>);
+        _userManager.GetRolesAsync(Arg.Any<ApplicationUser>())
+            .Returns(new List<string>());
+        _handler = new LoginCommandHandler(_userManager, _tokenService, _permissionService);
     }
 
     [Fact]
@@ -93,9 +99,13 @@ public class LoginCommandHandlerTests
 
         _userManager.FindByEmailAsync(command.Email).Returns(user);
         _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+        _userManager.GetRolesAsync(user).Returns(new List<string> { "User" });
 
         var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
-        _tokenService.GenerateTokensAsync(user).Returns(tokenResult);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
+
+        var permissions = new HashSet<string> { "Users.Read" } as IReadOnlySet<string>;
+        _permissionService.GetPermissionsAsync(userId).Returns(permissions);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -103,5 +113,37 @@ public class LoginCommandHandlerTests
         result.Data.Should().NotBeNull();
         result.Data!.AccessToken.Should().Be("access-token");
         result.Data.User.Email.Should().Be(command.Email);
+        result.Data.User.Roles.Should().Contain("User");
+        result.Data.Permissions.Should().Contain("Users.Read");
+        result.Data.MustChangePassword.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Should_Return_MustChangePassword_True_When_Flag_Is_Set()
+    {
+        var command = new LoginCommand("admin@test.com", "Password1");
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            Email = command.Email,
+            FirstName = "Admin",
+            LastName = "User",
+            IsActive = true,
+            EmailConfirmed = true,
+            MustChangePassword = true
+        };
+
+        _userManager.FindByEmailAsync(command.Email).Returns(user);
+        _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+        _userManager.GetRolesAsync(user).Returns(new List<string>());
+
+        var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        result.Data!.MustChangePassword.Should().BeTrue();
     }
 }
