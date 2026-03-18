@@ -180,6 +180,15 @@ All project documentation lives in `docs/`. **After completing any code change**
 
 Documentation changes should be included in the same PR as the code change.
 
+## Planning Complex Work
+
+Before starting any implementation, evaluate the scope. If the work is too complex for a single session — many files, multiple distinct concerns, risk of context degradation — use the **phased-execution** skill automatically:
+1. Generate and save a structured plan to `docs/plans/<slug>.md`
+2. STOP — do not start executing in the same session
+3. Each phase is executed in a separate session via "continua il piano" or "esegui fase N"
+
+This is not optional for complex work. If in doubt, prefer phased execution over trying to fit everything in one session.
+
 ## Branches
 
 Branch naming convention:
@@ -228,6 +237,7 @@ When creating a PR (via `gh pr create`), structure the description as follows:
 
 Keep the title short (<70 chars). Put details in the body, not the title. The PR description should be useful to a reviewer who has no prior context.
 
+
 Existing docs:
 - `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
 - `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
@@ -236,3 +246,4 @@ Existing docs:
 - `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
+- `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.
