@@ -180,14 +180,16 @@ All project documentation lives in `docs/`. **After completing any code change**
 
 Documentation changes should be included in the same PR as the code change.
 
-## Planning Complex Work
 
-Before starting any implementation, evaluate the scope. If the work is too complex for a single session — many files, multiple distinct concerns, risk of context degradation — use the **phased-execution** skill automatically:
-1. Generate and save a structured plan to `docs/plans/<slug>.md`
-2. STOP — do not start executing in the same session
-3. Each phase is executed in a separate session via "continua il piano" or "esegui fase N"
+## Feature Implementation Workflow
 
-This is not optional for complex work. If in doubt, prefer phased execution over trying to fit everything in one session.
+Quando si implementa una nuova feature:
+- I requisiti strutturati vanno in `docs/requirements/FEAT-<n>.md`
+- I piani di implementazione vanno in `docs/plans/PLAN-<n>.md`
+- Le decisioni architetturali vanno in `docs/decisions/ADR-<NNN>-<titolo>.md`
+- Lavora un task alla volta, aggiorna il piano dopo ogni task completato
+- Non procedere oltre un task con ⚠️ DECISION REQUIRED senza approvazione
+
 
 ## Branches
 
