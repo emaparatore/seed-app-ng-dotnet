@@ -1,6 +1,6 @@
 ---
 name: phased-execution
-description: "Manage multi-phase implementation plans for complex features. Use this skill whenever the user asks to plan a large feature, implement a complex change, or when a generated plan has 4+ distinct phases/steps. Also trigger when the user says 'continua il piano', 'esegui fase N', 'continue the plan', 'execute phase N', 'riprendi il piano', or references a plan file in docs/plans/. Trigger even for indirect signals like 'this is too big for one session', 'let's break this down', 'pianifica [feature]', or when Claude Code itself recognizes that a plan is too large for a single session. This skill handles the full lifecycle: plan generation, structured saving, phase-by-phase execution with context handoff between sessions, and progress tracking."
+description: "Manage multi-phase implementation plans for complex features. CRITICAL AUTO-TRIGGER: After analyzing any implementation request, if you determine the work is too complex or large for a single session — many files to touch, multiple distinct concerns, risk of context window degradation — activate this skill automatically. Trust your own judgment on complexity; you do not need the user to ask for phased execution. Also trigger on explicit signals: 'continua il piano', 'esegui fase N', 'continue the plan', 'execute phase N', 'riprendi il piano', 'pianifica [feature]', 'let's break this down', or any reference to a plan file in docs/plans/. This skill handles the full lifecycle: plan generation, structured saving to docs/plans/, phase-by-phase execution with context handoff between sessions, and progress tracking."
 ---
 
 # Phased Execution
@@ -17,24 +17,35 @@ Long plans executed in a single session degrade in quality as the context window
 
 ## When to activate
 
-- The user asks to plan a feature and the resulting plan has **4+ logical phases**
-- The user explicitly asks to break work into phases
+**Automatic (no explicit user request needed):**
+- After analyzing the requested work, you determine the implementation is too complex for a single session. Trust your own judgment — if the work spans multiple distinct concerns, touches many files, or would risk context window degradation, activate this skill.
+
+**Explicit triggers:**
+- The user asks to plan a feature or break work into phases
 - The user says "continua il piano", "esegui fase N", "execute phase N", or similar
 - The user references a file in `docs/plans/`
+
+**When NOT to activate:**
+- The work is straightforward and fits comfortably in one session (1-3 small phases)
+- In that case, just do the work directly
 
 ## Plan lifecycle
 
 ```
-Generate plan → Save to docs/plans/ → Execute phase 1 → Commit → Handoff note
-    ↓                                                          ↓
-User opens new session → "continua il piano" → Read plan → Execute phase 2 → ...
+Generate plan → Save to docs/plans/ → STOP (session ends here)
+    ↓
+New session → "esegui fase 1" → Read plan → Execute phase 1 → Commit → Handoff → STOP
+    ↓
+New session → "continua il piano" → Read plan → Execute phase 2 → Commit → Handoff → STOP
+    ↓
+...until all phases are done
 ```
 
 ---
 
 ## Phase 1: Generating and saving a plan
 
-When the user asks to plan a complex feature, follow these steps:
+When the user asks to plan a complex feature — or when you determine the work needs phased execution — follow these steps:
 
 ### 1. Plan normally
 
@@ -53,6 +64,8 @@ After generating the plan, count the phases:
 ### 3. Save the plan file
 
 Create the file at `docs/plans/<slug>.md` where `<slug>` is a short kebab-case name (e.g., `user-roles`, `order-management`, `password-reset-flow`).
+
+**IMPORTANT:** Always save the plan in `docs/plans/`. Do NOT use any other location or built-in plan mechanism. The plan must be a readable, editable markdown file in the repo so the user can review and modify it between sessions.
 
 Use this exact template:
 
@@ -101,13 +114,16 @@ Use this exact template:
 - Tasks should be concrete and actionable, not vague ("Add OrderStatus enum to Domain" not "Set up domain models")
 - If a phase depends on a previous one, note it explicitly: "Dipende da: Fase N"
 
-### 4. Confirm with the user
+### 4. Stop after saving
 
-After saving, tell the user:
+After saving the plan, **do NOT offer to start executing**. The planning session is done. Tell the user:
+
 ```
 Piano salvato in docs/plans/<slug>.md con N fasi.
-Vuoi che inizi con la Fase 1, o vuoi prima rivedere il piano?
+→ Per iniziare, apri una nuova sessione e di': "esegui fase 1 del piano <slug>"
 ```
+
+**This is mandatory.** The whole point of this skill is that planning and execution happen in separate sessions to preserve context window space. Never ask "vuoi che inizi con la Fase 1?" — the answer is always "in a new session".
 
 ---
 
@@ -129,7 +145,13 @@ Look in `docs/plans/` for the active plan:
 
 Read the `Fase corrente` field and find the corresponding phase section. Verify its status is `todo` or `in-progress`.
 
-### 3. Execute the phase
+### 3. Read previous handoff notes
+
+Before starting, read the handoff notes from all completed phases. This is your context about what was done in previous sessions.
+
+If any handoff note contains **Decisioni aperte**, present them to the user and resolve them BEFORE starting the phase work. Don't proceed with assumptions — ask.
+
+### 4. Execute the phase
 
 Work through the tasks listed in the phase. Follow all existing project conventions from CLAUDE.md:
 - Write tests as specified in the phase's "Test da aggiungere" section
@@ -137,7 +159,7 @@ Work through the tasks listed in the phase. Follow all existing project conventi
 - Use conventional commits
 - Run the relevant test suite to confirm everything passes
 
-### 4. Update the plan file
+### 5. Update the plan file
 
 After completing the phase:
 
@@ -156,10 +178,12 @@ After completing the phase:
 - What was created/changed (concrete: file names, class names, endpoints)
 - Any decisions made during implementation that affect future phases
 - Anything the next phase needs to know that isn't obvious from the code
+- **Decisioni aperte:** If during execution a decision came up that impacts future phases and requires user input, list it here. Mark it clearly so it's addressed before the next phase starts.
 
 Example:
 ```markdown
 **Handoff note:** Creata entità Order in Domain con OrderStatus enum (Pending, Confirmed, Shipped, Delivered, Cancelled). Aggiunto OrderConfiguration in Infrastructure con indice su CustomerId. Migrazione 20250315_AddOrdersTable applicata. Nota: ho usato decimal(18,2) per TotalAmount come discusso. La Fase 3 dovrà aggiungere il DTO OrderResponse in Shared che mappa tutti i campi.
+**Decisioni aperte:** Nessuna.
 ```
 
 **d) Update the header:**
@@ -168,7 +192,7 @@ Example:
 ```
 (or if this was the last phase, change Status to `completed`)
 
-### 5. Commit
+### 6. Commit
 
 Commit with a message that references the plan:
 ```
@@ -177,7 +201,7 @@ feat(<scope>): <description> [piano: <slug> fase N]
 
 Example: `feat(api): add orders table and entity [piano: order-management fase 1]`
 
-### 6. Signal end of phase
+### 7. Signal end of phase
 
 Tell the user:
 ```
@@ -221,9 +245,10 @@ If the user made changes between sessions that affect the plan (e.g., a hotfix t
 
 | User says | Action |
 |-----------|--------|
-| "pianifica [feature]" | Generate plan → evaluate complexity → save if 4+ phases |
-| "esegui fase N" | Read plan → execute phase N → update → commit → handoff |
-| "continua il piano" | Find in-progress plan → execute next todo phase |
+| "pianifica [feature]" | Generate plan → save to docs/plans/ → STOP |
+| "implementa [complex feature]" | Analyze → if complex, generate plan → save → STOP |
+| "esegui fase N" | Read plan → execute phase N → update → commit → handoff → STOP |
+| "continua il piano" | Find in-progress plan → execute next todo phase → STOP |
 | "stato del piano" | Read and summarize plan progress |
 | "rivedi il piano" | Show plan, let user request changes before executing |
 
@@ -231,7 +256,9 @@ If the user made changes between sessions that affect the plan (e.g., a hotfix t
 
 ## What NOT to do
 
-- Don't execute multiple phases in one session — the whole point is fresh context per phase
-- Don't skip writing the handoff note — it's the most important part for cross-session continuity
-- Don't leave the plan file out of sync with reality — if you did it, update the file
-- Don't commit the plan file changes separately — include plan updates in the same commit as the phase work
+- **Don't start executing after planning** — planning and execution are ALWAYS separate sessions
+- **Don't execute multiple phases in one session** — the whole point is fresh context per phase
+- **Don't skip writing the handoff note** — it's the most important part for cross-session continuity
+- **Don't leave the plan file out of sync with reality** — if you did it, update the file
+- **Don't commit the plan file changes separately** — include plan updates in the same commit as the phase work
+- **Don't save plans anywhere other than `docs/plans/`** — the user needs to read and edit them

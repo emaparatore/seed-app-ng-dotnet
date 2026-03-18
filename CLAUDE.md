@@ -180,6 +180,15 @@ All project documentation lives in `docs/`. **After completing any code change**
 
 Documentation changes should be included in the same PR as the code change.
 
+## Planning Complex Work
+
+Before starting any implementation, evaluate the scope. If the work is too complex for a single session — many files, multiple distinct concerns, risk of context degradation — use the **phased-execution** skill automatically:
+1. Generate and save a structured plan to `docs/plans/<slug>.md`
+2. STOP — do not start executing in the same session
+3. Each phase is executed in a separate session via "continua il piano" or "esegui fase N"
+
+This is not optional for complex work. If in doubt, prefer phased execution over trying to fit everything in one session.
+
 ## Branches
 
 Branch naming convention:
@@ -228,7 +237,6 @@ When creating a PR (via `gh pr create`), structure the description as follows:
 
 Keep the title short (<70 chars). Put details in the body, not the title. The PR description should be useful to a reviewer who has no prior context.
 
-- **Phased execution:** For complex features (4+ phases), follow the phased-execution skill workflow. Plans are saved in `docs/plans/` and executed one phase per session with context handoff.
 
 Existing docs:
 - `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
