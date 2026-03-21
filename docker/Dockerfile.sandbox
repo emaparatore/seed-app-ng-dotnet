@@ -6,7 +6,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 # Dev tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl bash htop less vim sudo \
+    git curl bash htop less vim sudo jq \
     && rm -rf /var/lib/apt/lists/*
 
 # dotnet-ef for migrations (install globally first as root)

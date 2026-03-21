@@ -141,7 +141,12 @@ docs/plans/
     ├── task-01-setup-user-entity.md   # mini-plan + risultato
     ├── task-02-crud-ruoli.md
     └── ...
-execution-20260319-143022.log          # log completo della sessione
+
+scripts/logs/
+├── execution-20260319-143022.log      # log principale dello script
+└── claude/
+    ├── execution-20260319-143022.jsonl # azioni Claude complete (JSONL)
+    └── execution-20260319-143022.log   # riepilogo testuale leggibile
 ```
 
 ## Personalizzazione allowedTools
@@ -168,13 +173,61 @@ Se durante un'esecuzione un task fallisce per permessi mancanti, aggiungi il too
 
 ## Logging
 
-Ogni esecuzione genera automaticamente un file di log con timestamp:
+Ogni esecuzione genera automaticamente tre file di log con lo stesso timestamp:
 
 ```
-execution-{YYYYMMDD-HHMMSS}.log
+scripts/logs/
+├── execution-{YYYYMMDD-HHMMSS}.log              # log principale dello script
+└── claude/
+    ├── execution-{YYYYMMDD-HHMMSS}.jsonl         # azioni Claude complete (JSONL)
+    └── execution-{YYYYMMDD-HHMMSS}.log           # riepilogo testuale leggibile
 ```
 
-Il log contiene l'output completo di ogni fase (plan e execute) con timestamp per ogni evento. L'output essenziale e' visibile anche a terminale.
+### Log principale (`logs/execution-*.log`)
+
+Output dello script: avanzamento task, risultati build/test, commit, errori. Visibile anche a terminale.
+
+### Log Claude JSONL (`logs/claude/execution-*.jsonl`)
+
+Ogni azione di Claude in formato stream-json (una riga JSON per evento). Contiene:
+- Tool calls (Read, Edit, Write, Bash, Grep, Glob...)
+- Input e output di ogni tool
+- Testo generato da Claude
+- Costi e durata di ogni sessione
+
+Utile per debug approfondito o analisi automatizzata. Richiede `jq` per la lettura:
+
+```bash
+# Vedere tutti i tool usati in una sessione
+cat logs/claude/execution-*.jsonl | jq 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use") | {tool: .name, input: .input}'
+
+# Costi totali
+cat logs/claude/execution-*.jsonl | jq 'select(.type=="result") | {cost: .cost_usd, duration_s: (.duration_ms/1000)}'
+```
+
+### Riepilogo Claude (`logs/claude/execution-*.log`)
+
+Versione leggibile del log JSONL, organizzata per fase. Esempio:
+
+```
+=== [Task 1 - Plan] 14:30:05 ===
+  > Read: docs/plans/PLAN-1.md
+  > Read: backend/src/Seed.Api/Controllers/AdminController.cs
+  > Grep: UserRole in backend/src/
+  > Write: docs/plans/tasks/task-1-setup.md
+  Claude: PLANNED:task-1-setup.md
+  --- Result: PLANNED:task-1-setup.md | cost: $0.05 | 12s
+
+=== [Task 1 - Exec] 14:35:22 ===
+  > Read: docs/plans/tasks/task-1-setup.md
+  > Edit: backend/src/Seed.Domain/Entities/User.cs
+  > Bash: cd backend && dotnet build Seed.slnx
+  > Write: backend/tests/Seed.UnitTests/UserTests.cs
+  Claude: DONE
+  --- Result: DONE | cost: $0.12 | 45s
+```
+
+Se `jq` non e' installato, il riepilogo mostra solo il conteggio dei tool call e il risultato. Installa `jq` per il dettaglio completo.
 
 Per salvare anche l'output live su un file separato:
 

@@ -27,7 +27,11 @@ TASKS_DIR="docs/plans/tasks"
 MAX_TASKS=50
 MAX_RETRIES=4
 LOG_DIR="$(cd "$(dirname "$0")" && pwd)/logs"
-LOG_FILE="$LOG_DIR/execution-$(date +%Y%m%d-%H%M%S).log"
+EXECUTION_TS="$(date +%Y%m%d-%H%M%S)"
+LOG_FILE="$LOG_DIR/execution-${EXECUTION_TS}.log"
+CLAUDE_LOG_DIR="$LOG_DIR/claude"
+CLAUDE_LOG_JSONL="$CLAUDE_LOG_DIR/execution-${EXECUTION_TS}.jsonl"
+CLAUDE_LOG_SUMMARY="$CLAUDE_LOG_DIR/execution-${EXECUTION_TS}.log"
 PROTECTED_BRANCHES=("main" "master" "dev" "develop")
 
 # --- Arrow-key menu selector ---
@@ -337,6 +341,69 @@ log() {
 
 mkdir -p "$TASKS_DIR"
 mkdir -p "$LOG_DIR"
+mkdir -p "$CLAUDE_LOG_DIR"
+
+# --- Estrai testo risultato da stream-json ---
+extract_claude_result() {
+  local jsonl_file="$1"
+  local result_line
+  result_line=$(grep '"type":"result"' "$jsonl_file" | tail -1)
+  if [ -z "$result_line" ]; then
+    echo ""
+    return
+  fi
+  if command -v jq &>/dev/null; then
+    echo "$result_line" | jq -r '.result // empty' 2>/dev/null
+  else
+    echo "$result_line" | sed 's/.*"result":"\([^"]*\)".*/\1/' 2>/dev/null
+  fi
+}
+
+# --- Genera riepilogo testuale da stream-json ---
+summarize_claude_phase() {
+  local jsonl_file="$1"
+  local label="$2"
+
+  echo "=== [$label] $(date +%H:%M:%S) ===" >> "$CLAUDE_LOG_SUMMARY"
+
+  if command -v jq &>/dev/null; then
+    jq -r '
+      if .type == "assistant" then
+        .message.content[]? |
+        if .type == "tool_use" then
+          if .name == "Bash" then "  > Bash: " + (.input.command // "" | split("\n")[0] | .[0:120])
+          elif .name == "Read" then "  > Read: " + (.input.file_path // "")
+          elif .name == "Edit" then "  > Edit: " + (.input.file_path // "")
+          elif .name == "Write" then "  > Write: " + (.input.file_path // "")
+          elif .name == "Grep" then "  > Grep: " + (.input.pattern // "") + " in " + (.input.path // ".")
+          elif .name == "Glob" then "  > Glob: " + (.input.pattern // "")
+          else "  > " + .name + ": " + (.input | tostring | .[0:100])
+          end
+        elif .type == "text" and (.text | length) > 0 then
+          "  Claude: " + (.text | split("\n")[0] | .[0:150])
+        else empty
+        end
+      elif .type == "result" then
+        "  --- Result: " + (.result // "N/A" | .[0:100]) +
+        " | cost: $" + (.cost_usd // 0 | tostring) +
+        " | " + ((.duration_ms // 0) / 1000 | floor | tostring) + "s"
+      else empty
+      end
+    ' "$jsonl_file" >> "$CLAUDE_LOG_SUMMARY" 2>/dev/null
+  else
+    local tool_count
+    tool_count=$(grep -c '"tool_use"' "$jsonl_file" 2>/dev/null || echo 0)
+    local result_line
+    result_line=$(grep '"type":"result"' "$jsonl_file" | tail -1)
+    local result_text
+    result_text=$(echo "$result_line" | sed 's/.*"result":"\([^"]*\)".*/\1/' 2>/dev/null)
+    echo "  Tool calls: $tool_count" >> "$CLAUDE_LOG_SUMMARY"
+    echo "  Result: $result_text" >> "$CLAUDE_LOG_SUMMARY"
+    echo "  (installa jq per un riepilogo dettagliato)" >> "$CLAUDE_LOG_SUMMARY"
+  fi
+
+  echo "" >> "$CLAUDE_LOG_SUMMARY"
+}
 
 # --- Verifica indipendente: build + test ---
 # Imposta VERIFY_ERRORS (vuoto = tutto ok)
@@ -405,7 +472,7 @@ run_post_success() {
   OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
 Il task e' stato verificato con successo (build e test passano).
 Aggiorna lo stato del task corrispondente a $TASKS_DIR/$task_file da 'pending' a 'done' nel piano $PLAN.
-Rispondi SOLO: UPDATED")
+Rispondi SOLO: UPDATED" "Task $task_i - Update")
   echo "$OUTPUT" >> "$LOG_FILE"
 
   if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
@@ -419,7 +486,8 @@ Rispondi SOLO: UPDATED")
     local CHANGED_FILES
     CHANGED_FILES=$(git diff --cached --name-only | head -20)
 
-    COMMIT_MSG=$(claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
+    local commit_temp=$(mktemp)
+    claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
 Contesto task: $TASK_TITLE
 File modificati:
 $CHANGED_FILES
@@ -430,7 +498,11 @@ Regole:
 - Scopes: api, app, auth, infra, ui, core, docker
 - Max 72 caratteri, lowercase, no punto finale, imperative mood
 - Rispondi SOLO con il commit message, niente altro" \
-      --model claude-haiku-4-5-20251001 --effort low 2>&1)
+      --model claude-haiku-4-5-20251001 --effort low --output-format stream-json > "$commit_temp" 2>> "$LOG_FILE"
+    cat "$commit_temp" >> "$CLAUDE_LOG_JSONL"
+    summarize_claude_phase "$commit_temp" "Task $task_i - Commit msg"
+    COMMIT_MSG=$(extract_claude_result "$commit_temp")
+    rm -f "$commit_temp"
 
     if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
       COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
@@ -444,22 +516,35 @@ Regole:
 # --- Costruzione opzioni Claude ---
 # In YOLO mode: --dangerously-skip-permissions (nessuna restrizione)
 # In modalita' normale: whitelist di tool specifici
+# Output: stream-json -> JSONL (dettaglio) + summary (leggibile)
+# Ritorna solo il testo risultato per la logica dello script
 build_plan_cmd() {
   local prompt="$1"
+  local label="${2:-plan}"
+  local temp=$(mktemp)
+
   if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$prompt" $CLAUDE_FLAGS --dangerously-skip-permissions 2>&1
+    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
   else
-    claude -p "$prompt" $CLAUDE_FLAGS \
-      --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" 2>&1
+    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
+      --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
   fi
+
+  cat "$temp" >> "$CLAUDE_LOG_JSONL"
+  summarize_claude_phase "$temp" "$label"
+  extract_claude_result "$temp"
+  rm -f "$temp"
 }
 
 build_exec_cmd() {
   local prompt="$1"
+  local label="${2:-exec}"
+  local temp=$(mktemp)
+
   if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$prompt" $CLAUDE_FLAGS --dangerously-skip-permissions 2>&1
+    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
   else
-    claude -p "$prompt" $CLAUDE_FLAGS \
+    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
       --allowedTools \
         "Read" "Write" "Edit" \
         "Bash(git*)" \
@@ -477,8 +562,13 @@ build_exec_cmd() {
         "Bash(cd*)" \
         "Bash(echo*)" \
         "Bash(sed*)" \
-        "Bash(docker*)" 2>&1
+        "Bash(docker*)" > "$temp" 2>> "$LOG_FILE"
   fi
+
+  cat "$temp" >> "$CLAUDE_LOG_JSONL"
+  summarize_claude_phase "$temp" "$label"
+  extract_claude_result "$temp"
+  rm -f "$temp"
 }
 
 # --- Riepilogo configurazione ---
@@ -489,6 +579,10 @@ echo "  Modalita': $MODE"
 echo "  Branch:    $(git branch --show-current)"
 echo "  Modello:   $CLAUDE_MODEL ($CLAUDE_MODEL_ID)"
 echo "  Effort:    $CLAUDE_EFFORT"
+echo "-----------------------------------------"
+echo "  Log:       $LOG_FILE"
+echo "  Claude:    $CLAUDE_LOG_JSONL"
+echo "  Summary:   $CLAUDE_LOG_SUMMARY"
 echo "========================================="
 echo ""
 
@@ -520,7 +614,7 @@ for i in $(seq 1 $MAX_TASKS); do
    - Test da scrivere/verificare
    ## Criteri di completamento
    - Cosa deve funzionare per considerare il task done
-6. Rispondi SOLO con: PLANNED:{filename} o ALL_COMPLETE")
+6. Rispondi SOLO con: PLANNED:{filename} o ALL_COMPLETE" "Task $i - Plan")
 
   echo "$OUTPUT" >> "$LOG_FILE"
   log "Output plan: $(echo "$OUTPUT" | tail -1)"
@@ -571,7 +665,7 @@ for i in $(seq 1 $MAX_TASKS); do
    - File modificati/creati
    - Scelte implementative e motivazioni
    - Eventuali deviazioni dal piano e perche'
-6. Rispondi SOLO: DONE")
+6. Rispondi SOLO: DONE" "Task $i - Exec")
     else
       # --- Retry: fix degli errori ---
       log "=== Task $i - Fix attempt $RETRY/$MAX_RETRIES ==="
@@ -588,7 +682,7 @@ Istruzioni:
 1. Analizza gli errori sopra
 2. Correggi il codice per far passare build e test
 3. NON aggiornare lo stato del task nel piano
-4. Rispondi SOLO: DONE")
+4. Rispondi SOLO: DONE" "Task $i - Fix $RETRY/$MAX_RETRIES")
     fi
 
     echo "$OUTPUT" >> "$LOG_FILE"
@@ -681,6 +775,8 @@ Istruzioni:
 done
 
 log "=== SUMMARY ==="
-log "Log completo: $LOG_FILE"
+log "Log completo:    $LOG_FILE"
+log "Claude JSONL:    $CLAUDE_LOG_JSONL"
+log "Claude summary:  $CLAUDE_LOG_SUMMARY"
 log "Mini-plan in $TASKS_DIR/:"
 ls -la "$TASKS_DIR/" | tee -a "$LOG_FILE"
