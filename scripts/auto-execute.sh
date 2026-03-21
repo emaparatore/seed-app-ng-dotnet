@@ -85,35 +85,50 @@ select_menu() {
     fi
   done
 
-  # Loop input
+  # Loop input (frecce, j/k, numeri)
   while true; do
-    # Leggi un tasto
-    IFS= read -rsn1 key
-    if [[ "$key" == $'\x1b' ]]; then
-      read -rsn2 seq
-      case "$seq" in
-        '[A') # Freccia su
-          ((selected > 0)) && ((selected--))
-          ;;
-        '[B') # Freccia giu'
-          ((selected < count - 1)) && ((selected++))
-          ;;
-      esac
-    elif [[ "$key" == "" ]]; then
-      # Enter premuto
-      break
-    fi
+    IFS= read -rsn1 key < /dev/tty
+    local moved=false
 
-    # Ridisegna: torna su di $count righe
-    printf "\033[%dA" "$count"
-    for i in "${!display_opts[@]}"; do
-      printf "\033[2K"  # Cancella riga
-      if [ $i -eq $selected ]; then
-        printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
-      else
-        printf "    %s\n" "${display_opts[$i]}"
-      fi
-    done
+    case "$key" in
+      $'\x1b')
+        # Sequenza escape: leggi resto della sequenza
+        IFS= read -rsn1 -t 0.2 ch1 < /dev/tty 2>/dev/null
+        IFS= read -rsn1 -t 0.2 ch2 < /dev/tty 2>/dev/null
+        case "$ch1$ch2" in
+          '[A') ((selected > 0)) && ((selected--)); moved=true ;;
+          '[B') ((selected < count - 1)) && ((selected++)); moved=true ;;
+        esac
+        ;;
+      k|K|w|W) # Su (vim/wasd)
+        ((selected > 0)) && ((selected--)); moved=true
+        ;;
+      j|J|s|S) # Giu' (vim/wasd)
+        ((selected < count - 1)) && ((selected++)); moved=true
+        ;;
+      [0-9]) # Selezione diretta per numero (1-based)
+        local num=$((key))
+        if [ $num -ge 1 ] && [ $num -le $count ]; then
+          selected=$((num - 1)); moved=true
+        fi
+        ;;
+      '') # Enter
+        break
+        ;;
+    esac
+
+    if [ "$moved" = "true" ]; then
+      # Ridisegna: torna su di $count righe
+      printf "\033[%dA" "$count"
+      for i in "${!display_opts[@]}"; do
+        printf "\033[2K"  # Cancella riga
+        if [ $i -eq $selected ]; then
+          printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
+        else
+          printf "    %s\n" "${display_opts[$i]}"
+        fi
+      done
+    fi
   done
 
   # Mostra cursore
