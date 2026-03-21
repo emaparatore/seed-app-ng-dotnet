@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Seed.Application\Seed.Application.csproj" />
     <ProjectReference Include="..\..\src\Seed.Domain\Seed.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Seed.Infrastructure\Seed.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

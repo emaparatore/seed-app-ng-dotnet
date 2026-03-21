@@ -49,6 +49,10 @@ services:
       - JwtSettings__Secret=${JwtSettings__Secret}
       - AllowedHosts=${AllowedHosts}
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
+      - SuperAdmin__Email=${SuperAdmin__Email:-}
+      - SuperAdmin__Password=${SuperAdmin__Password:-}
+      - SuperAdmin__FirstName=${SuperAdmin__FirstName:-Super}
+      - SuperAdmin__LastName=${SuperAdmin__LastName:-Admin}
       - Smtp__Host=mailpit
       - Smtp__Port=1025
       - Smtp__Username=

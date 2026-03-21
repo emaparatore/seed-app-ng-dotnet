@@ -175,6 +175,9 @@ if (app.Environment.IsDevelopment())
     var seeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
     await seeder.SeedAsync();
 
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
+    await adminSeeder.SeedAsync();
+
     app.UseSwaggerWithUI();
 }
 

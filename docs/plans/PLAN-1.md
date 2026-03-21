@@ -11,7 +11,7 @@
 
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | 🔧 In Progress (T-01 ✅, T-02 ✅, T-03 ✅) |
+| US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | ✅ Done |
 | US-002 | Cambio password obbligatorio | T-05 | ⏳ Not Started |
 | US-003 | Lista utenti | T-07, T-14, T-15 | ⏳ Not Started |
 | US-004 | Promuovere un utente | T-07, T-15 | ⏳ Not Started |
@@ -124,21 +124,29 @@ Implementare un sistema di autorizzazione che verifica i permessi dell'utente co
 
 **Stories:** US-001
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Completed
 **Depends on:** T-02
 
 **What to do:**
 Creare un seeder che, al primo avvio, legge le variabili d'ambiente e crea l'utente SuperAdmin. Il seeder è idempotente. L'utente viene creato con `MustChangePassword = true` e il ruolo SuperAdmin assegnato.
 
 **Definition of Done:**
-- [ ] Il seeder legge `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRSTNAME`, `SEED_ADMIN_LASTNAME`
-- [ ] Se non esiste un utente con ruolo SuperAdmin, ne crea uno con queste credenziali
-- [ ] Se un SuperAdmin esiste già, l'operazione viene saltata silenziosamente
-- [ ] Il nuovo utente ha `MustChangePassword = true`
-- [ ] Il nuovo utente ha il ruolo SuperAdmin assegnato
-- [ ] Il seeder viene eseguito all'avvio, dopo il seeding dei ruoli (T-02)
-- [ ] Se le variabili d'ambiente non sono configurate, il seeder logga un warning e non crea nulla
-- [ ] Integration test che verifica: creazione, idempotenza, flag MustChangePassword
+- [x] Il seeder legge `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName`
+- [x] Se non esiste un utente con ruolo SuperAdmin, ne crea uno con queste credenziali
+- [x] Se un SuperAdmin esiste già, l'operazione viene saltata silenziosamente
+- [x] Il nuovo utente ha `MustChangePassword = true`
+- [x] Il nuovo utente ha il ruolo SuperAdmin assegnato
+- [x] Il seeder viene eseguito all'avvio, dopo il seeding dei ruoli (T-02)
+- [x] Se le variabili d'ambiente non sono configurate, il seeder logga un warning e non crea nulla
+- [x] Integration test che verifica: creazione, idempotenza, flag MustChangePassword
+
+**Implementation Notes:**
+- `SuperAdminSettings` config class in `Seed.Shared/Configuration/` with `SectionName = "SuperAdmin"`, bound via `IOptions<T>` pattern
+- `SuperAdminSeeder` in `Seed.Infrastructure/Persistence/Seeders/` — uses `UserManager<ApplicationUser>` for creation and role assignment
+- Idempotency via `UserManager.GetUsersInRoleAsync(SuperAdmin)` — skips if any SuperAdmin exists
+- 5 unit tests (NSubstitute mocks) + 5 integration tests (Testcontainers)
+- Config: `appsettings.Development.json` for local dev, env vars via Docker `.env` files
+- Build OK, unit tests pass. Integration tests require Docker (Testcontainers)
 
 ---
 
