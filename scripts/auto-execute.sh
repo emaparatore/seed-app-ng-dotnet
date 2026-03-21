@@ -26,7 +26,8 @@ PLANS_DIR="docs/plans"
 TASKS_DIR="docs/plans/tasks"
 MAX_TASKS=50
 MAX_RETRIES=10
-LOG_FILE="execution-$(date +%Y%m%d-%H%M%S).log"
+LOG_DIR="$(cd "$(dirname "$0")" && pwd)/log"
+LOG_FILE="$LOG_DIR/execution-$(date +%Y%m%d-%H%M%S).log"
 PROTECTED_BRANCHES=("main" "master" "dev" "develop")
 
 # --- Arrow-key menu selector ---
@@ -376,7 +377,7 @@ for i in $(seq 1 $MAX_TASKS); do
 2. Trova il primo task con stato 'pending'
 3. Se non ce ne sono, rispondi SOLO: ALL_COMPLETE
 4. Esplora il codice esistente rilevante
-5. Crea un file in $TASKS_DIR/ con nome task-{numero}-{slug}.md contenente:
+5. Crea un file ESCLUSIVAMENTE nella directory $TASKS_DIR/ (path assoluto: $(cd "$TASKS_DIR" 2>/dev/null && pwd || echo "$TASKS_DIR")) con nome task-{numero}-{slug}.md contenente:
    # Task {numero}: {titolo}
    ## Contesto
    - Stato attuale del codice rilevante
