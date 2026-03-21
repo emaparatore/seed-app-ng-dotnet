@@ -25,6 +25,7 @@
 PLANS_DIR="docs/plans"
 TASKS_DIR="docs/plans/tasks"
 MAX_TASKS=50
+MAX_RETRIES=10
 LOG_FILE="execution-$(date +%Y%m%d-%H%M%S).log"
 PROTECTED_BRANCHES=("main" "master" "dev" "develop")
 
@@ -255,7 +256,7 @@ case "$CLAUDE_EFFORT" in
     ;;
 esac
 
-CLAUDE_FLAGS="--model $CLAUDE_MODEL_ID --reasoning-effort $CLAUDE_EFFORT"
+CLAUDE_FLAGS="--model $CLAUDE_MODEL_ID --effort $CLAUDE_EFFORT"
 
 # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
 case "$MODE" in
@@ -421,22 +422,176 @@ for i in $(seq 1 $MAX_TASKS); do
 
   log "=== Task $i - Execution ($TASK_FILE) ==="
 
-  OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE EXECUTE.
+  RETRY=0
+  TASK_PASSED=false
+
+  while [ $RETRY -le $MAX_RETRIES ]; do
+    if [ $RETRY -eq 0 ]; then
+      # --- Prima esecuzione ---
+      OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE EXECUTE.
 1. Leggi il mini-plan in $TASKS_DIR/$TASK_FILE
 2. Leggi il piano principale in $PLAN per contesto generale
 3. Esegui esattamente quello descritto nel mini-plan
-4. Verifica i criteri di completamento (build, test, lint)
-5. Aggiorna lo stato del task a 'done' in $PLAN
-6. Aggiungi in fondo al mini-plan una sezione:
+4. NON aggiornare lo stato del task nel piano (lo fara' lo script dopo la verifica)
+5. Aggiungi in fondo al mini-plan una sezione:
    ## Risultato
    - File modificati/creati
    - Scelte implementative e motivazioni
    - Eventuali deviazioni dal piano e perche'
-7. Committa tutto con messaggio semantico
-8. Rispondi SOLO: DONE")
+6. Rispondi SOLO: DONE")
+    else
+      # --- Retry: fix degli errori ---
+      log "=== Task $i - Fix attempt $RETRY/$MAX_RETRIES ==="
+      OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE FIX.
+La verifica automatica (build/test) e' FALLITA dopo l'esecuzione del task.
 
-  echo "$OUTPUT" >> "$LOG_FILE"
-  log "Risultato: $(echo "$OUTPUT" | tail -1)"
+Mini-plan: $TASKS_DIR/$TASK_FILE
+Piano principale: $PLAN
+
+ERRORI DA CORREGGERE:
+$VERIFY_ERRORS
+
+Istruzioni:
+1. Analizza gli errori sopra
+2. Correggi il codice per far passare build e test
+3. NON aggiornare lo stato del task nel piano
+4. Rispondi SOLO: DONE")
+    fi
+
+    echo "$OUTPUT" >> "$LOG_FILE"
+    log "Risultato esecuzione: $(echo "$OUTPUT" | tail -1)"
+
+    # --- Verifica indipendente: build + test ---
+    log "=== Task $i - Verifica (attempt $((RETRY + 1))/$((MAX_RETRIES + 1))) ==="
+    VERIFY_ERRORS=""
+
+    # Determina cosa verificare in base ai file modificati
+    CHANGED=$(git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
+
+    HAS_BACKEND=false
+    HAS_FRONTEND=false
+    echo "$CHANGED" | grep -q "^backend/" && HAS_BACKEND=true
+    echo "$CHANGED" | grep -q "^frontend/web/" && HAS_FRONTEND=true
+
+    # Se nessun file riconosciuto, prova entrambi
+    if [ "$HAS_BACKEND" = "false" ] && [ "$HAS_FRONTEND" = "false" ]; then
+      HAS_BACKEND=true
+    fi
+
+    # Backend: build + test
+    if [ "$HAS_BACKEND" = "true" ]; then
+      log "Verifica backend: dotnet build..."
+      BUILD_OUT=$(cd backend && dotnet build Seed.slnx 2>&1)
+      if [ $? -ne 0 ]; then
+        VERIFY_ERRORS+="=== DOTNET BUILD FAILED ===
+$(echo "$BUILD_OUT" | tail -30)
+
+"
+        log "FAIL: dotnet build"
+      else
+        log "OK: dotnet build"
+        log "Verifica backend: dotnet test..."
+        TEST_OUT=$(cd backend && dotnet test Seed.slnx --no-build 2>&1)
+        if [ $? -ne 0 ]; then
+          VERIFY_ERRORS+="=== DOTNET TEST FAILED ===
+$(echo "$TEST_OUT" | tail -40)
+
+"
+          log "FAIL: dotnet test"
+        else
+          log "OK: dotnet test"
+        fi
+      fi
+    fi
+
+    # Frontend: build
+    if [ "$HAS_FRONTEND" = "true" ]; then
+      log "Verifica frontend: ng build..."
+      FE_BUILD_OUT=$(cd frontend/web && npm run build 2>&1)
+      if [ $? -ne 0 ]; then
+        VERIFY_ERRORS+="=== FRONTEND BUILD FAILED ===
+$(echo "$FE_BUILD_OUT" | tail -30)
+
+"
+        log "FAIL: frontend build"
+      else
+        log "OK: frontend build"
+      fi
+    fi
+
+    # --- Esito verifica ---
+    if [ -z "$VERIFY_ERRORS" ]; then
+      log "Verifica PASSATA"
+      TASK_PASSED=true
+      break
+    else
+      log "Verifica FALLITA"
+      echo "$VERIFY_ERRORS" >> "$LOG_FILE"
+      ((RETRY++))
+    fi
+  done
+
+  # --- Post-verifica ---
+  if [ "$TASK_PASSED" = "true" ]; then
+    # Aggiorna stato task a done nel piano
+    OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
+Il task e' stato verificato con successo (build e test passano).
+Aggiorna lo stato del task corrispondente a $TASKS_DIR/$TASK_FILE da 'pending' a 'done' nel piano $PLAN.
+Rispondi SOLO: UPDATED")
+
+    echo "$OUTPUT" >> "$LOG_FILE"
+
+    # Auto-commit
+    if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+      log "Nessuna modifica da committare"
+    else
+      log "=== Task $i - Commit ==="
+      git add -A
+
+      TASK_TITLE=$(grep -m1 '^#' "$TASKS_DIR/$TASK_FILE" 2>/dev/null | sed 's/^#\+\s*//')
+      CHANGED_FILES=$(git diff --cached --name-only | head -20)
+
+      COMMIT_MSG=$(claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
+Contesto task: $TASK_TITLE
+File modificati:
+$CHANGED_FILES
+
+Regole:
+- Formato: <type>(<scope>): <descrizione>
+- Types: feat, fix, docs, refactor, test, chore
+- Scopes: api, app, auth, infra, ui, core, docker
+- Max 72 caratteri, lowercase, no punto finale, imperative mood
+- Rispondi SOLO con il commit message, niente altro" \
+        --model claude-haiku-4-5-20251001 --effort low 2>&1)
+
+      # Fallback se Claude non risponde bene
+      if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
+        COMMIT_MSG="feat: complete task $i - $(echo "$TASK_TITLE" | head -c 50)"
+      fi
+
+      git commit -m "$COMMIT_MSG"
+      log "Commit: $COMMIT_MSG"
+    fi
+
+    # --- Review gate: conferma prima del prossimo task ---
+    if [ "$AUTO_APPROVE" != "true" ]; then
+      echo ""
+      echo "========================================="
+      echo "  Task $i completato e committato."
+      echo "  Commit: $COMMIT_MSG"
+      echo "========================================="
+      read -p "Continuare con il prossimo task? (y/q) " confirm
+      case "$confirm" in
+        q) log "Interrotto dall'utente dopo task $i."; exit 0 ;;
+        *) log "Utente conferma: prosegui" ;;
+      esac
+    fi
+  else
+    log "ERRORE: Task $i FALLITO dopo $MAX_RETRIES tentativi di fix. Fermo l'esecuzione."
+    log "Ultimi errori:"
+    echo "$VERIFY_ERRORS" >> "$LOG_FILE"
+    break
+  fi
 
   sleep 3
 done

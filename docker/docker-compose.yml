@@ -118,7 +118,7 @@ services:
     tty: true
     volumes:
       - ..:/project
-      - ${USERPROFILE}/.claude:/root/.claude
+      - ${USERPROFILE}/.claude:/home/claude/.claude
     environment:
       - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
       - DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
