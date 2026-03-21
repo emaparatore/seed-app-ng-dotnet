@@ -52,6 +52,19 @@ select_menu() {
 
   local selected=$default_idx
   local count=${#options[@]}
+  local cols
+  cols=$(tput cols 2>/dev/null || echo 80)
+
+  # Tronca opzioni per evitare wrapping (6 char per prefisso " > " / "    ")
+  local max_text=$((cols - 7))
+  local display_opts=()
+  for opt in "${options[@]}"; do
+    if [ ${#opt} -gt $max_text ]; then
+      display_opts+=("${opt:0:$max_text}")
+    else
+      display_opts+=("$opt")
+    fi
+  done
 
   # Nascondi cursore
   printf "\033[?25l"
@@ -64,11 +77,11 @@ select_menu() {
   echo ""
 
   # Disegna opzioni
-  for i in "${!options[@]}"; do
+  for i in "${!display_opts[@]}"; do
     if [ $i -eq $selected ]; then
-      printf "  \033[7m > %s \033[0m\n" "${options[$i]}"
+      printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
     else
-      printf "    %s\n" "${options[$i]}"
+      printf "    %s\n" "${display_opts[$i]}"
     fi
   done
 
@@ -93,12 +106,12 @@ select_menu() {
 
     # Ridisegna: torna su di $count righe
     printf "\033[%dA" "$count"
-    for i in "${!options[@]}"; do
+    for i in "${!display_opts[@]}"; do
       printf "\033[2K"  # Cancella riga
       if [ $i -eq $selected ]; then
-        printf "  \033[7m > %s \033[0m\n" "${options[$i]}"
+        printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
       else
-        printf "    %s\n" "${options[$i]}"
+        printf "    %s\n" "${display_opts[$i]}"
       fi
     done
   done
