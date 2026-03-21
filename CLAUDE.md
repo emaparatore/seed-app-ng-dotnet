@@ -248,4 +248,5 @@ Existing docs:
 - `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
+- `docs/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
 - `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.

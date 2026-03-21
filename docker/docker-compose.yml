@@ -108,6 +108,26 @@ services:
       npx ng build shared-ui --configuration development;
       exec npx ng serve app --configuration docker"
 
+  sandbox:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sandbox
+    container_name: seed-sandbox
+    working_dir: /project
+    stdin_open: true
+    tty: true
+    volumes:
+      - ..:/project
+      - ${USERPROFILE}/.claude:/root/.claude
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
+      - DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - sandbox
+
 volumes:
   postgres_data:
   seq_data:
