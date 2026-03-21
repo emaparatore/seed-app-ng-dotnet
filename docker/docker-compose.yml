@@ -123,6 +123,7 @@ services:
     volumes:
       - ..:/project
       - ${USERPROFILE}/.claude:/home/claude/.claude
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
       - DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
