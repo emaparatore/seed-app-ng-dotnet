@@ -308,6 +308,7 @@ log() {
 }
 
 mkdir -p "$TASKS_DIR"
+mkdir -p "$LOG_DIR"
 
 # --- Costruzione opzioni Claude ---
 # In YOLO mode: --dangerously-skip-permissions (nessuna restrizione)
