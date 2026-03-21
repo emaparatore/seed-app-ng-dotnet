@@ -25,8 +25,8 @@
 PLANS_DIR="docs/plans"
 TASKS_DIR="docs/plans/tasks"
 MAX_TASKS=50
-MAX_RETRIES=10
-LOG_DIR="$(cd "$(dirname "$0")" && pwd)/log"
+MAX_RETRIES=4
+LOG_DIR="$(cd "$(dirname "$0")" && pwd)/logs"
 LOG_FILE="$LOG_DIR/execution-$(date +%Y%m%d-%H%M%S).log"
 PROTECTED_BRANCHES=("main" "master" "dev" "develop")
 
@@ -310,6 +310,109 @@ log() {
 mkdir -p "$TASKS_DIR"
 mkdir -p "$LOG_DIR"
 
+# --- Verifica indipendente: build + test ---
+# Imposta VERIFY_ERRORS (vuoto = tutto ok)
+run_verify() {
+  VERIFY_ERRORS=""
+  local CHANGED
+  CHANGED=$(git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
+
+  local HAS_BACKEND=false
+  local HAS_FRONTEND=false
+  echo "$CHANGED" | grep -q "^backend/" && HAS_BACKEND=true
+  echo "$CHANGED" | grep -q "^frontend/web/" && HAS_FRONTEND=true
+
+  if [ "$HAS_BACKEND" = "false" ] && [ "$HAS_FRONTEND" = "false" ]; then
+    HAS_BACKEND=true
+  fi
+
+  if [ "$HAS_BACKEND" = "true" ]; then
+    log "Verifica backend: dotnet build..."
+    local BUILD_OUT
+    BUILD_OUT=$(cd backend && dotnet build Seed.slnx 2>&1)
+    if [ $? -ne 0 ]; then
+      VERIFY_ERRORS+="=== DOTNET BUILD FAILED ===
+$(echo "$BUILD_OUT" | tail -30)
+
+"
+      log "FAIL: dotnet build"
+    else
+      log "OK: dotnet build"
+      log "Verifica backend: dotnet test..."
+      local TEST_OUT
+      TEST_OUT=$(cd backend && dotnet test Seed.slnx --no-build 2>&1)
+      if [ $? -ne 0 ]; then
+        VERIFY_ERRORS+="=== DOTNET TEST FAILED ===
+$(echo "$TEST_OUT" | tail -40)
+
+"
+        log "FAIL: dotnet test"
+      else
+        log "OK: dotnet test"
+      fi
+    fi
+  fi
+
+  if [ "$HAS_FRONTEND" = "true" ]; then
+    log "Verifica frontend: ng build..."
+    local FE_BUILD_OUT
+    FE_BUILD_OUT=$(cd frontend/web && npm run build 2>&1)
+    if [ $? -ne 0 ]; then
+      VERIFY_ERRORS+="=== FRONTEND BUILD FAILED ===
+$(echo "$FE_BUILD_OUT" | tail -30)
+
+"
+      log "FAIL: frontend build"
+    else
+      log "OK: frontend build"
+    fi
+  fi
+}
+
+# --- Post-verifica: update stato + commit ---
+run_post_success() {
+  local task_i="$1"
+  local task_file="$2"
+
+  OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
+Il task e' stato verificato con successo (build e test passano).
+Aggiorna lo stato del task corrispondente a $TASKS_DIR/$task_file da 'pending' a 'done' nel piano $PLAN.
+Rispondi SOLO: UPDATED")
+  echo "$OUTPUT" >> "$LOG_FILE"
+
+  if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+    log "Nessuna modifica da committare"
+  else
+    log "=== Task $task_i - Commit ==="
+    git add -A
+
+    local TASK_TITLE
+    TASK_TITLE=$(grep -m1 '^#' "$TASKS_DIR/$task_file" 2>/dev/null | sed 's/^#\+\s*//')
+    local CHANGED_FILES
+    CHANGED_FILES=$(git diff --cached --name-only | head -20)
+
+    COMMIT_MSG=$(claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
+Contesto task: $TASK_TITLE
+File modificati:
+$CHANGED_FILES
+
+Regole:
+- Formato: <type>(<scope>): <descrizione>
+- Types: feat, fix, docs, refactor, test, chore
+- Scopes: api, app, auth, infra, ui, core, docker
+- Max 72 caratteri, lowercase, no punto finale, imperative mood
+- Rispondi SOLO con il commit message, niente altro" \
+      --model claude-haiku-4-5-20251001 --effort low 2>&1)
+
+    if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
+      COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
+    fi
+
+    git commit -m "$COMMIT_MSG"
+    log "Commit: $COMMIT_MSG"
+  fi
+}
+
 # --- Costruzione opzioni Claude ---
 # In YOLO mode: --dangerously-skip-permissions (nessuna restrizione)
 # In modalita' normale: whitelist di tool specifici
@@ -465,61 +568,7 @@ Istruzioni:
 
     # --- Verifica indipendente: build + test ---
     log "=== Task $i - Verifica (attempt $((RETRY + 1))/$((MAX_RETRIES + 1))) ==="
-    VERIFY_ERRORS=""
-
-    # Determina cosa verificare in base ai file modificati
-    CHANGED=$(git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
-
-    HAS_BACKEND=false
-    HAS_FRONTEND=false
-    echo "$CHANGED" | grep -q "^backend/" && HAS_BACKEND=true
-    echo "$CHANGED" | grep -q "^frontend/web/" && HAS_FRONTEND=true
-
-    # Se nessun file riconosciuto, prova entrambi
-    if [ "$HAS_BACKEND" = "false" ] && [ "$HAS_FRONTEND" = "false" ]; then
-      HAS_BACKEND=true
-    fi
-
-    # Backend: build + test
-    if [ "$HAS_BACKEND" = "true" ]; then
-      log "Verifica backend: dotnet build..."
-      BUILD_OUT=$(cd backend && dotnet build Seed.slnx 2>&1)
-      if [ $? -ne 0 ]; then
-        VERIFY_ERRORS+="=== DOTNET BUILD FAILED ===
-$(echo "$BUILD_OUT" | tail -30)
-
-"
-        log "FAIL: dotnet build"
-      else
-        log "OK: dotnet build"
-        log "Verifica backend: dotnet test..."
-        TEST_OUT=$(cd backend && dotnet test Seed.slnx --no-build 2>&1)
-        if [ $? -ne 0 ]; then
-          VERIFY_ERRORS+="=== DOTNET TEST FAILED ===
-$(echo "$TEST_OUT" | tail -40)
-
-"
-          log "FAIL: dotnet test"
-        else
-          log "OK: dotnet test"
-        fi
-      fi
-    fi
-
-    # Frontend: build
-    if [ "$HAS_FRONTEND" = "true" ]; then
-      log "Verifica frontend: ng build..."
-      FE_BUILD_OUT=$(cd frontend/web && npm run build 2>&1)
-      if [ $? -ne 0 ]; then
-        VERIFY_ERRORS+="=== FRONTEND BUILD FAILED ===
-$(echo "$FE_BUILD_OUT" | tail -30)
-
-"
-        log "FAIL: frontend build"
-      else
-        log "OK: frontend build"
-      fi
-    fi
+    run_verify
 
     # --- Esito verifica ---
     if [ -z "$VERIFY_ERRORS" ]; then
@@ -535,45 +584,7 @@ $(echo "$FE_BUILD_OUT" | tail -30)
 
   # --- Post-verifica ---
   if [ "$TASK_PASSED" = "true" ]; then
-    # Aggiorna stato task a done nel piano
-    OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
-Il task e' stato verificato con successo (build e test passano).
-Aggiorna lo stato del task corrispondente a $TASKS_DIR/$TASK_FILE da 'pending' a 'done' nel piano $PLAN.
-Rispondi SOLO: UPDATED")
-
-    echo "$OUTPUT" >> "$LOG_FILE"
-
-    # Auto-commit
-    if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-      log "Nessuna modifica da committare"
-    else
-      log "=== Task $i - Commit ==="
-      git add -A
-
-      TASK_TITLE=$(grep -m1 '^#' "$TASKS_DIR/$TASK_FILE" 2>/dev/null | sed 's/^#\+\s*//')
-      CHANGED_FILES=$(git diff --cached --name-only | head -20)
-
-      COMMIT_MSG=$(claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
-Contesto task: $TASK_TITLE
-File modificati:
-$CHANGED_FILES
-
-Regole:
-- Formato: <type>(<scope>): <descrizione>
-- Types: feat, fix, docs, refactor, test, chore
-- Scopes: api, app, auth, infra, ui, core, docker
-- Max 72 caratteri, lowercase, no punto finale, imperative mood
-- Rispondi SOLO con il commit message, niente altro" \
-        --model claude-haiku-4-5-20251001 --effort low 2>&1)
-
-      # Fallback se Claude non risponde bene
-      if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
-        COMMIT_MSG="feat: complete task $i - $(echo "$TASK_TITLE" | head -c 50)"
-      fi
-
-      git commit -m "$COMMIT_MSG"
-      log "Commit: $COMMIT_MSG"
-    fi
+    run_post_success "$i" "$TASK_FILE"
 
     # --- Review gate: conferma prima del prossimo task ---
     if [ "$AUTO_APPROVE" != "true" ]; then
@@ -589,10 +600,53 @@ Regole:
       esac
     fi
   else
-    log "ERRORE: Task $i FALLITO dopo $MAX_RETRIES tentativi di fix. Fermo l'esecuzione."
+    log "ERRORE: Task $i FALLITO dopo $MAX_RETRIES tentativi di fix."
     log "Ultimi errori:"
     echo "$VERIFY_ERRORS" >> "$LOG_FILE"
-    break
+
+    echo ""
+    echo "========================================="
+    echo "  Task $i FALLITO dopo $MAX_RETRIES tentativi"
+    echo "-----------------------------------------"
+    echo "$VERIFY_ERRORS" | tail -20
+    echo "========================================="
+
+    RECOVERY_CHOICE=0
+    select_menu "Cosa vuoi fare?" RECOVERY_CHOICE \
+      "Riprova   — resetta i tentativi e riprova il fix" \
+      "Manuale   — correggi tu, poi riprova la verifica" \
+      "Salta     — segna come failed, passa al prossimo task" \
+      "Esci      — ferma l'esecuzione"
+
+    case $RECOVERY_CHOICE in
+      0)
+        log "Utente sceglie: riprova task $i"
+        ((i--))
+        continue
+        ;;
+      1)
+        log "Utente sceglie: fix manuale per task $i"
+        read -p "Correggi il codice, poi premi Enter per rieseguire la verifica... "
+        run_verify
+        if [ -z "$VERIFY_ERRORS" ]; then
+          log "Verifica post-fix manuale PASSATA"
+          run_post_success "$i" "$TASK_FILE"
+        else
+          log "Verifica post-fix manuale FALLITA"
+          echo "$VERIFY_ERRORS" | tail -20
+          ((i--))
+          continue
+        fi
+        ;;
+      2)
+        log "Task $i skippato dall'utente dopo fallimento"
+        continue
+        ;;
+      3)
+        log "Interrotto dall'utente dopo fallimento task $i"
+        break
+        ;;
+    esac
   fi
 
   sleep 3
