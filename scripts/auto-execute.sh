@@ -508,8 +508,13 @@ Regole:
       COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
     fi
 
-    git commit -m "$COMMIT_MSG"
-    log "Commit: $COMMIT_MSG"
+    if git commit -m "$COMMIT_MSG"; then
+      log "Commit: $COMMIT_MSG"
+    else
+      log "ERRORE: git commit fallito (exit code $?). Verificare git config user.name/email."
+      git reset HEAD -- . >/dev/null 2>&1
+      log "Staging area ripristinata (git reset)."
+    fi
   fi
 }
 

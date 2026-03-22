@@ -25,8 +25,11 @@ RUN cp -r /root/.dotnet /home/claude/.dotnet \
 
 USER claude
 
-# Mark /project as safe for git (bind mount may have different owner)
-RUN git config --global --add safe.directory /project
+# Git config for commits inside sandbox
+RUN git config --global --add safe.directory /project \
+    && git config --global user.name "Emanuele Claudio Paratore-(sandbox)" \
+    && git config --global user.email "emaparatore@gmail.com" \
+    && git config --global core.autocrlf input
 ENV PATH="$PATH:/home/claude/.dotnet/tools"
 ENV DOTNET_CLI_HOME="/home/claude/.dotnet"
 

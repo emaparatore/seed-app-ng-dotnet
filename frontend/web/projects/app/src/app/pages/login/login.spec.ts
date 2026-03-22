@@ -17,6 +17,7 @@ describe('Login', () => {
       isAuthenticated: signal(false),
       currentUser: signal(null),
       accessToken: signal(null),
+      mustChangePassword: signal(false),
     };
 
     await TestBed.configureTestingModule({

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from 'shared-auth';
+import { authGuard, guestGuard, mustChangePasswordGuard } from 'shared-auth';
 
 export const routes: Routes = [
   {
@@ -28,14 +28,20 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: 'change-password',
+    loadComponent: () => import('./pages/change-password/change-password').then((m) => m.ChangePassword),
+    canActivate: [authGuard, mustChangePasswordGuard],
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
     pathMatch: 'full',
+    canActivate: [mustChangePasswordGuard],
   },
   {
     path: 'profile',
     loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
-    canActivate: [authGuard],
+    canActivate: [authGuard, mustChangePasswordGuard],
   },
   { path: '**', redirectTo: '' },
 ];

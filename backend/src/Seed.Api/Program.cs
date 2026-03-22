@@ -188,6 +188,7 @@ app.UseCors("AllowedOrigins");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<MustChangePasswordMiddleware>();
 
 app.MapControllers();
 

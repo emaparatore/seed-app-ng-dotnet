@@ -11,6 +11,7 @@ using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
+using Seed.Application.Auth.Commands.ChangePassword;
 using Seed.Application.Auth.Commands.DeleteAccount;
 using Seed.Application.Auth.Commands.ResetPassword;
 using Seed.Application.Auth.Queries.GetCurrentUser;
@@ -76,6 +77,17 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.Succeeded ? Ok(new { message = result.Data }) : BadRequest(new { errors = result.Errors });
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var command = new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword);
+        var result = await sender.Send(command);
+        return result.Succeeded ? Ok(new { message = "Password changed successfully." }) : BadRequest(new { errors = result.Errors });
     }
 
     [Authorize]

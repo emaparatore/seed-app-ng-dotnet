@@ -12,7 +12,7 @@
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
 | US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | ✅ Done |
-| US-002 | Cambio password obbligatorio | T-05 | ⏳ Not Started |
+| US-002 | Cambio password obbligatorio | T-05 | ✅ Done |
 | US-003 | Lista utenti | T-07, T-14, T-15 | ⏳ Not Started |
 | US-004 | Promuovere un utente | T-07, T-15 | ⏳ Not Started |
 | US-005 | Disattivare un utente | T-07, T-15 | ⏳ Not Started |
