@@ -43,7 +43,12 @@ public class AuthController(ISender sender) : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Login(LoginCommand command)
     {
-        var result = await sender.Send(command);
+        var enrichedCommand = command with
+        {
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        var result = await sender.Send(enrichedCommand);
         return result.Succeeded ? Ok(result.Data) : Unauthorized(new { errors = result.Errors });
     }
 
@@ -59,7 +64,9 @@ public class AuthController(ISender sender) : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(LogoutCommand command)
     {
-        var result = await sender.Send(command);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var enrichedCommand = command with { UserId = userId };
+        var result = await sender.Send(enrichedCommand);
         return result.Succeeded ? NoContent() : BadRequest(new { errors = result.Errors });
     }
 

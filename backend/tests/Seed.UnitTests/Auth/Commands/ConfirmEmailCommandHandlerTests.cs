@@ -22,11 +22,12 @@ public class ConfirmEmailCommandHandlerTests
             store, null, null, null, null, null, null, null, null);
         _tokenService = Substitute.For<ITokenService>();
         _permissionService = Substitute.For<IPermissionService>();
+        var auditService = Substitute.For<IAuditService>();
         _permissionService.GetPermissionsAsync(Arg.Any<Guid>())
             .Returns(new HashSet<string>() as IReadOnlySet<string>);
         _userManager.GetRolesAsync(Arg.Any<ApplicationUser>())
             .Returns(new List<string>());
-        _handler = new ConfirmEmailCommandHandler(_userManager, _tokenService, _permissionService);
+        _handler = new ConfirmEmailCommandHandler(_userManager, _tokenService, _permissionService, auditService);
     }
 
     [Fact]

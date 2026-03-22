@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Seed.Application.Common.Interfaces;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 using Seed.Infrastructure.Persistence.Seeders;
@@ -14,6 +15,7 @@ public class SuperAdminSeederTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<SuperAdminSeeder> _logger;
+    private readonly IAuditService _auditService;
 
     public SuperAdminSeederTests()
     {
@@ -21,6 +23,7 @@ public class SuperAdminSeederTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _logger = Substitute.For<ILogger<SuperAdminSeeder>>();
+        _auditService = Substitute.For<IAuditService>();
     }
 
     private SuperAdminSeeder CreateSeeder(SuperAdminSettings? settings = null)
@@ -32,7 +35,7 @@ public class SuperAdminSeederTests
             FirstName = "Super",
             LastName = "Admin"
         };
-        return new SuperAdminSeeder(_userManager, Options.Create(settings), _logger);
+        return new SuperAdminSeeder(_userManager, Options.Create(settings), _logger, _auditService);
     }
 
     [Fact]

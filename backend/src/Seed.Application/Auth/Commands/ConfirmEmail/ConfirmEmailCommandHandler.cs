@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
 using Seed.Application.Common.Models;
+using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 
 namespace Seed.Application.Auth.Commands.ConfirmEmail;
@@ -10,7 +11,8 @@ namespace Seed.Application.Auth.Commands.ConfirmEmail;
 public sealed class ConfirmEmailCommandHandler(
     UserManager<ApplicationUser> userManager,
     ITokenService tokenService,
-    IPermissionService permissionService) : IRequestHandler<ConfirmEmailCommand, Result<AuthResponse>>
+    IPermissionService permissionService,
+    IAuditService auditService) : IRequestHandler<ConfirmEmailCommand, Result<AuthResponse>>
 {
     public async Task<Result<AuthResponse>> Handle(ConfirmEmailCommand request, CancellationToken cancellationToken)
     {
@@ -24,6 +26,8 @@ public sealed class ConfirmEmailCommandHandler(
         var result = await userManager.ConfirmEmailAsync(user, request.Token);
         if (!result.Succeeded)
             return Result<AuthResponse>.Failure("Invalid or expired verification link.");
+
+        await auditService.LogAsync(AuditActions.EmailConfirmed, "User", user.Id.ToString(), $"Email: {request.Email}", user.Id, cancellationToken: cancellationToken);
 
         var roles = await userManager.GetRolesAsync(user);
         var tokens = await tokenService.GenerateTokensAsync(user, roles);

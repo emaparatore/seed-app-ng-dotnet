@@ -180,7 +180,7 @@ Implementare il flusso di cambio password obbligatorio. Backend: la risposta di 
 
 **Stories:** US-012 (parziale — solo backend)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-01
 
 **What to do:**

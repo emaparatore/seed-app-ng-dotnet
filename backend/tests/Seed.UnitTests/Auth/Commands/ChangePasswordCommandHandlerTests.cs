@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 using Seed.Application.Auth.Commands.ChangePassword;
+using Seed.Application.Common.Interfaces;
+using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 
 namespace Seed.UnitTests.Auth.Commands;
@@ -9,6 +11,7 @@ namespace Seed.UnitTests.Auth.Commands;
 public class ChangePasswordCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuditService _auditService;
     private readonly ChangePasswordCommandHandler _handler;
 
     public ChangePasswordCommandHandlerTests()
@@ -16,7 +19,8 @@ public class ChangePasswordCommandHandlerTests
         var store = Substitute.For<IUserStore<ApplicationUser>>();
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
-        _handler = new ChangePasswordCommandHandler(_userManager);
+        _auditService = Substitute.For<IAuditService>();
+        _handler = new ChangePasswordCommandHandler(_userManager, _auditService);
     }
 
     [Fact]
@@ -119,5 +123,25 @@ public class ChangePasswordCommandHandlerTests
 
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain("Password too short.");
+    }
+
+    [Fact]
+    public async Task Should_Log_PasswordChanged_Audit_On_Success()
+    {
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser { Id = userId, Email = "user@test.com", IsActive = true, MustChangePassword = true };
+        var command = new ChangePasswordCommand(userId.ToString(), "OldPassword1", "NewPassword1");
+
+        _userManager.FindByIdAsync(userId.ToString()).Returns(user);
+        _userManager.CheckPasswordAsync(user, "OldPassword1").Returns(true);
+        _userManager.ChangePasswordAsync(user, "OldPassword1", "NewPassword1").Returns(IdentityResult.Success);
+        _userManager.UpdateAsync(user).Returns(IdentityResult.Success);
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        await _auditService.Received(1).LogAsync(
+            AuditActions.PasswordChanged, "User",
+            userId.ToString(), Arg.Any<string?>(), userId,
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 }

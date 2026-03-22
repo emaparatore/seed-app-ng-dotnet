@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Seed.Application.Common.Interfaces;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 using Seed.Shared.Configuration;
@@ -12,15 +13,18 @@ public class SuperAdminSeeder
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SuperAdminSettings _settings;
     private readonly ILogger<SuperAdminSeeder> _logger;
+    private readonly IAuditService _auditService;
 
     public SuperAdminSeeder(
         UserManager<ApplicationUser> userManager,
         IOptions<SuperAdminSettings> settings,
-        ILogger<SuperAdminSeeder> logger)
+        ILogger<SuperAdminSeeder> logger,
+        IAuditService auditService)
     {
         _userManager = userManager;
         _settings = settings.Value;
         _logger = logger;
+        _auditService = auditService;
     }
 
     public async Task SeedAsync()
@@ -75,6 +79,7 @@ public class SuperAdminSeeder
             return;
         }
 
+        await _auditService.LogAsync(AuditActions.SystemSeeding, "User", user.Id.ToString(), "SuperAdmin user created");
         _logger.LogInformation("SuperAdmin user created successfully with email {Email}", _settings.Email);
     }
 }

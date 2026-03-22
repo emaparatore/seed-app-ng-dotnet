@@ -81,7 +81,8 @@ public class SuperAdminSeedingTests(CustomWebApplicationFactory factory)
         // Create a seeder with empty settings
         var emptySettings = Options.Create(new SuperAdminSettings());
         var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SuperAdminSeeder>>();
-        var emptySeeder = new SuperAdminSeeder(userManager, emptySettings, logger);
+        var auditService = scope.ServiceProvider.GetRequiredService<Seed.Application.Common.Interfaces.IAuditService>();
+        var emptySeeder = new SuperAdminSeeder(userManager, emptySettings, logger, auditService);
 
         // Get count before
         var beforeCount = (await userManager.GetUsersInRoleAsync(SystemRoles.SuperAdmin)).Count;

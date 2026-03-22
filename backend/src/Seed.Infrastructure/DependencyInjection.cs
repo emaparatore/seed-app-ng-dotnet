@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
+        services.AddScoped<IAuditService, AuditService>();
         services.Configure<SuperAdminSettings>(configuration.GetSection(SuperAdminSettings.SectionName));
         services.AddScoped<RolesAndPermissionsSeeder>();
         services.AddScoped<SuperAdminSeeder>();
