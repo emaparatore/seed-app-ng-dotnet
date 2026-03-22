@@ -511,7 +511,7 @@ Regole:
     if git commit -m "$COMMIT_MSG"; then
       log "Commit: $COMMIT_MSG"
     else
-      log "ERRORE: git commit fallito (exit code $?). Verificare git config user.name/email."
+      log "ERRORE: git commit fallito (exit code $?). Possibili cause: permessi .git/ (chown), git config user.name/email mancante."
       git reset HEAD -- . >/dev/null 2>&1
       log "Staging area ripristinata (git reset)."
     fi
