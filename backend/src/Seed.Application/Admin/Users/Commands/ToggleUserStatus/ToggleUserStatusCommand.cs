@@ -1,0 +1,20 @@
+using System.Text.Json.Serialization;
+using MediatR;
+using Seed.Application.Common;
+
+namespace Seed.Application.Admin.Users.Commands.ToggleUserStatus;
+
+public sealed record ToggleUserStatusCommand(bool IsActive) : IRequest<Result<bool>>
+{
+    [JsonIgnore]
+    public Guid UserId { get; init; }
+
+    [JsonIgnore]
+    public Guid CurrentUserId { get; init; }
+
+    [JsonIgnore]
+    public string? IpAddress { get; init; }
+
+    [JsonIgnore]
+    public string? UserAgent { get; init; }
+}

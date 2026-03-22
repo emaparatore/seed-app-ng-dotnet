@@ -13,6 +13,7 @@
 |-------|-------------|-------|--------|
 | US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | ✅ Done |
 | US-002 | Cambio password obbligatorio | T-05 | ✅ Done |
+
 | US-003 | Lista utenti | T-07, T-14, T-15 | ⏳ Not Started |
 | US-004 | Promuovere un utente | T-07, T-15 | ⏳ Not Started |
 | US-005 | Disattivare un utente | T-07, T-15 | ⏳ Not Started |
@@ -27,7 +28,7 @@
 | US-014 | Impostazioni a runtime | T-10, T-18 | ⏳ Not Started |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ⏳ Not Started |
 | US-016 | Stato del sistema | T-12, T-20 | ⏳ Not Started |
-| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress |
+| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress  |
 
 ---
 
@@ -156,23 +157,26 @@ Creare un seeder che, al primo avvio, legge le variabili d'ambiente e crea l'ute
 
 **Stories:** US-002, US-017
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Completed
 **Depends on:** T-03, T-04
 
 **What to do:**
 Implementare il flusso di cambio password obbligatorio. Backend: la risposta di login include il flag `mustChangePassword`. Un nuovo endpoint `POST /api/v1/auth/change-password` per il cambio password. Un middleware/filtro che blocca le richieste API (tranne cambio password e logout) se il flag è attivo. Frontend: guard che redirige alla pagina di cambio password, pagina dedicata.
 
 **Definition of Done:**
-- [ ] `LoginResponse` include `mustChangePassword: boolean`
-- [ ] Endpoint `POST /api/v1/auth/change-password` che accetta `currentPassword` e `newPassword`
-- [ ] Il cambio password rimuove il flag `MustChangePassword` dall'utente
-- [ ] Middleware che restituisce 403 con codice specifico (es. `PASSWORD_CHANGE_REQUIRED`) per qualsiasi richiesta API se il flag è attivo, eccetto `/auth/change-password` e `/auth/logout`
-- [ ] Frontend: guard `mustChangePasswordGuard` che redirige a `/change-password`
-- [ ] Frontend: pagina `/change-password` con form (password attuale + nuova password + conferma)
-- [ ] La nuova password rispetta le policy di sicurezza esistenti
-- [ ] Unit test per il comando ChangePassword
-- [ ] Integration test per il middleware di blocco
-- [ ] Frontend test per il guard
+- [x] `LoginResponse` include `mustChangePassword: boolean`
+- [x] Endpoint `POST /api/v1/auth/change-password` che accetta `currentPassword` e `newPassword`
+- [x] Il cambio password rimuove il flag `MustChangePassword` dall'utente
+- [x] Middleware che restituisce 403 con codice specifico (es. `PASSWORD_CHANGE_REQUIRED`) per qualsiasi richiesta API se il flag è attivo, eccetto `/auth/change-password` e `/auth/logout`
+- [x] Frontend: guard `mustChangePasswordGuard` che redirige a `/change-password`
+- [x] Frontend: pagina `/change-password` con form (password attuale + nuova password + conferma)
+- [x] La nuova password rispetta le policy di sicurezza esistenti
+- [x] Unit test per il comando ChangePassword
+- [x] Integration test per il middleware di blocco
+- [x] Frontend test per il guard
+
+**Implementation Notes:**
+- Already fully implemented in prior commits. Backend: `ChangePasswordCommand/Handler`, `MustChangePasswordMiddleware`, `ChangePasswordCommandValidator`. Frontend: `mustChangePasswordGuard`, `ChangePassword` component, `auth.interceptor.ts` handles 403 PASSWORD_CHANGE_REQUIRED. Tests: 6 unit tests, 8 integration tests, 4 frontend guard tests.
 
 ---
 

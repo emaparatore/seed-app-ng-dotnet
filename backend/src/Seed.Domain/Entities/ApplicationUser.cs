@@ -10,6 +10,8 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
     public bool MustChangePassword { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }
