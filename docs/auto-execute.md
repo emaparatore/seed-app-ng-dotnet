@@ -256,17 +256,24 @@ La sandbox e' **obbligatoria** per YOLO mode e **consigliata** per le modalita' 
 ### Prerequisiti sandbox
 
 - **Docker Desktop** per Windows (con WSL 2 backend)
+- **WSL 2 consigliato** — esegui `docker compose` da WSL per evitare problemi di path translation e compatibilita' shell. Git Bash (MSYS) funziona ma richiede workaround (`MSYS_NO_PATHCONV=1`)
 - **Claude Code CLI** autenticato localmente — esegui `claude` almeno una volta sulla macchina host per completare l'autenticazione OAuth. I token vengono salvati in `%USERPROFILE%\.claude`
 
 ### Quick start sandbox
 
 ```bash
-# Dalla root del progetto
+# Dalla root del progetto (consigliato: esegui da WSL)
 
-# Avvia servizi dev + sandbox
+# 1. Configura CLAUDE_CONFIG_DIR nel file docker/.env
+#    Su WSL: CLAUDE_CONFIG_DIR=/mnt/c/Users/<tuo-username>
+
+# 2. Rendi eseguibile lo script
+chmod +x scripts/auto-execute.sh
+
+# 3. Avvia servizi dev + sandbox
 docker compose --profile sandbox up --build
 
-# Entra nel container (da un altro terminale)
+# 4. Entra nel container (da un altro terminale)
 docker exec -it seed-sandbox bash
 
 # Dentro il container:
@@ -299,11 +306,18 @@ Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
 
 ### Autenticazione Claude Code nella sandbox
 
-L'autenticazione avviene tramite volume mount della cartella `~/.claude` dall'host Windows:
+L'autenticazione avviene tramite volume mount della cartella `.claude` dall'host al container. Il docker-compose usa la variabile `CLAUDE_CONFIG_DIR` con fallback su `$HOME`:
 
+```yaml
+- ${CLAUDE_CONFIG_DIR:-${HOME}}/.claude:/home/claude/.claude
 ```
-%USERPROFILE%\.claude  →  /root/.claude (nel container)
-```
+
+**Setup per piattaforma:**
+
+| Piattaforma | Configurazione in `docker/.env` |
+|---|---|
+| **WSL** (consigliato) | `CLAUDE_CONFIG_DIR=/mnt/c/Users/<tuo-username>` |
+| **Windows** (Git Bash / PowerShell) | Non serve — il fallback `$HOME` usa la home utente corrente |
 
 - Non serve `ANTHROPIC_API_KEY`. Claude Code usa OAuth.
 - I token vengono letti dal mount in tempo reale. Se scadono, basta ri-autenticarsi sull'host (`claude` da terminale locale) — non serve riavviare il container.

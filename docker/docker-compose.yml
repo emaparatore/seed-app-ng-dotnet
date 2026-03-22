@@ -122,7 +122,7 @@ services:
     tty: true
     volumes:
       - ..:/project
-      - ${USERPROFILE}/.claude:/home/claude/.claude
+      - ${CLAUDE_CONFIG_DIR:-${HOME}}/.claude:/home/claude/.claude
     environment:
       - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
       - TEST_CONNECTION_STRING=Host=seed-postgres-dev;Database=seeddb_test;Username=seed;Password=seed_password
