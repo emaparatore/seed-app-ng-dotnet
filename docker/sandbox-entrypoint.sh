@@ -6,4 +6,9 @@ if [ -d "/home/claude/.claude" ]; then
   sudo chmod -R u+rwX /home/claude/.claude 2>/dev/null
 fi
 
+# Fix execution permission on scripts (Windows NTFS mounts lose +x)
+if [ -d "/project/scripts" ]; then
+  sudo chmod +x /project/scripts/*.sh 2>/dev/null
+fi
+
 exec "$@"
