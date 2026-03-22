@@ -289,7 +289,7 @@ case "$CLAUDE_EFFORT" in
     ;;
 esac
 
-CLAUDE_FLAGS="--model $CLAUDE_MODEL_ID --effort $CLAUDE_EFFORT"
+CLAUDE_FLAGS="--verbose --model $CLAUDE_MODEL_ID --effort $CLAUDE_EFFORT"
 
 # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
 case "$MODE" in
@@ -498,7 +498,7 @@ Regole:
 - Scopes: api, app, auth, infra, ui, core, docker
 - Max 72 caratteri, lowercase, no punto finale, imperative mood
 - Rispondi SOLO con il commit message, niente altro" \
-      --model claude-haiku-4-5-20251001 --effort low --output-format stream-json > "$commit_temp" 2>> "$LOG_FILE"
+      --verbose --model claude-haiku-4-5-20251001 --effort low --output-format stream-json > "$commit_temp" 2>> "$LOG_FILE"
     cat "$commit_temp" >> "$CLAUDE_LOG_JSONL"
     summarize_claude_phase "$commit_temp" "Task $task_i - Commit msg"
     COMMIT_MSG=$(extract_claude_result "$commit_temp")
