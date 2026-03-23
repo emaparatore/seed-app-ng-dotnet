@@ -5,7 +5,7 @@ export const adminRoutes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   {
     path: 'dashboard',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
+    loadComponent: () => import('./dashboard/dashboard').then((m) => m.Dashboard),
     canActivate: [permissionGuard('Dashboard.ViewStats')],
     data: { title: 'Dashboard' },
   },

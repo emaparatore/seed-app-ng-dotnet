@@ -9,7 +9,7 @@ import { AuthService } from 'shared-auth';
 describe('Login', () => {
   let component: Login;
   let fixture: ComponentFixture<Login>;
-  let authService: { login: ReturnType<typeof vi.fn>; isAuthenticated: any; currentUser: any; accessToken: any };
+  let authService: { login: ReturnType<typeof vi.fn>; isAuthenticated: any; currentUser: any; accessToken: any; mustChangePassword: any };
 
   beforeEach(async () => {
     authService = {

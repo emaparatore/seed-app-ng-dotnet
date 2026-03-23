@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-13 completato, story coverage US-017)
+**Last Updated:** 2026-03-23 (aggiornato stato T-14 completato, story coverage US-015, US-017)
 
 ---
 
@@ -25,9 +25,9 @@
 | US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
-| US-015 | Dashboard di riepilogo | T-11, T-19 | 🔧 In Progress (backend done) |
+| US-015 | Dashboard di riepilogo | T-11, T-19 | ✅ Done (T-19 absorbed into T-14) |
 | US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
-| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress (T-05, T-13 done, T-14 pending) |
+| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | ✅ Done |
 
 ---
 
@@ -462,22 +462,32 @@ Creare il modulo admin nel frontend (lazy-loaded). Layout dedicato con sidebar. 
 
 **Stories:** US-015, US-017
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-11, T-13
 
 **What to do:**
 Implementare la pagina dashboard con card statistiche, grafici e widget ultime attività.
 
 **Definition of Done:**
-- [ ] Card con conteggi: utenti totali, attivi, disattivati
-- [ ] Card con registrazioni: ultimi 7 e 30 giorni
-- [ ] Grafico trend registrazioni (ultimi 30 giorni) — line chart SVG custom (componente Angular isolato, zero dipendenze)
-- [ ] Grafico distribuzione utenti per ruolo — donut chart SVG custom (componente Angular isolato, zero dipendenze)
-- [ ] Widget ultime 5 attività audit con link a sezione completa
-- [ ] Skeleton loading durante il caricamento
-- [ ] Responsive: card si riorganizzano su tablet
+- [x] Card con conteggi: utenti totali, attivi, disattivati
+- [x] Card con registrazioni: ultimi 7 e 30 giorni
+- [x] Grafico trend registrazioni (ultimi 30 giorni) — line chart SVG custom (componente Angular isolato, zero dipendenze) con area fill
+- [x] Grafico distribuzione utenti per ruolo — donut chart SVG custom (componente Angular isolato, zero dipendenze) con legenda
+- [x] Widget ultime 5 attività audit con link a sezione completa (`/admin/audit-log`)
+- [x] Skeleton loading durante il caricamento (animazione pulse CSS)
+- [x] Responsive: card si riorganizzano su tablet/mobile (CSS Grid auto-fit + minmax)
+- [x] Rotta `/admin/dashboard` carica il nuovo componente (non il placeholder)
+- [x] Test passano (`ng test app`) — 10 test cases (6 dashboard + 2 line-chart + 2 donut-chart)
+- [x] Build compila senza errori (`ng build app`)
 
 **Decision:** Grafici SVG custom (Option C). Zero dipendenze esterne, componenti Angular isolati e facilmente rimovibili. Coerente con l'obiettivo di mantenere la seed app leggera. Se in futuro servono grafici più complessi, si aggiunge una libreria a quel punto.
+
+**Implementation Notes:**
+- `AdminDashboardService` usa `AUTH_CONFIG` per API URL (stesso pattern di `AuthService`), iniettato in root
+- Signal inputs (`input.required<T>()`) per i chart components, signal state (`loading`, `stats`, `error`) nel dashboard — coerente con il pattern Angular signals del progetto
+- Line chart: polyline SVG con area fill gradient per leggibilità; Donut chart: tecnica `stroke-dasharray`/`stroke-dashoffset` su `<circle>` (evita calcoli trigonometrici)
+- Colori chart da CSS variables Material (`--mat-sys-primary`), layout responsive con CSS Grid `auto-fit` + `minmax` senza media queries
+- Fix collaterale: corretto `login.spec.ts` (mancava `mustChangePassword` nel mock) per permettere l'esecuzione della test suite completa
 
 ---
 
@@ -571,11 +581,10 @@ Implementare la pagina impostazioni con form raggruppati per categoria.
 
 **Stories:** US-015
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [-] Skipped — incorporato in T-14
 **Depends on:** T-14
 
-**Notes:** Questo task è stato assorbito da T-14. Mantenuto per tracciabilità.
-**Status:** [-] Skipped — incorporato in T-14
+**Notes:** Questo task è stato assorbito da T-14 (completato). Mantenuto per tracciabilità.
 
 ---
 
