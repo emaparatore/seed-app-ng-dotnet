@@ -693,16 +693,33 @@ run_post_success() {
   local task_i="$1"
   local task_file="$2"
 
+  log "=== Task $task_i - Update piano ==="
   OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
 Il task e' stato verificato con successo (build e test passano).
-Aggiorna lo stato del task corrispondente a $TASKS_DIR/$task_file da 'pending' a 'done' nel piano $PLAN.
-Rispondi SOLO: UPDATED" "Task $task_i - Update")
+
+ISTRUZIONI:
+1. Leggi il piano $PLAN
+2. Leggi il mini-plan $TASKS_DIR/$task_file (contiene il Risultato con i dettagli di cosa e' stato fatto)
+3. Aggiorna il task corrispondente nel piano $PLAN:
+   a. Se il campo Status del task e' '[ ] Not Started' o simile, cambialo in '[x] Done'
+   b. Spunta tutte le checkbox nella Definition of Done: cambia '- [ ]' in '- [x]'. Se il testo non corrisponde esattamente a quanto implementato, aggiorna il testo per riflettere cosa e' stato effettivamente fatto.
+   c. Aggiungi una sezione **Implementation Notes:** dopo la Definition of Done con un riassunto conciso (3-5 bullet) delle scelte implementative prese dal Risultato nel mini-plan
+   d. Aggiorna la tabella Story Coverage se le storie coperte da questo task cambiano stato (es. se il backend e' done ma il frontend e' pending, metti 'In Progress (backend done)')
+4. Salva il file modificato
+
+Quando hai finito rispondi: UPDATED" "Task $task_i - Update")
   echo "$OUTPUT" >> "$LOG_FILE"
 
   # Rate limit durante update → ferma lo script
   if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
     log "Esecuzione interrotta per rate limit durante update stato task."
     exit 1
+  fi
+
+  if echo "$OUTPUT" | grep -qiw "UPDATED"; then
+    log "Piano aggiornato"
+  else
+    log "ATTENZIONE: aggiornamento piano potrebbe non essere riuscito (output: $(echo "$OUTPUT" | head -c 100))"
   fi
 
   if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then

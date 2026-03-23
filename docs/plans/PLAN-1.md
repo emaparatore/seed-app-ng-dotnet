@@ -1,9 +1,9 @@
 # Implementation Plan: FEAT-1 — Admin Dashboard
 
 **Requirements:** `docs/requirements/FEAT-1.md`
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-18 (aggiornato con decisioni open questions)
+**Last Updated:** 2026-03-23 (aggiornato stati T-06, T-08, T-09 completati, story coverage)
 
 ---
 
@@ -20,11 +20,11 @@
 | US-006 | Creare un utente | T-07, T-15 | ⏳ Not Started |
 | US-007 | Eliminare un utente | T-07, T-15 | ⏳ Not Started |
 | US-008 | Modificare un utente | T-07, T-15 | ⏳ Not Started |
-| US-009 | Creare un ruolo | T-08, T-16 | ⏳ Not Started |
-| US-010 | Modificare permessi ruolo | T-08, T-16 | ⏳ Not Started |
-| US-011 | Eliminare un ruolo | T-08, T-16 | ⏳ Not Started |
-| US-012 | Consultare audit log | T-09, T-17 | ⏳ Not Started |
-| US-013 | Esportare audit log CSV | T-09, T-17 | ⏳ Not Started |
+| US-009 | Creare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
+| US-010 | Modificare permessi ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
+| US-011 | Eliminare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
+| US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
+| US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-014 | Impostazioni a runtime | T-10, T-18 | ⏳ Not Started |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ⏳ Not Started |
 | US-016 | Stato del sistema | T-12, T-20 | ⏳ Not Started |
@@ -191,14 +191,22 @@ Implementare il flusso di cambio password obbligatorio. Backend: la risposta di 
 Creare l'entità `AuditLogEntry`, il servizio `IAuditLogService`, e integrarlo nei flussi esistenti. Il servizio registra eventi con: timestamp, userId, azione, entità, dettaglio modifiche, IP, user-agent. Creare la migration per la tabella audit log con indici appropriati.
 
 **Definition of Done:**
-- [ ] Entità `AuditLogEntry` con: `Id`, `Timestamp`, `UserId` (nullable — per eventi di sistema), `Action` (enum o stringa), `EntityType`, `EntityId`, `Details` (JSON — valori prima/dopo), `IpAddress`, `UserAgent`
-- [ ] `IAuditLogService` con metodo `LogAsync(...)` per registrare eventi
-- [ ] Enum o costanti per i tipi di azione: `UserCreated`, `UserUpdated`, `UserDeleted`, `UserStatusChanged`, `UserRolesChanged`, `RoleCreated`, `RoleUpdated`, `RoleDeleted`, `LoginSuccess`, `LoginFailed`, `Logout`, `PasswordChanged`, `SettingsChanged`, `SystemSeeding`
-- [ ] Migration con tabella `AuditLog` e indici su `Timestamp`, `UserId`, `Action`
-- [ ] Integrazione nei flussi di auth esistenti (login ok/ko, logout, cambio password) — retroattiva
-- [ ] Integrazione nel seeder dell'admin (T-04) per registrare l'evento di seeding
-- [ ] Unit test per `AuditLogService`
-- [ ] Integration test per la persistenza degli eventi
+- [x] Entità `AuditLogEntry` con: `Id`, `Timestamp`, `UserId` (nullable — per eventi di sistema), `Action` (enum o stringa), `EntityType`, `EntityId`, `Details` (JSON — valori prima/dopo), `IpAddress`, `UserAgent`
+- [x] `IAuditService` con metodo `LogAsync(...)` per registrare eventi
+- [x] Costanti `AuditActions` per i tipi di azione (18 azioni definite): `UserCreated`, `UserUpdated`, `UserDeleted`, `UserStatusChanged`, `UserRolesChanged`, `RoleCreated`, `RoleUpdated`, `RoleDeleted`, `LoginSuccess`, `LoginFailed`, `Logout`, `PasswordChanged`, `PasswordReset`, `SettingsChanged`, `SystemSeeding`, `AccountDeleted`, `EmailConfirmed`, `PasswordResetRequested`
+- [x] Migration con tabella `AuditLogEntries` e indici su `Timestamp`, `UserId`, `Action`
+- [x] Integrazione nei flussi di auth esistenti (tutti i 9 handler: Login, Logout, ChangePassword, Register, ConfirmEmail, ForgotPassword, ResetPassword, DeleteAccount + LoginFailed) — retroattiva
+- [x] Integrazione nel seeder dell'admin (T-04) per registrare l'evento di seeding
+- [x] Unit test per `AuditService` (4 test) + unit test aggiornati per handler auth (mock IAuditService)
+- [x] Integration test per la persistenza degli eventi (4 test)
+
+**Implementation Notes:**
+- `AuditLogEntry` in `Seed.Domain/Entities/`, `AuditActions` in `Seed.Domain/Authorization/`
+- `IAuditService` in `Seed.Application/Common/Interfaces/`, `AuditService` in `Seed.Infrastructure/Services/` — try/catch per resilienza (non propaga eccezioni)
+- IP/UserAgent come proprietà `[JsonIgnore]` sui command record, popolati dal controller via `with` expression
+- Migration `20260322112439_AddAuditLog` con tabella e 3 indici
+- InMemory EF per unit test AuditService (pacchetto Microsoft.EntityFrameworkCore.InMemory)
+- Build OK, 82+ unit tests pass, integration tests richiedono Docker (Testcontainers)
 
 ---
 
@@ -260,18 +268,25 @@ Endpoint:
 - `GET /api/v1/admin/permissions` — lista di tutti i permessi disponibili (per la matrice UI)
 
 **Definition of Done:**
-- [ ] Tutti gli endpoint implementati con MediatR commands/queries
-- [ ] Conteggio utenti per ogni ruolo nella lista
-- [ ] Creazione ruolo con nome, descrizione e lista permessi
-- [ ] Duplicazione ruolo: il frontend invierà i permessi del ruolo da duplicare come dati iniziali
-- [ ] Modifica: aggiornamento nome, descrizione e permessi in una singola operazione
-- [ ] Eliminazione bloccata per ruoli di sistema (`IsSystemRole`)
-- [ ] Modifica permessi SuperAdmin bloccata (mantiene sempre tutti)
-- [ ] Invalidazione cache permessi alla modifica dei ruoli
-- [ ] Alla modifica ruoli: invalidazione immediata dei token attivi degli utenti impattati tramite `ITokenBlacklistService`
-- [ ] Tutte le operazioni loggate nell'audit log
-- [ ] FluentValidation per tutti i comandi
-- [ ] Unit test e integration test
+- [x] Tutti gli endpoint implementati con MediatR commands/queries (6 endpoint: GET roles, GET role by id, POST create, PUT update, DELETE, GET permissions)
+- [x] Conteggio utenti per ogni ruolo nella lista
+- [x] Creazione ruolo con nome, descrizione e lista permessi
+- [x] Duplicazione ruolo: il frontend invierà i permessi del ruolo da duplicare come dati iniziali
+- [x] Modifica: aggiornamento nome, descrizione e permessi in una singola operazione
+- [x] Eliminazione bloccata per ruoli di sistema (`IsSystemRole`)
+- [x] Modifica permessi SuperAdmin bloccata (mantiene sempre tutti)
+- [x] Invalidazione cache permessi alla modifica dei ruoli
+- [x] Alla modifica ruoli: invalidazione immediata dei token attivi degli utenti impattati tramite `ITokenBlacklistService`
+- [x] Tutte le operazioni loggate nell'audit log
+- [x] FluentValidation per tutti i comandi
+- [x] Unit test (16: CreateRole 5, UpdateRole 6, DeleteRole 5) e integration test (10 endpoint tests)
+
+**Implementation Notes:**
+- `IPermissionService` esteso con 4 metodi (`GetAllPermissionsAsync`, `GetRolePermissionNamesAsync`, `SetRolePermissionsAsync`, `RemoveAllRolePermissionsAsync`) — Application non referenzia EF Core
+- Conteggio utenti via `UserManager.GetUsersInRoleAsync` (accettabile per numero limitato di ruoli)
+- Cache invalidation solo se i permessi effettivamente cambiano (confronto prima/dopo in UpdateRoleCommandHandler)
+- Pattern controller identico a AdminUsersController: enrichment con `CurrentUserId`, `IpAddress`, `UserAgent`
+- Build OK, 152 unit tests pass, 73 integration tests pass
 
 ---
 
@@ -291,13 +306,19 @@ Endpoint:
 - `GET /api/v1/admin/audit-log/export` — export CSV con filtri
 
 **Definition of Done:**
-- [ ] Lista paginata con filtri: tipo azione, userId, intervallo date, ricerca testuale (su Details)
-- [ ] Ordinamento per timestamp (default: più recenti prima)
-- [ ] Dettaglio singolo evento con campo `Details` deserializzato
-- [ ] Export CSV che rispetta i filtri applicati, con tutte le colonne significative
-- [ ] Endpoint protetti da `AuditLog.Read` (lista e dettaglio) e `AuditLog.Export` (export)
-- [ ] Nessun endpoint di modifica o cancellazione (il log è append-only)
-- [ ] Integration test per filtri, paginazione e CSV export
+- [x] Lista paginata con filtri: tipo azione, userId, intervallo date, ricerca testuale (su Details)
+- [x] Ordinamento per timestamp (default: più recenti prima)
+- [x] Dettaglio singolo evento con campo `Details` come stringa JSON
+- [x] Export CSV che rispetta i filtri applicati, con tutte le colonne significative (limite 10.000 righe, UTF-8 BOM)
+- [x] Endpoint protetti da `AuditLog.Read` (lista e dettaglio) e `AuditLog.Export` (export)
+- [x] Nessun endpoint di modifica o cancellazione (il log è append-only)
+- [x] Unit test (10: GetAuditLogEntries 6, ExportAuditLog 3, GetAuditLogEntryById 1) e integration test (6 endpoint tests)
+
+**Implementation Notes:**
+- `IAuditLogReader` interface creata in Application (non prevista nel piano) — necessaria perché Application non referenzia EF Core. Implementazione `AuditLogReader` in Infrastructure
+- CSV export con `StringBuilder`, escape corretto per campi con virgole/virgolette/newline
+- Pattern paginazione coerente con `GetUsersQueryHandler`
+- Build OK, 161 unit tests pass, integration tests compilano (richiedono Docker)
 
 ---
 
