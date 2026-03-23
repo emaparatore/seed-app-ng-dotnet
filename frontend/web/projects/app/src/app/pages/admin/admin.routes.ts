@@ -43,7 +43,7 @@ export const adminRoutes: Routes = [
   },
   {
     path: 'audit-log',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
+    loadComponent: () => import('./audit-log/audit-log-list/audit-log-list').then((m) => m.AuditLogList),
     canActivate: [permissionGuard('AuditLog.Read')],
     data: { title: 'Audit Log' },
   },

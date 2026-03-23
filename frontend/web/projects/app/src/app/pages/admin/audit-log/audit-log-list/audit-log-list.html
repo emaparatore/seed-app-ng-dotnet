@@ -1,0 +1,172 @@
+<div class="page-header">
+  <h1>Audit Log</h1>
+  @if (hasPermission(permissions.AuditLog.Export)) {
+    <button mat-flat-button (click)="exportCsv()">
+      <mat-icon>download</mat-icon>
+      Esporta CSV
+    </button>
+  }
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Cerca</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [formControl]="searchControl" placeholder="Cerca nell'audit log..." />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field action-filter">
+    <mat-label>Azione</mat-label>
+    <mat-select [formControl]="actionFilterControl" (selectionChange)="onFilterChange()">
+      <mat-option value="">Tutte</mat-option>
+      @for (action of auditActions; track action) {
+        <mat-option [value]="action">{{ action }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Da</mat-label>
+    <input matInput [matDatepicker]="dateFromPicker" [formControl]="dateFromControl" (dateChange)="onFilterChange()" />
+    <mat-datepicker-toggle matIconSuffix [for]="dateFromPicker" />
+    <mat-datepicker #dateFromPicker />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>A</mat-label>
+    <input matInput [matDatepicker]="dateToPicker" [formControl]="dateToControl" (dateChange)="onFilterChange()" />
+    <mat-datepicker-toggle matIconSuffix [for]="dateToPicker" />
+    <mat-datepicker #dateToPicker />
+  </mat-form-field>
+
+  <button mat-icon-button matTooltip="Pulisci filtri" (click)="clearFilters()">
+    <mat-icon>filter_list_off</mat-icon>
+  </button>
+</div>
+
+@if (loading()) {
+  <!-- Skeleton loading -->
+  <div class="skeleton-table">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell tiny"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (entries().length === 0) {
+  <div class="empty-state">
+    <mat-icon>receipt_long</mat-icon>
+    <p>Nessuna voce nell'audit log.</p>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="entries()" multiTemplateDataRows>
+      <!-- Timestamp column -->
+      <ng-container matColumnDef="timestamp">
+        <th mat-header-cell *matHeaderCellDef>Data/Ora</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+      </ng-container>
+
+      <!-- Action column -->
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef>Azione</th>
+        <td mat-cell *matCellDef="let entry">
+          <span class="action-badge">{{ entry.action }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Entity type column -->
+      <ng-container matColumnDef="entityType">
+        <th mat-header-cell *matHeaderCellDef>Tipo Entità</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.entityType }}</td>
+      </ng-container>
+
+      <!-- Entity ID column -->
+      <ng-container matColumnDef="entityId">
+        <th mat-header-cell *matHeaderCellDef>ID Entità</th>
+        <td mat-cell *matCellDef="let entry" class="entity-id-cell">{{ entry.entityId ?? '—' }}</td>
+      </ng-container>
+
+      <!-- User ID column -->
+      <ng-container matColumnDef="userId">
+        <th mat-header-cell *matHeaderCellDef>Utente</th>
+        <td mat-cell *matCellDef="let entry" class="user-id-cell">{{ entry.userId ?? '—' }}</td>
+      </ng-container>
+
+      <!-- Expand toggle column -->
+      <ng-container matColumnDef="expand">
+        <th mat-header-cell *matHeaderCellDef aria-label="Expand row"></th>
+        <td mat-cell *matCellDef="let entry">
+          <button mat-icon-button aria-label="Espandi riga" (click)="toggleRow(entry); $event.stopPropagation()">
+            <mat-icon>{{ isExpanded(entry) ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <!-- Expanded detail row -->
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let entry" [attr.colspan]="displayedColumns.length">
+          <div class="detail-row" [@detailExpand]="isExpanded(entry) ? 'expanded' : 'collapsed'">
+            <div class="detail-content">
+              @if (entry.details) {
+                <div class="detail-section">
+                  <strong>Dettagli:</strong>
+                  <pre class="json-block">{{ formatDetails(entry.details) }}</pre>
+                </div>
+              }
+              @if (entry.ipAddress) {
+                <div class="detail-section">
+                  <strong>IP Address:</strong> {{ entry.ipAddress }}
+                </div>
+              }
+              @if (entry.userAgent) {
+                <div class="detail-section">
+                  <strong>User Agent:</strong> <span class="user-agent">{{ entry.userAgent }}</span>
+                </div>
+              }
+              @if (!entry.details && !entry.ipAddress && !entry.userAgent) {
+                <div class="detail-section">
+                  <em>Nessun dettaglio aggiuntivo disponibile.</em>
+                </div>
+              }
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        class="clickable-row"
+        [class.expanded-row]="isExpanded(row)"
+        (click)="toggleRow(row)"
+      ></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-expand-row"></tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    [length]="totalCount()"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[10, 25, 50]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons
+  />
+}

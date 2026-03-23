@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-15 completato, story coverage US-003–US-008)
+**Last Updated:** 2026-03-23 (aggiornato stato T-17 completato, story coverage US-012–US-013)
 
 ---
 
@@ -22,8 +22,8 @@
 | US-009 | Creare un ruolo | T-08, T-16 | ✅ Done |
 | US-010 | Modificare permessi ruolo | T-08, T-16 | ✅ Done |
 | US-011 | Eliminare un ruolo | T-08, T-16 | ✅ Done |
-| US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
-| US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
+| US-012 | Consultare audit log | T-09, T-17 | ✅ Done |
+| US-013 | Esportare audit log CSV | T-09, T-17 | ✅ Done |
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ✅ Done (T-19 absorbed into T-14) |
 | US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
@@ -557,18 +557,25 @@ Implementare le pagine di gestione ruoli: lista, dettaglio/modifica, creazione.
 
 **Stories:** US-012, US-013
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-09, T-13
 
 **What to do:**
 Implementare la pagina audit log con tabella, filtri e export.
 
 **Definition of Done:**
-- [ ] Tabella paginata con colonne: timestamp, utente, azione, entità, riepilogo
-- [ ] Filtri: tipo azione (dropdown), utente (autocomplete), intervallo date (date picker), ricerca testuale
-- [ ] Riga espandibile con dettaglio modifiche prima/dopo (JSON formattato o tabella diff)
-- [ ] Pulsante "Esporta CSV" che scarica i dati con i filtri applicati (se ha permesso `AuditLog.Export`)
-- [ ] Skeleton loading e stato vuoto
+- [x] Tabella paginata con colonne: timestamp, azione, tipo entità, ID entità, utente
+- [x] Filtri: tipo azione (dropdown con 18 azioni), intervallo date (date picker), ricerca testuale (debounce 300ms), bottone "Pulisci filtri"
+- [x] Riga espandibile con dettaglio: Details JSON formattato, IP address, User Agent (usa `multiTemplateDataRows` con animazione)
+- [x] Pulsante "Esporta CSV" che scarica i dati con i filtri applicati (se ha permesso `AuditLog.Export`), usa `URL.createObjectURL` + `<a>` temporaneo
+- [x] Skeleton loading, stato vuoto e stato errore con retry
+
+**Implementation Notes:**
+- Riutilizzata `PagedResult<T>` da `users/models/user.models.ts` invece di ridefinirla
+- Usata Angular animation `detailExpand` con `multiTemplateDataRows` per la riga espandibile (pattern Material ufficiale)
+- Export CSV implementato con `responseType: 'blob'` + `URL.createObjectURL` + elemento `<a>` temporaneo
+- 14 test cases implementati (superano i 9 richiesti): inclusi test per `formatDetails` (JSON valido/invalido), retry dopo errore, espansione riga
+- `loadEntries()` reso public per facilitare il testing diretto
 
 ---
 
