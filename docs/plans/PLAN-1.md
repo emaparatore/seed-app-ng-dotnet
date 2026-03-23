@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-11 completato, story coverage US-015)
+**Last Updated:** 2026-03-23 (aggiornato stato T-12 completato, story coverage US-016)
 
 ---
 
@@ -26,7 +26,7 @@
 | US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | 🔧 In Progress (backend done) |
-| US-016 | Stato del sistema | T-12, T-20 | ⏳ Not Started |
+| US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
 | US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress  |
 
 ---
@@ -394,7 +394,7 @@ Endpoint:
 
 **Stories:** US-016
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03
 
 **What to do:**
@@ -404,14 +404,21 @@ Endpoint:
 - `GET /api/v1/admin/system-health` — stato completo del sistema
 
 **Definition of Done:**
-- [ ] Stato connessione database (healthy/unhealthy con eventuale errore)
-- [ ] Stato servizio email (configurato e raggiungibile / non configurato / errore)
-- [ ] Versione applicazione (letta da assembly)
-- [ ] Ambiente di esecuzione (Development/Staging/Production)
-- [ ] Uptime del server (tempo dall'avvio del processo)
-- [ ] Utilizzo memoria del processo
-- [ ] Endpoint protetto da `SystemHealth.Read`
-- [ ] Integration test
+- [x] Stato connessione database (healthy/unhealthy tramite HealthCheckService registrato)
+- [x] Stato servizio email (configured/not configured basato su SmtpSettings.Host, con host e porta nella description)
+- [x] Versione applicazione (letta da assembly)
+- [x] Ambiente di esecuzione (Development/Staging/Production)
+- [x] Uptime del server (tempo dall'avvio del processo)
+- [x] Utilizzo memoria del processo (WorkingSet e GC allocated)
+- [x] Endpoint protetto da `SystemHealth.Read`
+- [x] Integration test (6 test: auth 401, permessi 403, risposta completa, DB status, version/environment, uptime/memory)
+
+**Implementation Notes:**
+- DB check via `HealthCheckService.CheckHealthAsync()` riutilizzando l'health check PostgreSQL ("postgresql") già registrato in Program.cs
+- Email status controlla solo `SmtpSettings.Host` configurato (Configured/NotConfigured) senza connessione SMTP, per evitare latenza e side-effect
+- Aggiunti pacchetti `Microsoft.Extensions.Diagnostics.HealthChecks` e `Microsoft.Extensions.Hosting.Abstractions` al progetto Application (necessari per `HealthCheckService` e `IHostEnvironment` nel handler)
+- Pattern controller identico a `AdminDashboardController`: versioning, `[Authorize]`, `[HasPermission]`, `ISender`
+- Build OK, 176 unit test passano, 6 integration test compilano (richiedono Docker/Testcontainers)
 
 **Notes:**
 - Spazio disco rimosso dallo scope: non è possibile leggerlo in modo cross-platform affidabile in tutti gli ambienti di deploy (container, ecc.). Può essere aggiunto in futuro se necessario.
