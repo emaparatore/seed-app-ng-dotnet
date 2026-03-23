@@ -49,7 +49,7 @@ export const adminRoutes: Routes = [
   },
   {
     path: 'settings',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
+    loadComponent: () => import('./settings/settings').then((m) => m.SettingsComponent),
     canActivate: [permissionGuard('Settings.Read')],
     data: { title: 'Impostazioni' },
   },

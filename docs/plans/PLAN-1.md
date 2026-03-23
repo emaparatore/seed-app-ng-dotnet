@@ -24,7 +24,7 @@
 | US-011 | Eliminare un ruolo | T-08, T-16 | ✅ Done |
 | US-012 | Consultare audit log | T-09, T-17 | ✅ Done |
 | US-013 | Esportare audit log CSV | T-09, T-17 | ✅ Done |
-| US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
+| US-014 | Impostazioni a runtime | T-10, T-18 | ✅ Done |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ✅ Done (T-19 absorbed into T-14) |
 | US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
 | US-017 | Accesso condizionale admin | T-05, T-13, T-14 | ✅ Done |
@@ -583,20 +583,27 @@ Implementare la pagina audit log con tabella, filtri e export.
 
 **Stories:** US-014
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-10, T-13
 
 **What to do:**
 Implementare la pagina impostazioni con form raggruppati per categoria.
 
 **Definition of Done:**
-- [ ] Impostazioni raggruppate per categoria (card o section)
-- [ ] Controllo appropriato per tipo: toggle (boolean), campo numerico (number), campo testo (string)
-- [ ] Per ogni impostazione: label, valore corrente, chi l'ha modificata per ultimo e quando
-- [ ] Dialog di conferma al salvataggio
-- [ ] Con solo `Settings.Read`: tutti i controlli disabilitati
-- [ ] Toast successo/errore
-- [ ] Skeleton loading
+- [x] Impostazioni raggruppate per categoria in card separate (una `mat-card` per categoria)
+- [x] Controllo appropriato per tipo: `mat-slide-toggle` (bool), campo numerico (int), campo testo (string)
+- [x] Per ogni impostazione: description come label, valore corrente, info ultima modifica (chi e quando)
+- [x] Dialog di conferma al salvataggio via `ConfirmDialog` esistente
+- [x] Con solo `Settings.Read`: tutti i controlli disabilitati, pulsante salva nascosto
+- [x] Toast successo/errore con `MatSnackBar`
+- [x] Skeleton loading durante il caricamento iniziale
+
+**Implementation Notes:**
+- Componente standalone con template e styles inline, coerente con gli altri componenti admin
+- Signals per stato reattivo (`loading`, `saving`, `settings`, `error`, `currentValues`) + `computed` per `settingsGroups`, `canManage`, `hasChanges`
+- `currentValues` come `Map<string, string>` in un signal per tracciare modifiche rispetto a `originalValues` e calcolare `hasChanges` in modo reattivo
+- Solo le impostazioni modificate vengono inviate nel PUT, confrontando `currentValues` con `originalValues`
+- Riuso del `ConfirmDialog` esistente in `users/confirm-dialog/` — nessun nuovo dialog creato
 
 ---
 
