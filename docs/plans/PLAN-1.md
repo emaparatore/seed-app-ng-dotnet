@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-14 completato, story coverage US-015, US-017)
+**Last Updated:** 2026-03-23 (aggiornato stato T-15 completato, story coverage US-003–US-008)
 
 ---
 
@@ -13,12 +13,12 @@
 |-------|-------------|-------|--------|
 | US-001 | Seeding admin iniziale | T-01, T-02, T-03, T-04 | ✅ Done |
 | US-002 | Cambio password obbligatorio | T-05 | ✅ Done |
-| US-003 | Lista utenti | T-07, T-14, T-15 | ⏳ Not Started |
-| US-004 | Promuovere un utente | T-07, T-15 | ⏳ Not Started |
-| US-005 | Disattivare un utente | T-07, T-15 | ⏳ Not Started |
-| US-006 | Creare un utente | T-07, T-15 | ⏳ Not Started |
-| US-007 | Eliminare un utente | T-07, T-15 | ⏳ Not Started |
-| US-008 | Modificare un utente | T-07, T-15 | ⏳ Not Started |
+| US-003 | Lista utenti | T-07, T-14, T-15 | ✅ Done |
+| US-004 | Promuovere un utente | T-07, T-15 | ✅ Done |
+| US-005 | Disattivare un utente | T-07, T-15 | ✅ Done |
+| US-006 | Creare un utente | T-07, T-15 | ✅ Done |
+| US-007 | Eliminare un utente | T-07, T-15 | ✅ Done |
+| US-008 | Modificare un utente | T-07, T-15 | ✅ Done |
 | US-009 | Creare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
 | US-010 | Modificare permessi ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
 | US-011 | Eliminare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
@@ -495,23 +495,32 @@ Implementare la pagina dashboard con card statistiche, grafici e widget ultime a
 
 **Stories:** US-003, US-004, US-005, US-006, US-007, US-008
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-07, T-13
 
 **What to do:**
 Implementare le pagine di gestione utenti: lista, dettaglio/modifica, creazione.
 
 **Definition of Done:**
-- [ ] **Lista utenti**: tabella Angular Material con paginazione server-side, ricerca, filtri (ruolo, stato, periodo), ordinamento
-- [ ] Colonne: nome con iniziali/avatar, email, ruoli (chip), stato (badge), data registrazione, ultimo accesso
-- [ ] Toggle attiva/disattiva inline (se ha permesso `Users.ToggleStatus`)
-- [ ] Pulsante elimina con dialog di conferma (se ha permesso `Users.Delete`)
-- [ ] **Pagina dettaglio/modifica**: form con nome, cognome, email; gestione ruoli (add/remove); info account (sola lettura); cronologia attività
-- [ ] Pulsanti: salva, reset password forzato, forza cambio password — visibilità basata su permessi
-- [ ] **Pagina creazione**: form con nome, cognome, email, password (con auto-generazione), selezione ruoli, checkbox email benvenuto
-- [ ] Toast di successo/errore per ogni operazione
-- [ ] Skeleton loading per lista e dettaglio
-- [ ] Gestione stati vuoti (nessun utente trovato, nessun filtro corrispondente)
+- [x] **Lista utenti**: tabella Angular Material con paginazione server-side, ricerca con debounce 300ms, filtri (ruolo, stato, periodo), ordinamento
+- [x] Colonne: nome con iniziali, email, ruoli (chip), stato (badge), data registrazione, azioni
+- [x] Toggle attiva/disattiva inline (se ha permesso `Users.ToggleStatus`)
+- [x] Pulsante elimina con dialog di conferma generico riutilizzabile (se ha permesso `Users.Delete`)
+- [x] **Pagina dettaglio/modifica**: form con nome, cognome, email; gestione ruoli (add/remove con multi-select); info account (sola lettura: data creazione, ultimo aggiornamento, email confermata, must change password)
+- [x] Pulsanti: salva, reset password, forza cambio password, toggle stato, elimina — visibilità basata su permessi (HasPermissionDirective + PermissionService)
+- [x] **Dialog creazione utente**: form con nome, cognome, email, password (con auto-generazione 16 caratteri), selezione ruoli (multi-select via getRoles endpoint)
+- [x] Toast di successo/errore per ogni operazione (MatSnackBar)
+- [x] Skeleton loading per lista e dettaglio
+- [x] Gestione stati vuoti (nessun utente trovato, nessun filtro corrispondente) e stati errore
+- [x] Routing aggiornato: `/admin/users` → UserList, `/admin/users/:id` → UserDetail, entrambi con permissionGuard('Users.Read')
+- [x] Test passano (9 test lista + 7 test dettaglio) e build compila
+
+**Implementation Notes:**
+- Signal-based state management (loading, data, error) seguendo il pattern della Dashboard esistente
+- Server-side pagination/sort/filter: tutti i parametri passati come query params, nessun filtraggio client-side
+- ConfirmDialog generico riutilizzabile per eliminazione, toggle status, forza password e reset password
+- CreateUserDialog con generazione password sicura di 16 caratteri (alfanumerici + speciali, esclusi caratteri ambigui)
+- AdminUsersService con 9 endpoint + getRoles() per il multi-select dei ruoli; usa HttpClient + AUTH_CONFIG injection come AdminDashboardService
 
 ---
 

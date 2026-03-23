@@ -11,9 +11,19 @@ export const adminRoutes: Routes = [
   },
   {
     path: 'users',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
     canActivate: [permissionGuard('Users.Read')],
-    data: { title: 'Utenti' },
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./users/user-list/user-list').then((m) => m.UserList),
+        data: { title: 'Utenti' },
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./users/user-detail/user-detail').then((m) => m.UserDetail),
+        data: { title: 'Dettaglio utente' },
+      },
+    ],
   },
   {
     path: 'roles',

@@ -1,0 +1,218 @@
+<div class="page-header">
+  <button mat-icon-button (click)="goBack()" matTooltip="Torna alla lista">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1>Dettaglio utente</h1>
+</div>
+
+@if (loading()) {
+  <div class="skeleton-detail">
+    <div class="skeleton-header">
+      <div class="skeleton-avatar-lg"></div>
+      <div class="skeleton-info">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (user()) {
+  <!-- User header -->
+  <div class="user-header">
+    <div class="user-avatar-lg" [class.inactive]="!user()!.isActive">
+      {{ getInitials() }}
+    </div>
+    <div class="user-header-info">
+      <h2>{{ user()!.firstName }} {{ user()!.lastName }}</h2>
+      <span class="user-email">{{ user()!.email }}</span>
+      <span class="status-badge" [class.active]="user()!.isActive" [class.inactive]="!user()!.isActive">
+        {{ user()!.isActive ? 'Attivo' : 'Disattivato' }}
+      </span>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Edit form -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Informazioni personali</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" class="detail-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="firstName" [readonly]="!hasPermission(permissions.Users.Update)" />
+            @if (form.controls.firstName.hasError('required')) {
+              <mat-error>Il nome è obbligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cognome</mat-label>
+            <input matInput formControlName="lastName" [readonly]="!hasPermission(permissions.Users.Update)" />
+            @if (form.controls.lastName.hasError('required')) {
+              <mat-error>Il cognome è obbligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" type="email" [readonly]="!hasPermission(permissions.Users.Update)" />
+            @if (form.controls.email.hasError('required')) {
+              <mat-error>L'email è obbligatoria</mat-error>
+            } @else if (form.controls.email.hasError('email')) {
+              <mat-error>Email non valida</mat-error>
+            }
+          </mat-form-field>
+        </form>
+      </mat-card-content>
+      <mat-card-actions align="end" *hasPermission="permissions.Users.Update">
+        <button mat-flat-button (click)="saveChanges()" [disabled]="saving() || form.pristine">
+          @if (saving()) {
+            Salvataggio...
+          } @else {
+            Salva modifiche
+          }
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Roles -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Ruoli</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (hasPermission(permissions.Users.AssignRoles)) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Ruoli assegnati</mat-label>
+            <mat-select [formControl]="rolesControl" multiple>
+              @for (role of roles(); track role.id) {
+                <mat-option [value]="role.name">{{ role.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else {
+          <div class="role-chips">
+            @for (role of user()!.roles; track role) {
+              <mat-chip-option disabled selected>{{ role }}</mat-chip-option>
+            }
+            @if (user()!.roles.length === 0) {
+              <p class="no-roles">Nessun ruolo assegnato.</p>
+            }
+          </div>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end" *hasPermission="permissions.Users.AssignRoles">
+        <button mat-flat-button (click)="saveRoles()">Salva ruoli</button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Account info -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Informazioni account</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">Data registrazione</span>
+            <span class="info-value">{{ user()!.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Ultimo aggiornamento</span>
+            <span class="info-value">{{ user()!.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email confermata</span>
+            <span class="info-value">
+              <mat-icon class="inline-icon" [class.confirmed]="user()!.emailConfirmed" [class.not-confirmed]="!user()!.emailConfirmed">
+                {{ user()!.emailConfirmed ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              {{ user()!.emailConfirmed ? 'Sì' : 'No' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Deve cambiare password</span>
+            <span class="info-value">
+              <mat-icon class="inline-icon" [class.not-confirmed]="user()!.mustChangePassword">
+                {{ user()!.mustChangePassword ? 'warning' : 'check_circle' }}
+              </mat-icon>
+              {{ user()!.mustChangePassword ? 'Sì' : 'No' }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Actions -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Azioni</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="actions-list">
+          <div class="action-item" *hasPermission="permissions.Users.Update">
+            <div>
+              <strong>Forza cambio password</strong>
+              <p>L'utente dovrà cambiare la password al prossimo accesso</p>
+            </div>
+            <button mat-stroked-button (click)="forcePasswordChange()">
+              <mat-icon>lock_reset</mat-icon>
+              Forza cambio
+            </button>
+          </div>
+
+          <mat-divider />
+
+          <div class="action-item" *hasPermission="permissions.Users.Update">
+            <div>
+              <strong>Reset password</strong>
+              <p>Invia un'email all'utente per reimpostare la password</p>
+            </div>
+            <button mat-stroked-button (click)="resetPassword()">
+              <mat-icon>email</mat-icon>
+              Reset password
+            </button>
+          </div>
+
+          <mat-divider />
+
+          <div class="action-item" *hasPermission="permissions.Users.ToggleStatus">
+            <div>
+              <strong>{{ user()!.isActive ? 'Disattiva' : 'Attiva' }} utente</strong>
+              <p>{{ user()!.isActive ? 'L\'utente non potrà più accedere al sistema' : 'Riattiva l\'accesso dell\'utente al sistema' }}</p>
+            </div>
+            <button mat-stroked-button (click)="toggleStatus()" [color]="user()!.isActive ? 'warn' : 'primary'">
+              <mat-icon>{{ user()!.isActive ? 'person_off' : 'person' }}</mat-icon>
+              {{ user()!.isActive ? 'Disattiva' : 'Attiva' }}
+            </button>
+          </div>
+
+          <mat-divider />
+
+          <div class="action-item danger" *hasPermission="permissions.Users.Delete">
+            <div>
+              <strong>Elimina utente</strong>
+              <p>Questa azione non può essere annullata</p>
+            </div>
+            <button mat-stroked-button color="warn" (click)="deleteUser()">
+              <mat-icon>delete</mat-icon>
+              Elimina
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
