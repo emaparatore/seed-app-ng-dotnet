@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-10 completato, story coverage US-014)
+**Last Updated:** 2026-03-23 (aggiornato stato T-11 completato, story coverage US-015)
 
 ---
 
@@ -25,7 +25,7 @@
 | US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
-| US-015 | Dashboard di riepilogo | T-11, T-19 | ⏳ Not Started |
+| US-015 | Dashboard di riepilogo | T-11, T-19 | 🔧 In Progress (backend done) |
 | US-016 | Stato del sistema | T-12, T-20 | ⏳ Not Started |
 | US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress  |
 
@@ -362,7 +362,7 @@ Endpoint:
 
 **Stories:** US-015
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-07, T-09
 
 **What to do:**
@@ -372,14 +372,21 @@ Endpoint:
 - `GET /api/v1/admin/dashboard` — statistiche aggregate
 
 **Definition of Done:**
-- [ ] Risposta include: totale utenti, utenti attivi, utenti disattivati
-- [ ] Registrazioni ultimi 7 giorni e ultimi 30 giorni
-- [ ] Dati per grafico trend registrazioni (ultimi 30 giorni, raggruppati per giorno)
-- [ ] Distribuzione utenti per ruolo (nome ruolo + conteggio)
-- [ ] Ultime 5 attività dal log di audit (compatte)
-- [ ] Endpoint protetto da `Dashboard.ViewStats`
-- [ ] Query ottimizzate (conteggi aggregati, non caricamento di tutti i record)
-- [ ] Integration test
+- [x] Risposta include: totale utenti, utenti attivi, utenti disattivati
+- [x] Registrazioni ultimi 7 e 30 giorni calcolate correttamente
+- [x] Dati per grafico trend registrazioni (ultimi 30 giorni, raggruppati per giorno, giorni mancanti riempiti con 0)
+- [x] Distribuzione utenti per ruolo (nome ruolo + conteggio, solo utenti non eliminati)
+- [x] Ultime 5 attività dal log di audit (compatte: id, timestamp, action, entityType, userId)
+- [x] Endpoint protetto da `Dashboard.ViewStats`
+- [x] Query ottimizzate (conteggi aggregati, non caricamento di tutti i record)
+- [x] Integration test (6 test: auth, permessi, struttura risposta, coerenza dati, trend)
+
+**Implementation Notes:**
+- Pattern identico a `AdminSettingsController`: controller minimale con solo GET, `[Authorize]` a livello di classe, `[HasPermission]` sull'endpoint, `ISender` per dispatch MediatR
+- `GetDashboardStatsQueryHandler` inietta `UserManager`, `RoleManager`, `IAuditLogReader` — conteggi aggregati senza caricamento massivo
+- Trend 30 giorni con fill dei giorni mancanti: loop da 29 giorni fa a oggi, inserendo 0 per i giorni senza registrazioni (garantisce sempre 30 elementi)
+- Conteggio ruoli filtra `!IsDeleted` per coerenza con `TotalUsers`; distribuzione ruoli usa `GetUsersInRoleAsync` (stesso pattern di `GetRolesQueryHandler`)
+- Build OK, 176 unit test passano, 6 integration test compilano (richiedono Docker/Testcontainers)
 
 ---
 
