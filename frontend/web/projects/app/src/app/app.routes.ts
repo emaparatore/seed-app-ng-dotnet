@@ -1,7 +1,13 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, mustChangePasswordGuard } from 'shared-auth';
+import { authGuard, guestGuard, mustChangePasswordGuard, adminGuard } from 'shared-auth';
 
 export const routes: Routes = [
+  {
+    path: 'admin',
+    loadComponent: () => import('./pages/admin/admin-layout').then((m) => m.AdminLayout),
+    canActivate: [authGuard, adminGuard],
+    loadChildren: () => import('./pages/admin/admin.routes').then((m) => m.adminRoutes),
+  },
   {
     path: 'login',
     loadComponent: () => import('./pages/login/login').then((m) => m.Login),

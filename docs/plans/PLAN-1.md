@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stato T-12 completato, story coverage US-016)
+**Last Updated:** 2026-03-23 (aggiornato stato T-13 completato, story coverage US-017)
 
 ---
 
@@ -27,7 +27,7 @@
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | 🔧 In Progress (backend done) |
 | US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
-| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress  |
+| US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress (T-05, T-13 done, T-14 pending) |
 
 ---
 
@@ -431,23 +431,30 @@ Endpoint:
 
 **Stories:** US-017
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03
 
 **What to do:**
 Creare il modulo admin nel frontend (lazy-loaded). Layout dedicato con sidebar. Guard basato sui permessi. Navigazione condizionale: la voce "Admin" appare nel menu principale solo se l'utente ha almeno un permesso admin. Le voci nella sidebar dipendono dai permessi dell'utente.
 
 **Definition of Done:**
-- [ ] Rotta `/admin` lazy-loaded con layout dedicato (sidebar + content area)
-- [ ] Sidebar con voci: Dashboard, Utenti, Ruoli, Audit Log, Impostazioni, Stato Sistema
-- [ ] Ogni voce visibile solo se l'utente ha il permesso di lettura corrispondente
-- [ ] Guard `adminGuard` che verifica almeno un permesso admin
-- [ ] Guard `permissionGuard` configurabile per singola rotta
-- [ ] Voce "Admin" nel menu principale (header/navbar) visibile solo con almeno un permesso admin
-- [ ] `PermissionService` nel frontend che espone i permessi come signals e metodo `hasPermission()`
-- [ ] Direttiva `*hasPermission` (structural directive) per condizionare elementi UI
-- [ ] Redirect a `/admin/dashboard` come rotta default dell'area admin
-- [ ] Test per guards e PermissionService
+- [x] Rotta `/admin` lazy-loaded con layout dedicato (sidebar + content area)
+- [x] Sidebar con voci: Dashboard, Utenti, Ruoli, Audit Log, Impostazioni, Stato Sistema
+- [x] Ogni voce visibile solo se l'utente ha il permesso di lettura corrispondente (tramite `*hasPermission` directive)
+- [x] Guard `adminGuard` che verifica almeno un permesso admin (redirect a `/`)
+- [x] Guard `permissionGuard` configurabile per singola rotta (factory function, redirect a `/admin`)
+- [x] Voce "Admin" nel menu principale (header/navbar) visibile solo con almeno un permesso admin
+- [x] `PermissionService` nel frontend che espone i permessi come signals e metodi `hasPermission()`, `hasAnyPermission()`, `isAdmin`
+- [x] Direttiva `*hasPermission` (structural directive) per condizionare elementi UI
+- [x] Redirect a `/admin/dashboard` come rotta default dell'area admin
+- [x] Test per guards, PermissionService e HasPermissionDirective (14 test totali)
+
+**Implementation Notes:**
+- `isAdmin` definito come `permissions().length > 0` — un utente è "admin" se ha qualsiasi permesso, coerente con il modello dove i permessi sono assegnati solo a ruoli admin
+- `HasPermissionDirective` usa `input.required<string>()` + `effect()` per reattività signal-based (pattern Angular moderno)
+- `permissionGuard` implementato come factory function che restituisce `CanActivateFn`, permettendo configurazione per-rotta
+- Sidebar fissa 240px con layout flexbox semplice (senza `MatSidenavModule`), usa `mat-nav-list` per le voci
+- Componente `AdminPlaceholder` unico con titolo da `route.data['title']` per tutte le sotto-pagine non ancora implementate
 
 ---
 

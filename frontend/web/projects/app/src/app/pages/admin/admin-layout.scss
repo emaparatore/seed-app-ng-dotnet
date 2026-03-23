@@ -1,0 +1,26 @@
+.admin-container {
+  display: flex;
+  min-height: calc(100vh - 64px);
+}
+
+.admin-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  background: var(--mat-sys-surface, #fff);
+
+  mat-nav-list {
+    padding-top: 8px;
+  }
+
+  .active {
+    background: var(--mat-sys-secondary-container, rgba(0, 0, 0, 0.08));
+    color: var(--mat-sys-on-secondary-container, inherit);
+  }
+}
+
+.admin-content {
+  flex: 1;
+  padding: 24px;
+  overflow-x: auto;
+}
