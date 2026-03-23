@@ -343,6 +343,215 @@ mkdir -p "$TASKS_DIR"
 mkdir -p "$LOG_DIR"
 mkdir -p "$CLAUDE_LOG_DIR"
 
+# --- Rate limit detection ---
+# Pattern noti di rate limit / quota esaurita da Claude API
+RATE_LIMIT_PATTERNS=(
+  "hit your limit"
+  "rate limit"
+  "quota exceeded"
+  "too many requests"
+  "resets .* (UTC)"
+  "capacity"
+  "overloaded"
+)
+
+# Controlla se l'output di Claude indica rate limiting.
+# Cerca nei dati JSONL grezzi (non solo nel result estratto).
+# Ritorna 0 se rate-limited, 1 se ok.
+# Se rate-limited, imposta RATE_LIMIT_MSG con il messaggio rilevato.
+check_rate_limit() {
+  local jsonl_file="$1"
+  local result_text="$2"
+  RATE_LIMIT_MSG=""
+
+  # Controlla nel result text
+  for pattern in "${RATE_LIMIT_PATTERNS[@]}"; do
+    if echo "$result_text" | grep -iqE "$pattern"; then
+      RATE_LIMIT_MSG="$result_text"
+      return 0
+    fi
+  done
+
+  # Controlla anche nel JSONL grezzo (potrebbe essere in un messaggio di testo)
+  for pattern in "${RATE_LIMIT_PATTERNS[@]}"; do
+    local match
+    match=$(grep -i "$pattern" "$jsonl_file" 2>/dev/null | head -1)
+    if [ -n "$match" ]; then
+      RATE_LIMIT_MSG=$(echo "$match" | head -c 200)
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# Calcola i secondi di attesa fino a un orario UTC (es. "3pm", "11am").
+# Ritorna i secondi via echo. Se non riesce a parsare, ritorna 0.
+calc_wait_seconds() {
+  local reset_time="$1"  # es. "3pm", "11am"
+  local hour minute ampm
+
+  # Estrai ora e am/pm
+  hour=$(echo "$reset_time" | grep -oP '^\d+')
+  ampm=$(echo "$reset_time" | grep -oP '[ap]m$')
+
+  if [ -z "$hour" ] || [ -z "$ampm" ]; then
+    echo 0
+    return
+  fi
+
+  # Converti in formato 24h
+  if [ "$ampm" = "pm" ] && [ "$hour" -ne 12 ]; then
+    hour=$((hour + 12))
+  elif [ "$ampm" = "am" ] && [ "$hour" -eq 12 ]; then
+    hour=0
+  fi
+
+  # Orario attuale in UTC (epoch seconds)
+  local now_utc
+  now_utc=$(date -u +%s)
+
+  # Costruisci il target come oggi alle $hour:00 UTC
+  local today_date
+  today_date=$(date -u +%Y-%m-%d)
+  local target_utc
+  target_utc=$(date -u -d "$today_date $hour:00:00" +%s 2>/dev/null)
+
+  # Fallback per macOS/busybox
+  if [ -z "$target_utc" ]; then
+    target_utc=$(TZ=UTC date -j -f "%Y-%m-%d %H:%M:%S" "$today_date $hour:00:00" +%s 2>/dev/null)
+  fi
+
+  if [ -z "$target_utc" ]; then
+    echo 0
+    return
+  fi
+
+  local diff=$((target_utc - now_utc))
+
+  # Se il target e' gia' passato oggi, vuol dire domani
+  if [ $diff -le 0 ]; then
+    diff=$((diff + 86400))
+  fi
+
+  # Aggiungi 60 secondi di margine
+  echo $((diff + 60))
+}
+
+# Formatta secondi in "Xh Ym"
+format_duration() {
+  local secs="$1"
+  local hours=$((secs / 3600))
+  local mins=$(( (secs % 3600) / 60 ))
+  if [ $hours -gt 0 ]; then
+    echo "${hours}h ${mins}m"
+  else
+    echo "${mins}m"
+  fi
+}
+
+# Attende con countdown visuale, mostrando il tempo rimanente.
+wait_with_countdown() {
+  local total_secs="$1"
+  local label="$2"
+  local end_time=$(($(date +%s) + total_secs))
+
+  while true; do
+    local now
+    now=$(date +%s)
+    local remaining=$((end_time - now))
+    if [ $remaining -le 0 ]; then
+      break
+    fi
+    printf "\r  %s — riprovo tra %s ...  " "$label" "$(format_duration $remaining)"
+    sleep 10
+  done
+  printf "\r  %s — riparto ora!                        \n" "$label"
+}
+
+# Gestisce il rate limit: log, mostra all'utente, chiede come proseguire.
+# In YOLO mode aspetta automaticamente senza chiedere.
+# Ritorna 0 se si deve riprovare, 1 se si deve uscire.
+handle_rate_limit() {
+  local label="$1"
+
+  log "RATE LIMIT RILEVATO durante: $label"
+  log "Messaggio: $RATE_LIMIT_MSG"
+
+  # Prova a estrarre il tempo di reset dal messaggio (es. "resets 3pm (UTC)")
+  local reset_time
+  reset_time=$(echo "$RATE_LIMIT_MSG" | grep -oP 'resets?\s+\K[0-9]+[ap]m' | head -1)
+
+  local wait_secs=0
+  local reset_label=""
+  if [ -n "$reset_time" ]; then
+    wait_secs=$(calc_wait_seconds "$reset_time")
+    reset_label="$reset_time UTC"
+  fi
+
+  echo ""
+  echo "=============================================="
+  echo "  RATE LIMIT - Claude ha esaurito la quota"
+  echo "----------------------------------------------"
+  echo "  Fase: $label"
+  if [ -n "$reset_label" ]; then
+    echo "  Reset previsto: $reset_label (tra $(format_duration $wait_secs))"
+  fi
+  echo "  Messaggio: $(echo "$RATE_LIMIT_MSG" | head -c 200)"
+  echo "=============================================="
+  echo ""
+
+  # --- YOLO mode: aspetta automaticamente ---
+  if [ "$YOLO_MODE" = "true" ]; then
+    if [ $wait_secs -gt 0 ]; then
+      log "YOLO: attesa automatica fino a $reset_label ($(format_duration $wait_secs))"
+      wait_with_countdown $wait_secs "Rate limit — reset $reset_label"
+    else
+      log "YOLO: orario di reset non disponibile, attesa 10 minuti"
+      wait_with_countdown 600 "Rate limit — attesa 10 minuti"
+    fi
+    return 0
+  fi
+
+  # --- Modalita' interattiva ---
+  RATE_LIMIT_CHOICE=0
+  if [ $wait_secs -gt 0 ]; then
+    select_menu "Claude rate-limited. Cosa fare?" RATE_LIMIT_CHOICE \
+      "Riparti alle $reset_label  — attendi $(format_duration $wait_secs) e riprova" \
+      "Attendi             — scegli tu quanto aspettare" \
+      "Esci                — ferma lo script"
+  else
+    select_menu "Claude rate-limited (orario reset non disponibile). Cosa fare?" RATE_LIMIT_CHOICE \
+      "Attendi 10 minuti   — riprova tra 10 minuti" \
+      "Attendi             — scegli tu quanto aspettare" \
+      "Esci                — ferma lo script"
+  fi
+
+  case $RATE_LIMIT_CHOICE in
+    0)
+      if [ $wait_secs -gt 0 ]; then
+        log "Utente sceglie: riparti alle $reset_label"
+        wait_with_countdown $wait_secs "Attesa reset $reset_label"
+      else
+        log "Utente sceglie: attendi 10 minuti"
+        wait_with_countdown 600 "Attesa 10 minuti"
+      fi
+      return 0
+      ;;
+    1)
+      read -p "Quanti minuti attendere? " wait_min
+      wait_min=${wait_min:-10}
+      log "Utente sceglie: attendi $wait_min minuti"
+      wait_with_countdown $((wait_min * 60)) "Attesa ${wait_min}m"
+      return 0
+      ;;
+    2)
+      log "Utente sceglie: uscita dopo rate limit"
+      return 1
+      ;;
+  esac
+}
+
 # --- Estrai testo risultato da stream-json ---
 extract_claude_result() {
   local jsonl_file="$1"
@@ -475,6 +684,12 @@ Aggiorna lo stato del task corrispondente a $TASKS_DIR/$task_file da 'pending' a
 Rispondi SOLO: UPDATED" "Task $task_i - Update")
   echo "$OUTPUT" >> "$LOG_FILE"
 
+  # Rate limit durante update → ferma lo script
+  if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
+    log "Esecuzione interrotta per rate limit durante update stato task."
+    exit 1
+  fi
+
   if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
     log "Nessuna modifica da committare"
   else
@@ -502,7 +717,15 @@ Regole:
     cat "$commit_temp" >> "$CLAUDE_LOG_JSONL"
     summarize_claude_phase "$commit_temp" "Task $task_i - Commit msg"
     COMMIT_MSG=$(extract_claude_result "$commit_temp")
-    rm -f "$commit_temp"
+
+    # Rate limit check sul commit message (il bug originale!)
+    if check_rate_limit "$commit_temp" "$COMMIT_MSG"; then
+      log "RATE LIMIT rilevato durante generazione commit message. Uso fallback."
+      rm -f "$commit_temp"
+      COMMIT_MSG=""  # forza il fallback
+    else
+      rm -f "$commit_temp"
+    fi
 
     if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
       COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
@@ -526,54 +749,88 @@ Regole:
 build_plan_cmd() {
   local prompt="$1"
   local label="${2:-plan}"
-  local temp=$(mktemp)
 
-  if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
-  else
-    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
-      --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
-  fi
+  while true; do
+    local temp=$(mktemp)
 
-  cat "$temp" >> "$CLAUDE_LOG_JSONL"
-  summarize_claude_phase "$temp" "$label"
-  extract_claude_result "$temp"
-  rm -f "$temp"
+    if [ "$YOLO_MODE" = "true" ]; then
+      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
+    else
+      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
+        --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
+    fi
+
+    cat "$temp" >> "$CLAUDE_LOG_JSONL"
+    summarize_claude_phase "$temp" "$label"
+    local result
+    result=$(extract_claude_result "$temp")
+
+    if check_rate_limit "$temp" "$result"; then
+      rm -f "$temp"
+      if handle_rate_limit "$label"; then
+        continue  # riprova
+      else
+        echo "RATE_LIMITED"
+        return
+      fi
+    fi
+
+    rm -f "$temp"
+    echo "$result"
+    return
+  done
 }
 
 build_exec_cmd() {
   local prompt="$1"
   local label="${2:-exec}"
-  local temp=$(mktemp)
 
-  if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
-  else
-    claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
-      --allowedTools \
-        "Read" "Write" "Edit" \
-        "Bash(git*)" \
-        "Bash(dotnet*)" \
-        "Bash(npm*)" \
-        "Bash(ng*)" \
-        "Bash(find*)" \
-        "Bash(grep*)" \
-        "Bash(cat*)" \
-        "Bash(ls*)" \
-        "Bash(mkdir*)" \
-        "Bash(cp*)" \
-        "Bash(mv*)" \
-        "Bash(rm*)" \
-        "Bash(cd*)" \
-        "Bash(echo*)" \
-        "Bash(sed*)" \
-        "Bash(docker*)" > "$temp" 2>> "$LOG_FILE"
-  fi
+  while true; do
+    local temp=$(mktemp)
 
-  cat "$temp" >> "$CLAUDE_LOG_JSONL"
-  summarize_claude_phase "$temp" "$label"
-  extract_claude_result "$temp"
-  rm -f "$temp"
+    if [ "$YOLO_MODE" = "true" ]; then
+      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
+    else
+      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
+        --allowedTools \
+          "Read" "Write" "Edit" \
+          "Bash(git*)" \
+          "Bash(dotnet*)" \
+          "Bash(npm*)" \
+          "Bash(ng*)" \
+          "Bash(find*)" \
+          "Bash(grep*)" \
+          "Bash(cat*)" \
+          "Bash(ls*)" \
+          "Bash(mkdir*)" \
+          "Bash(cp*)" \
+          "Bash(mv*)" \
+          "Bash(rm*)" \
+          "Bash(cd*)" \
+          "Bash(echo*)" \
+          "Bash(sed*)" \
+          "Bash(docker*)" > "$temp" 2>> "$LOG_FILE"
+    fi
+
+    cat "$temp" >> "$CLAUDE_LOG_JSONL"
+    summarize_claude_phase "$temp" "$label"
+    local result
+    result=$(extract_claude_result "$temp")
+
+    if check_rate_limit "$temp" "$result"; then
+      rm -f "$temp"
+      if handle_rate_limit "$label"; then
+        continue  # riprova
+      else
+        echo "RATE_LIMITED"
+        return
+      fi
+    fi
+
+    rm -f "$temp"
+    echo "$result"
+    return
+  done
 }
 
 # --- Riepilogo configurazione ---
@@ -623,6 +880,12 @@ for i in $(seq 1 $MAX_TASKS); do
 
   echo "$OUTPUT" >> "$LOG_FILE"
   log "Output plan: $(echo "$OUTPUT" | tail -1)"
+
+  # Rate limit durante il planning → ferma lo script
+  if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
+    log "Esecuzione interrotta per rate limit durante planning."
+    exit 1
+  fi
 
   if echo "$OUTPUT" | grep -q "ALL_COMPLETE"; then
     log "Tutti i task completati!"
@@ -692,6 +955,12 @@ Istruzioni:
 
     echo "$OUTPUT" >> "$LOG_FILE"
     log "Risultato esecuzione: $(echo "$OUTPUT" | tail -1)"
+
+    # Rate limit durante esecuzione → ferma lo script
+    if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
+      log "Esecuzione interrotta per rate limit durante exec/fix."
+      exit 1
+    fi
 
     # --- Verifica indipendente: build + test ---
     log "=== Task $i - Verifica (attempt $((RETRY + 1))/$((MAX_RETRIES + 1))) ==="
