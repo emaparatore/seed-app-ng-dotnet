@@ -73,22 +73,27 @@ select_menu() {
     fi
   done
 
+  # Output su /dev/tty — select_menu puo' essere chiamato dentro $()
+  # dove stdout e' catturato, rendendo il menu invisibile
+
   # Nascondi cursore
-  printf "\033[?25l"
+  printf "\033[?25l" > /dev/tty
 
   # Header
-  echo ""
-  echo "========================================="
-  echo "  $title"
-  echo "========================================="
-  echo ""
+  {
+    echo ""
+    echo "========================================="
+    echo "  $title"
+    echo "========================================="
+    echo ""
+  } > /dev/tty
 
   # Disegna opzioni
   for i in "${!display_opts[@]}"; do
     if [ $i -eq $selected ]; then
-      printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
+      printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}" > /dev/tty
     else
-      printf "    %s\n" "${display_opts[$i]}"
+      printf "    %s\n" "${display_opts[$i]}" > /dev/tty
     fi
   done
 
@@ -126,21 +131,21 @@ select_menu() {
 
     if [ "$moved" = "true" ]; then
       # Ridisegna: torna su di $count righe
-      printf "\033[%dA" "$count"
+      printf "\033[%dA" "$count" > /dev/tty
       for i in "${!display_opts[@]}"; do
-        printf "\033[2K"  # Cancella riga
+        printf "\033[2K" > /dev/tty  # Cancella riga
         if [ $i -eq $selected ]; then
-          printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}"
+          printf "  \033[7m > %s \033[0m\n" "${display_opts[$i]}" > /dev/tty
         else
-          printf "    %s\n" "${display_opts[$i]}"
+          printf "    %s\n" "${display_opts[$i]}" > /dev/tty
         fi
       done
     fi
   done
 
   # Mostra cursore
-  printf "\033[?25h"
-  echo ""
+  printf "\033[?25h" > /dev/tty
+  echo "" > /dev/tty
 
   _result=$selected
 }
@@ -347,11 +352,20 @@ mkdir -p "$LOG_DIR"
 mkdir -p "$CLAUDE_LOG_DIR"
 
 # --- Rate limit detection ---
-# Pattern noti di rate limit / quota esaurita da Claude API (singolo regex)
-RATE_LIMIT_REGEX="hit your limit|rate limit|quota exceeded|too many requests|resets .* \(UTC\)|capacity|overloaded"
+# Pattern esatti di errore dalla Claude API / Claude Code CLI.
+# IMPORTANTE: il JSONL contiene tutto l'output di Claude, incluso il contenuto
+# dei file letti — pattern generici ("capacity", "rate limit") causano falsi positivi.
+# Usiamo solo i pattern specifici documentati dall'API Anthropic:
+#   - Quota utente:     "You've hit your limit · resets ..."
+#   - API rate limit:   {"type":"error","error":{"type":"rate_limit_error",...}}
+#   - Server overload:  {"type":"error","error":{"type":"overloaded_error",...}}
+RATE_LIMIT_RESULT_REGEX="You've hit your limit"
+RATE_LIMIT_JSONL_REGEX='"type":\s*"(rate_limit_error|overloaded_error)"'
 
 # Controlla se l'output di Claude indica rate limiting.
-# Cerca nei dati JSONL grezzi (non solo nel result estratto).
+# Due check separati con regex diversi:
+#   1. result text: messaggio user-facing ("You've hit your limit")
+#   2. JSONL grezzo: errori API strutturati (rate_limit_error, overloaded_error)
 # Ritorna 0 se rate-limited, 1 se ok.
 # Se rate-limited, imposta RATE_LIMIT_MSG con il messaggio rilevato.
 check_rate_limit() {
@@ -359,15 +373,15 @@ check_rate_limit() {
   local result_text="$2"
   RATE_LIMIT_MSG=""
 
-  # Controlla nel result text
-  if echo "$result_text" | grep -iqE "$RATE_LIMIT_REGEX"; then
+  # Controlla nel result text (messaggio user-facing)
+  if echo "$result_text" | grep -qF "You've hit your limit"; then
     RATE_LIMIT_MSG="$result_text"
     return 0
   fi
 
-  # Controlla anche nel JSONL grezzo (potrebbe essere in un messaggio di testo)
+  # Controlla nel JSONL grezzo per errori API strutturati
   local match
-  match=$(grep -iE "$RATE_LIMIT_REGEX" "$jsonl_file" 2>/dev/null | head -1)
+  match=$(grep -E "$RATE_LIMIT_JSONL_REGEX" "$jsonl_file" 2>/dev/null | head -1)
   if [ -n "$match" ]; then
     RATE_LIMIT_MSG=$(echo "$match" | head -c 200)
     return 0
@@ -454,10 +468,10 @@ wait_with_countdown() {
     if [ $remaining -le 0 ]; then
       break
     fi
-    printf "\r  %s — riprovo tra %s ...  " "$label" "$(format_duration $remaining)"
+    printf "\r  %s — riprovo tra %s ...  " "$label" "$(format_duration $remaining)" > /dev/tty
     sleep 10
   done
-  printf "\r  %s — riparto ora!                        \n" "$label"
+  printf "\r  %s — riparto ora!                        \n" "$label" > /dev/tty
 }
 
 # Gestisce il rate limit: log, mostra all'utente, chiede come proseguire.
@@ -469,28 +483,35 @@ handle_rate_limit() {
   log "RATE LIMIT RILEVATO durante: $label"
   log "Messaggio: $RATE_LIMIT_MSG"
 
-  # Prova a estrarre il tempo di reset dal messaggio (es. "resets 3pm (UTC)")
-  local reset_time
-  reset_time=$(echo "$RATE_LIMIT_MSG" | grep -oP 'resets?\s+\K[0-9]+[ap]m' | head -1)
+  # Prova a estrarre il tempo di reset dal messaggio
+  # Formato reale: "resets 3pm (UTC)" oppure "resets 7pm (America/Chicago)"
+  local reset_time reset_tz
+  reset_time=$(echo "$RATE_LIMIT_MSG" | grep -oP 'resets?\s+\K[0-9]+:?[0-9]*[ap]m' | head -1)
+  reset_tz=$(echo "$RATE_LIMIT_MSG" | grep -oP 'resets?\s+[0-9]+:?[0-9]*[ap]m\s+\(\K[^)]+' | head -1)
+  reset_tz="${reset_tz:-UTC}"
 
   local wait_secs=0
   local reset_label=""
   if [ -n "$reset_time" ]; then
     wait_secs=$(calc_wait_seconds "$reset_time")
-    reset_label="$reset_time UTC"
+    reset_label="$reset_time ($reset_tz)"
   fi
 
-  echo ""
-  echo "=============================================="
-  echo "  RATE LIMIT - Claude ha esaurito la quota"
-  echo "----------------------------------------------"
-  echo "  Fase: $label"
-  if [ -n "$reset_label" ]; then
-    echo "  Reset previsto: $reset_label (tra $(format_duration $wait_secs))"
-  fi
-  echo "  Messaggio: $(echo "$RATE_LIMIT_MSG" | head -c 200)"
-  echo "=============================================="
-  echo ""
+  # Output su /dev/tty perche' questa funzione viene chiamata dentro $()
+  # e stdout e' catturato — senza /dev/tty il banner e il menu sono invisibili
+  {
+    echo ""
+    echo "=============================================="
+    echo "  RATE LIMIT - Claude ha esaurito la quota"
+    echo "----------------------------------------------"
+    echo "  Fase: $label"
+    if [ -n "$reset_label" ]; then
+      echo "  Reset previsto: $reset_label (tra $(format_duration $wait_secs))"
+    fi
+    echo "  Messaggio: $(echo "$RATE_LIMIT_MSG" | head -c 200)"
+    echo "=============================================="
+    echo ""
+  } > /dev/tty
 
   # --- YOLO mode: aspetta automaticamente ---
   if [ "$YOLO_MODE" = "true" ]; then
@@ -530,7 +551,7 @@ handle_rate_limit() {
       return 0
       ;;
     1)
-      read -p "Quanti minuti attendere? " wait_min
+      read -p "Quanti minuti attendere? " wait_min < /dev/tty
       if ! [[ "$wait_min" =~ ^[0-9]+$ ]] || [ "$wait_min" -eq 0 ]; then
         wait_min=10
       fi
