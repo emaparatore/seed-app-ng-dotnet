@@ -39,9 +39,11 @@ public static class DependencyInjection
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IAuditLogReader, AuditLogReader>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.Configure<SuperAdminSettings>(configuration.GetSection(SuperAdminSettings.SectionName));
         services.AddScoped<RolesAndPermissionsSeeder>();
         services.AddScoped<SuperAdminSeeder>();
+        services.AddScoped<SystemSettingsSeeder>();
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
         if (smtpSection.Exists() && !string.IsNullOrWhiteSpace(smtpSection[nameof(SmtpSettings.Host)]))

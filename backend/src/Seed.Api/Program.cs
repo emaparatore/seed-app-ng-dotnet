@@ -178,6 +178,9 @@ if (app.Environment.IsDevelopment())
     var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
     await adminSeeder.SeedAsync();
 
+    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
+    await settingsSeeder.SeedAsync();
+
     app.UseSwaggerWithUI();
 }
 

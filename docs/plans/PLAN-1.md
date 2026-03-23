@@ -3,7 +3,7 @@
 **Requirements:** `docs/requirements/FEAT-1.md`
 **Status:** In Progress
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-23 (aggiornato stati T-06, T-08, T-09 completati, story coverage)
+**Last Updated:** 2026-03-23 (aggiornato stato T-10 completato, story coverage US-014)
 
 ---
 
@@ -24,7 +24,7 @@
 | US-011 | Eliminare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
 | US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
-| US-014 | Impostazioni a runtime | T-10, T-18 | ⏳ Not Started |
+| US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ⏳ Not Started |
 | US-016 | Stato del sistema | T-12, T-20 | ⏳ Not Started |
 | US-017 | Accesso condizionale admin | T-05, T-13, T-14 | 🔧 In Progress  |
@@ -215,7 +215,7 @@ Creare l'entità `AuditLogEntry`, il servizio `IAuditLogService`, e integrarlo n
 
 **Stories:** US-003, US-004, US-005, US-006, US-007, US-008
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03, T-06
 
 **What to do:**
@@ -325,7 +325,7 @@ Endpoint:
 
 **Stories:** US-014
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03, T-06
 
 **Decision:** Tabella `SystemSettings` con righe chiave-valore (Option A) per la flessibilità richiesta da RNF-05. I valori di default sono definiti in una classe `SystemSettingsDefaults` e seminati nel DB al primo avvio (stesso pattern idempotente di T-02/T-04).
@@ -338,16 +338,23 @@ Endpoint:
 - `PUT /api/v1/admin/settings` — aggiornamento batch delle impostazioni modificate
 
 **Definition of Done:**
-- [ ] Entità e migration per la tabella settings
-- [ ] `ISystemSettingsService` con metodi `GetAllAsync()`, `UpdateAsync(changes)`, `GetValueAsync<T>(key)`
-- [ ] Cache in-memory con invalidazione al salvataggio
-- [ ] Classe `SystemSettingsDefaults` con i valori iniziali di tutte le impostazioni (incluso `AuditLog.RetentionMonths = 0` per futura retention policy)
-- [ ] Seeder idempotente che scrive i default nel DB al primo avvio (se la chiave non esiste già)
-- [ ] Ogni impostazione include: chiave, valore, tipo, categoria, chi/quando ultima modifica
-- [ ] Endpoint protetti da `Settings.Read` (lettura) e `Settings.Manage` (modifica)
-- [ ] Modifiche loggate nell'audit log con dettaglio prima/dopo
-- [ ] Unit test per il servizio (cache, invalidazione)
-- [ ] Integration test per gli endpoint
+- [x] Entità `SystemSetting` e migration `20260323103305_AddSystemSettings` per la tabella settings
+- [x] `ISystemSettingsService` con metodi `GetAllAsync()`, `UpdateAsync(changes)`, `GetValueAsync(key)`
+- [x] Cache in-memory (`IDistributedCache`) con invalidazione al salvataggio (TTL 5 min)
+- [x] Classe `SystemSettingsDefaults` con 8 valori iniziali (incluso `AuditLog.RetentionMonths = 0` per futura retention policy)
+- [x] Seeder idempotente `SystemSettingsSeeder` che scrive i default nel DB al primo avvio (se la chiave non esiste già)
+- [x] Ogni impostazione include: chiave, valore, tipo, categoria, descrizione, chi/quando ultima modifica
+- [x] Endpoint protetti da `Settings.Read` (GET) e `Settings.Manage` (PUT)
+- [x] Modifiche loggate nell'audit log con dettaglio prima/dopo
+- [x] Unit test per il servizio (11 test: cache, invalidazione, audit, validazione tipo) e validatore (4 test)
+- [x] Integration test per gli endpoint (6 test: auth, permessi, CRUD)
+
+**Implementation Notes:**
+- Entità `SystemSetting` con Key come PK, configurazione EF Core con limiti (Key 128, Value 1024, Type 20, Category 64) e indice su Category
+- `SystemSettingsService` usa `IDistributedCache` con TTL 5 min, validazione tipo nel service (bool/int) perché richiede accesso ai metadati dell'entità
+- `Result<bool>` anziché `Result<Unit>` per coerenza con pattern esistente (es. `UpdateRoleCommand`)
+- 8 default iniziali in 4 categorie: Security (3), Email (2), AuditLog (1), General (2)
+- Test: 15 unit test (11 service + 4 validator) + 6 integration test. MemoryDistributedCache reale nei test (stesso approccio di TokenBlacklistService)
 
 ---
 
