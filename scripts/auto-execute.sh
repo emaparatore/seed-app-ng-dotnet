@@ -22,6 +22,9 @@
 #
 # Log salvato automaticamente in execution-{timestamp}.log
 
+# --- Ripristina cursore su uscita/interruzione ---
+trap 'printf "\033[?25h"' EXIT
+
 PLANS_DIR="docs/plans"
 TASKS_DIR="docs/plans/tasks"
 MAX_TASKS=50
@@ -187,7 +190,7 @@ done
 
 # --- Menu selezione piano ---
 if [ -z "$PLAN" ]; then
-  PLAN_FILES=($(find "$PLANS_DIR" -maxdepth 1 -name "*.md" -type f 2>/dev/null | sort))
+  mapfile -t PLAN_FILES < <(find "$PLANS_DIR" -maxdepth 1 -name "*.md" -type f 2>/dev/null | sort)
 
   if [ ${#PLAN_FILES[@]} -eq 0 ]; then
     echo "Nessun piano trovato in $PLANS_DIR/"
@@ -289,7 +292,7 @@ case "$CLAUDE_EFFORT" in
     ;;
 esac
 
-CLAUDE_FLAGS="--verbose --model $CLAUDE_MODEL_ID --effort $CLAUDE_EFFORT"
+CLAUDE_FLAGS=(--verbose --model "$CLAUDE_MODEL_ID" --effort "$CLAUDE_EFFORT")
 
 # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
 case "$MODE" in
@@ -344,16 +347,8 @@ mkdir -p "$LOG_DIR"
 mkdir -p "$CLAUDE_LOG_DIR"
 
 # --- Rate limit detection ---
-# Pattern noti di rate limit / quota esaurita da Claude API
-RATE_LIMIT_PATTERNS=(
-  "hit your limit"
-  "rate limit"
-  "quota exceeded"
-  "too many requests"
-  "resets .* (UTC)"
-  "capacity"
-  "overloaded"
-)
+# Pattern noti di rate limit / quota esaurita da Claude API (singolo regex)
+RATE_LIMIT_REGEX="hit your limit|rate limit|quota exceeded|too many requests|resets .* \(UTC\)|capacity|overloaded"
 
 # Controlla se l'output di Claude indica rate limiting.
 # Cerca nei dati JSONL grezzi (non solo nel result estratto).
@@ -365,22 +360,18 @@ check_rate_limit() {
   RATE_LIMIT_MSG=""
 
   # Controlla nel result text
-  for pattern in "${RATE_LIMIT_PATTERNS[@]}"; do
-    if echo "$result_text" | grep -iqE "$pattern"; then
-      RATE_LIMIT_MSG="$result_text"
-      return 0
-    fi
-  done
+  if echo "$result_text" | grep -iqE "$RATE_LIMIT_REGEX"; then
+    RATE_LIMIT_MSG="$result_text"
+    return 0
+  fi
 
   # Controlla anche nel JSONL grezzo (potrebbe essere in un messaggio di testo)
-  for pattern in "${RATE_LIMIT_PATTERNS[@]}"; do
-    local match
-    match=$(grep -i "$pattern" "$jsonl_file" 2>/dev/null | head -1)
-    if [ -n "$match" ]; then
-      RATE_LIMIT_MSG=$(echo "$match" | head -c 200)
-      return 0
-    fi
-  done
+  local match
+  match=$(grep -iE "$RATE_LIMIT_REGEX" "$jsonl_file" 2>/dev/null | head -1)
+  if [ -n "$match" ]; then
+    RATE_LIMIT_MSG=$(echo "$match" | head -c 200)
+    return 0
+  fi
 
   return 1
 }
@@ -540,7 +531,9 @@ handle_rate_limit() {
       ;;
     1)
       read -p "Quanti minuti attendere? " wait_min
-      wait_min=${wait_min:-10}
+      if ! [[ "$wait_min" =~ ^[0-9]+$ ]] || [ "$wait_min" -eq 0 ]; then
+        wait_min=10
+      fi
       log "Utente sceglie: attendi $wait_min minuti"
       wait_with_countdown $((wait_min * 60)) "Attesa ${wait_min}m"
       return 0
@@ -564,7 +557,8 @@ extract_claude_result() {
   if command -v jq &>/dev/null; then
     echo "$result_line" | jq -r '.result // empty' 2>/dev/null
   else
-    echo "$result_line" | sed 's/.*"result":"\([^"]*\)".*/\1/' 2>/dev/null
+    # Fallback senza jq: estrai il valore di "result" gestendo escaped quotes
+    echo "$result_line" | grep -oP '"result"\s*:\s*"\K(\\.|[^"\\])*' 2>/dev/null | head -1 | sed 's/\\"/"/g; s/\\\\/\\/g'
   fi
 }
 
@@ -605,7 +599,7 @@ summarize_claude_phase() {
     local result_line
     result_line=$(grep '"type":"result"' "$jsonl_file" | tail -1)
     local result_text
-    result_text=$(echo "$result_line" | sed 's/.*"result":"\([^"]*\)".*/\1/' 2>/dev/null)
+    result_text=$(echo "$result_line" | grep -oP '"result"\s*:\s*"\K(\\.|[^"\\])*' 2>/dev/null | head -1)
     echo "  Tool calls: $tool_count" >> "$CLAUDE_LOG_SUMMARY"
     echo "  Result: $result_text" >> "$CLAUDE_LOG_SUMMARY"
     echo "  (installa jq per un riepilogo dettagliato)" >> "$CLAUDE_LOG_SUMMARY"
@@ -743,55 +737,27 @@ Regole:
 
 # --- Costruzione opzioni Claude ---
 # In YOLO mode: --dangerously-skip-permissions (nessuna restrizione)
-# In modalita' normale: whitelist di tool specifici
+# In modalita' normale: whitelist di tool specifici per fase
 # Output: stream-json -> JSONL (dettaglio) + summary (leggibile)
 # Ritorna solo il testo risultato per la logica dello script
-build_plan_cmd() {
+#
+# Uso: run_claude_cmd <prompt> <label> <phase>
+#   phase: "plan" (solo lettura) | "exec" (operativa)
+run_claude_cmd() {
   local prompt="$1"
-  local label="${2:-plan}"
+  local label="${2:-claude}"
+  local phase="${3:-exec}"
 
   while true; do
     local temp=$(mktemp)
 
     if [ "$YOLO_MODE" = "true" ]; then
-      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
-    else
-      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
+    elif [ "$phase" = "plan" ]; then
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json \
         --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
-    fi
-
-    cat "$temp" >> "$CLAUDE_LOG_JSONL"
-    summarize_claude_phase "$temp" "$label"
-    local result
-    result=$(extract_claude_result "$temp")
-
-    if check_rate_limit "$temp" "$result"; then
-      rm -f "$temp"
-      if handle_rate_limit "$label"; then
-        continue  # riprova
-      else
-        echo "RATE_LIMITED"
-        return
-      fi
-    fi
-
-    rm -f "$temp"
-    echo "$result"
-    return
-  done
-}
-
-build_exec_cmd() {
-  local prompt="$1"
-  local label="${2:-exec}"
-
-  while true; do
-    local temp=$(mktemp)
-
-    if [ "$YOLO_MODE" = "true" ]; then
-      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
     else
-      claude -p "$prompt" $CLAUDE_FLAGS --output-format stream-json \
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json \
         --allowedTools \
           "Read" "Write" "Edit" \
           "Bash(git*)" \
@@ -833,6 +799,10 @@ build_exec_cmd() {
   done
 }
 
+# Alias per retrocompatibilita' interna
+build_plan_cmd() { run_claude_cmd "$1" "${2:-plan}" "plan"; }
+build_exec_cmd() { run_claude_cmd "$1" "${2:-exec}" "exec"; }
+
 # --- Riepilogo configurazione ---
 echo ""
 echo "========================================="
@@ -857,7 +827,7 @@ log "Avvio esecuzione - Modalita': $MODE - Modello: $CLAUDE_MODEL ($CLAUDE_EFFOR
 log "Piano: $PLAN"
 log "Branch: $CURRENT_BRANCH"
 
-for i in $(seq 1 $MAX_TASKS); do
+for ((i=1; i<=MAX_TASKS; i++)); do
   log "=== Task $i - Planning ==="
 
   OUTPUT=$(build_plan_cmd "Sei in autonomous execution mode - FASE PLAN.
