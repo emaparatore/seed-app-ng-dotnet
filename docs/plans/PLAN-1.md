@@ -26,7 +26,7 @@
 | US-013 | Esportare audit log CSV | T-09, T-17 | ✅ Done |
 | US-014 | Impostazioni a runtime | T-10, T-18 | ✅ Done |
 | US-015 | Dashboard di riepilogo | T-11, T-19 | ✅ Done (T-19 absorbed into T-14) |
-| US-016 | Stato del sistema | T-12, T-20 | 🔧 In Progress (backend done) |
+| US-016 | Stato del sistema | T-12, T-20 | ✅ Done |
 | US-017 | Accesso condizionale admin | T-05, T-13, T-14 | ✅ Done |
 
 ---
@@ -622,15 +622,22 @@ Implementare la pagina impostazioni con form raggruppati per categoria.
 
 **Stories:** US-016
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-12, T-13
 
 **What to do:**
 Implementare la pagina stato del sistema con indicatori visuali.
 
 **Definition of Done:**
-- [ ] Card per ogni componente con indicatore visuale: verde (OK), giallo (warning), rosso (errore)
-- [ ] Componenti mostrati: Database, Servizio Email
-- [ ] Informazioni generali: versione app, ambiente, uptime, utilizzo memoria
-- [ ] Pulsante "Ricontrolla" che richiama l'endpoint e aggiorna i dati
-- [ ] Skeleton loading durante il caricamento iniziale e il refresh
+- [x] Card per Database con indicatore visuale verde (Healthy), giallo (Degraded), rosso (Unhealthy); Card per Email con verde (Configured), giallo (NotConfigured)
+- [x] Componenti mostrati: Database, Servizio Email
+- [x] Informazioni generali: versione app, ambiente, uptime formattato, utilizzo memoria (working set + GC)
+- [x] Pulsante "Ricontrolla" che richiama l'endpoint e aggiorna i dati (con progress bar e icona rotante)
+- [x] Skeleton loading durante il caricamento iniziale; refresh separato con signal `refreshing` che non nasconde i dati esistenti
+
+**Implementation Notes:**
+- Seguito fedelmente il pattern `settings.ts` con signals (`loading`, `error`, `data`, `refreshing`), skeleton loading, error card con retry
+- Indicatori visuali con `span` border-radius 50% e colori condizionali (#4caf50 verde, #ff9800 giallo, #f44336 rosso)
+- Service injectable (`SystemHealthService`) con `getSystemHealth()` che chiama `GET /admin/system-health`, pattern identico a `SettingsService`
+- Refresh separato da loading iniziale: il pulsante "Ricontrolla" usa signal `refreshing` con progress bar indeterminate senza nascondere i dati
+- `DecimalPipe` per formattare i valori di memoria con una cifra decimale (es. "123.4 MB")

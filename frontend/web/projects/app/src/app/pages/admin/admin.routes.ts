@@ -55,7 +55,7 @@ export const adminRoutes: Routes = [
   },
   {
     path: 'system-health',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
+    loadComponent: () => import('./system-health/system-health').then((m) => m.SystemHealthComponent),
     canActivate: [permissionGuard('SystemHealth.Read')],
     data: { title: 'Stato Sistema' },
   },
