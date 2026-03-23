@@ -245,7 +245,7 @@ Endpoint:
 
 **Stories:** US-009, US-010, US-011
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03, T-06
 
 **What to do:**

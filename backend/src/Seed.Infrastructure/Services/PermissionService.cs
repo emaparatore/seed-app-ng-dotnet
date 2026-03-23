@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Seed.Application.Admin.Roles.Models;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
 using Seed.Infrastructure.Persistence;
@@ -57,5 +58,61 @@ public sealed class PermissionService(
     {
         var cacheKey = $"{CacheKeyPrefix}{userId}";
         await cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task<IReadOnlyList<PermissionDto>> GetAllPermissionsAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Permissions
+            .OrderBy(p => p.Category)
+            .ThenBy(p => p.Name)
+            .Select(p => new PermissionDto(p.Id, p.Name, p.Description, p.Category))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetRolePermissionNamesAsync(Guid roleId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .Include(rp => rp.Permission)
+            .Select(rp => rp.Permission.Name)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task SetRolePermissionsAsync(Guid roleId, IEnumerable<string> permissionNames, CancellationToken cancellationToken = default)
+    {
+        // Remove existing
+        var existing = await dbContext.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .ToListAsync(cancellationToken);
+        dbContext.RolePermissions.RemoveRange(existing);
+
+        // Add new
+        var permissionNameList = permissionNames.ToList();
+        if (permissionNameList.Count > 0)
+        {
+            var permissions = await dbContext.Permissions
+                .Where(p => permissionNameList.Contains(p.Name))
+                .ToListAsync(cancellationToken);
+
+            foreach (var permission in permissions)
+            {
+                dbContext.RolePermissions.Add(new RolePermission
+                {
+                    RoleId = roleId,
+                    PermissionId = permission.Id
+                });
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RemoveAllRolePermissionsAsync(Guid roleId, CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .ToListAsync(cancellationToken);
+        dbContext.RolePermissions.RemoveRange(existing);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
