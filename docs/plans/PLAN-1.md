@@ -279,7 +279,7 @@ Endpoint:
 
 **Stories:** US-012, US-013
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-06
 
 **What to do:**
