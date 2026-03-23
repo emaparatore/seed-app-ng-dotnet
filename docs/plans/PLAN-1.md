@@ -19,9 +19,9 @@
 | US-006 | Creare un utente | T-07, T-15 | ✅ Done |
 | US-007 | Eliminare un utente | T-07, T-15 | ✅ Done |
 | US-008 | Modificare un utente | T-07, T-15 | ✅ Done |
-| US-009 | Creare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
-| US-010 | Modificare permessi ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
-| US-011 | Eliminare un ruolo | T-08, T-16 | 🔧 In Progress (backend done) |
+| US-009 | Creare un ruolo | T-08, T-16 | ✅ Done |
+| US-010 | Modificare permessi ruolo | T-08, T-16 | ✅ Done |
+| US-011 | Eliminare un ruolo | T-08, T-16 | ✅ Done |
 | US-012 | Consultare audit log | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-013 | Esportare audit log CSV | T-09, T-17 | 🔧 In Progress (backend done) |
 | US-014 | Impostazioni a runtime | T-10, T-18 | 🔧 In Progress (backend done) |
@@ -528,21 +528,28 @@ Implementare le pagine di gestione utenti: lista, dettaglio/modifica, creazione.
 
 **Stories:** US-009, US-010, US-011
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-08, T-13
 
 **What to do:**
 Implementare le pagine di gestione ruoli: lista, dettaglio/modifica, creazione.
 
 **Definition of Done:**
-- [ ] **Lista ruoli**: tabella con nome, descrizione, numero utenti, badge "Sistema" per ruoli non eliminabili
-- [ ] Pulsante elimina disabilitato per ruoli di sistema, con dialog di conferma per gli altri
-- [ ] **Pagina dettaglio/modifica**: form nome e descrizione; matrice permessi raggruppata per area
-- [ ] Checkbox "seleziona tutti" per area nella matrice permessi
-- [ ] Indicazione in tempo reale del numero di utenti impattati
-- [ ] SuperAdmin: matrice permessi in sola lettura (sempre tutti attivi)
-- [ ] **Pagina creazione**: come modifica; opzione "duplica da" per partire da un ruolo esistente
-- [ ] Toast e skeleton loading
+- [x] **Lista ruoli**: tabella con nome, descrizione, numero utenti, badge "Sistema" per ruoli non eliminabili
+- [x] Pulsante elimina disabilitato per ruoli di sistema, con dialog di conferma per gli altri; eliminazione ruoli con utenti bloccata client-side con snackbar
+- [x] **Pagina dettaglio/modifica**: form nome e descrizione; matrice permessi raggruppata per categoria con computed signal
+- [x] Checkbox "seleziona tutti" per area nella matrice permessi con stato indeterminate
+- [x] Indicazione numero di utenti impattati nella pagina dettaglio
+- [x] SuperAdmin: matrice permessi in sola lettura (controllo su `role.name === 'SuperAdmin'`, checkbox disabilitati, pulsante salva nascosto)
+- [x] **Dialog creazione**: form con nome, descrizione, matrice permessi; opzione "duplica da" che carica permessi via `getRoleById()`
+- [x] Toast successo/errore e skeleton loading; route aggiornate (`/admin/roles` → lista, `/admin/roles/:id` → dettaglio)
+
+**Implementation Notes:**
+- Pattern replicato dalla gestione utenti (`pages/admin/users/`): struttura directory, service con `inject(HttpClient)` + `AUTH_CONFIG`, componenti con signals, stili Material
+- ConfirmDialog riutilizzato direttamente da `users/confirm-dialog/` anziché spostarlo in posizione condivisa, per minimizzare le modifiche
+- Matrice permessi implementata con `computed()` signal che raggruppa per categoria, con checkbox "seleziona tutti" per gruppo e stato indeterminate
+- Nessuna paginazione nella lista ruoli (l'API restituisce array semplice, il numero di ruoli è tipicamente limitato)
+- 9 test scritti per il componente lista (creazione, rendering tabella, badge sistema, delete disabilitato, permessi, stati vuoto/errore/loading)
 
 ---
 

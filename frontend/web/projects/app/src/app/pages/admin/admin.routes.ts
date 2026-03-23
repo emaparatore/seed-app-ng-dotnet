@@ -27,9 +27,19 @@ export const adminRoutes: Routes = [
   },
   {
     path: 'roles',
-    loadComponent: () => import('./placeholder').then((m) => m.AdminPlaceholder),
     canActivate: [permissionGuard('Roles.Read')],
-    data: { title: 'Ruoli' },
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./roles/role-list/role-list').then((m) => m.RoleList),
+        data: { title: 'Ruoli' },
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./roles/role-detail/role-detail').then((m) => m.RoleDetail),
+        data: { title: 'Dettaglio ruolo' },
+      },
+    ],
   },
   {
     path: 'audit-log',

@@ -1,0 +1,141 @@
+<div class="page-header">
+  <button mat-icon-button (click)="goBack()" matTooltip="Torna alla lista">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1>Dettaglio ruolo</h1>
+</div>
+
+@if (loading()) {
+  <div class="skeleton-detail">
+    <div class="skeleton-header">
+      <div class="skeleton-icon-lg"></div>
+      <div class="skeleton-info">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card tall"></div>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (role()) {
+  <!-- Role header -->
+  <div class="role-header">
+    <div class="role-icon-lg">
+      <mat-icon>shield</mat-icon>
+    </div>
+    <div class="role-header-info">
+      <h2>{{ role()!.name }}</h2>
+      <span class="role-description">{{ role()!.description ?? 'Nessuna descrizione' }}</span>
+      <div class="role-meta">
+        @if (role()!.isSystemRole) {
+          <span class="system-badge">Sistema</span>
+        }
+        <span class="user-count">{{ role()!.userCount }} utent{{ role()!.userCount === 1 ? 'e' : 'i' }} assegnat{{ role()!.userCount === 1 ? 'o' : 'i' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Edit form -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Informazioni ruolo</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" class="detail-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="name" [readonly]="isReadonly() || !hasPermission(permissions.Roles.Update)" />
+            @if (form.controls.name.hasError('required')) {
+              <mat-error>Il nome è obbligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Descrizione</mat-label>
+            <textarea matInput formControlName="description" rows="3" [readonly]="isReadonly() || !hasPermission(permissions.Roles.Update)"></textarea>
+          </mat-form-field>
+        </form>
+
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">Data creazione</span>
+            <span class="info-value">{{ role()!.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Utenti assegnati</span>
+            <span class="info-value">{{ role()!.userCount }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Ruolo di sistema</span>
+            <span class="info-value">{{ role()!.isSystemRole ? 'Sì' : 'No' }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Permissions matrix -->
+    <mat-card class="permissions-card">
+      <mat-card-header>
+        <mat-card-title>Permessi</mat-card-title>
+        @if (isReadonly()) {
+          <span class="readonly-badge">Sola lettura</span>
+        }
+      </mat-card-header>
+      <mat-card-content>
+        @if (permissionGroups().length === 0) {
+          <p class="no-permissions">Caricamento permessi...</p>
+        } @else {
+          <div class="permission-groups">
+            @for (group of permissionGroups(); track group.category) {
+              <div class="permission-group">
+                <div class="group-header">
+                  <mat-checkbox
+                    [checked]="isGroupAllSelected(group)"
+                    [indeterminate]="isGroupPartiallySelected(group)"
+                    [disabled]="isReadonly() || !hasPermission(permissions.Roles.Update)"
+                    (change)="toggleGroup(group)"
+                  >
+                    <span class="group-name">{{ group.category }}</span>
+                  </mat-checkbox>
+                </div>
+                <div class="group-permissions">
+                  @for (perm of group.permissions; track perm.id) {
+                    <mat-checkbox
+                      [checked]="isPermissionSelected(perm.name)"
+                      [disabled]="isReadonly() || !hasPermission(permissions.Roles.Update)"
+                      (change)="togglePermission(perm.name)"
+                      [matTooltip]="perm.description"
+                    >
+                      {{ perm.name }}
+                    </mat-checkbox>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end" *hasPermission="permissions.Roles.Update">
+        @if (!isReadonly()) {
+          <button mat-flat-button (click)="saveChanges()" [disabled]="saving()">
+            @if (saving()) {
+              Salvataggio...
+            } @else {
+              Salva modifiche
+            }
+          </button>
+        }
+      </mat-card-actions>
+    </mat-card>
+  </div>
+}

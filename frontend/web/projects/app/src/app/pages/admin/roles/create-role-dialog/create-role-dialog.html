@@ -1,0 +1,71 @@
+<h2 mat-dialog-title>Nuovo ruolo</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="outline">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Il nome è obbligatorio</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descrizione</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Duplica permessi da</mat-label>
+      <mat-select (selectionChange)="duplicateFrom($event.value)">
+        <mat-option value="">Nessuno</mat-option>
+        @for (role of data.existingRoles; track role.id) {
+          <mat-option [value]="role.id">{{ role.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Permissions matrix -->
+    @if (permissionGroups().length > 0) {
+      <div class="permission-groups">
+        @for (group of permissionGroups(); track group.category) {
+          <div class="permission-group">
+            <div class="group-header">
+              <mat-checkbox
+                [checked]="isGroupAllSelected(group)"
+                [indeterminate]="isGroupPartiallySelected(group)"
+                (change)="toggleGroup(group)"
+              >
+                <span class="group-name">{{ group.category }}</span>
+              </mat-checkbox>
+            </div>
+            <div class="group-permissions">
+              @for (perm of group.permissions; track perm.id) {
+                <mat-checkbox
+                  [checked]="isPermissionSelected(perm.name)"
+                  (change)="togglePermission(perm.name)"
+                  [matTooltip]="perm.description"
+                >
+                  {{ perm.name }}
+                </mat-checkbox>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annulla</button>
+  <button mat-flat-button (click)="onSubmit()" [disabled]="saving()">
+    @if (saving()) {
+      Creazione...
+    } @else {
+      Crea ruolo
+    }
+  </button>
+</mat-dialog-actions>
