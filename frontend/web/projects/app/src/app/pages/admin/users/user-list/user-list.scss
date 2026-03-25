@@ -41,6 +41,34 @@
 
 table {
   width: 100%;
+  table-layout: fixed;
+}
+
+.mat-column-name {
+  width: 22%;
+}
+
+.mat-column-email {
+  width: 25%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mat-column-roles {
+  width: 18%;
+}
+
+.mat-column-status {
+  width: 10%;
+}
+
+.mat-column-createdAt {
+  width: 14%;
+}
+
+.mat-column-actions {
+  width: 11%;
 }
 
 .clickable-row {
