@@ -110,7 +110,7 @@ Connection string for local development: `Host=localhost;Database=seeddb;Usernam
 
 ## Database Migrations
 
-See `docs/production-migrations.md` for the full production migration strategy.
+See `docs/migration-strategy.md` for the full migration strategy (local and production).
 
 **Rules for production-safe migrations:**
 - **Always safe:** new table, nullable column, column with default value, new index
@@ -243,7 +243,7 @@ Keep the title short (<70 chars). Put details in the body, not the title. The PR
 Existing docs:
 - `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
 - `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
-- `docs/production-migrations.md` — Migration bundles, backup procedures, expand-contract patterns, rollback. Read before creating or modifying any EF Core migration.
+- `docs/migration-strategy.md` — Migration strategy for local (auto via MigrateAsync) and production (bundle + CI/CD). Backup, rollback, expand-contract patterns. Read before creating or modifying any EF Core migration.
 - `docs/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
 - `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.

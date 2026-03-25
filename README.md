@@ -214,7 +214,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 |---|---|
 | [Authentication](docs/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
 | [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
-| [Production Migrations](docs/production-migrations.md) | EF Core migration strategy, rollback, backup procedures |
+| [Migration Strategy](docs/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
 | [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
 | [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
 | [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
@@ -270,7 +270,7 @@ dotnet ef database update \
   --startup-project src/Seed.Api
 ```
 
-See [docs/production-migrations.md](docs/production-migrations.md) for the production migration strategy and [docs/smtp-configuration.md](docs/smtp-configuration.md) for email service setup.
+See [docs/migration-strategy.md](docs/migration-strategy.md) for the migration strategy and [docs/smtp-configuration.md](docs/smtp-configuration.md) for email service setup.
 
 ## Frontend web notes
 

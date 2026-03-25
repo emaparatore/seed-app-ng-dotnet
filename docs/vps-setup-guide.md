@@ -462,7 +462,7 @@ ls -la /opt/seed-app/scripts/
 # Devi vedere migrate.sh e restore.sh con permessi di esecuzione
 ```
 
-> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Strategia Migration in Produzione](production-migrations.md).
+> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
 
 ---
 

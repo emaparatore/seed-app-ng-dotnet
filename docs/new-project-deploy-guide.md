@@ -148,7 +148,7 @@ sudo chown deploy:deploy /opt/nuovo-progetto/backups
 scp -r docker/scripts deploy@TUO_IP_VPS:/opt/nuovo-progetto/
 ```
 
-> Il deploy automatico aggiorna gli script ad ogni rilascio e esegue backup + migrazioni prima di riavviare l'API. Vedi [Strategia Migration in Produzione](production-migrations.md) per dettagli.
+> Il deploy automatico aggiorna gli script ad ogni rilascio e esegue backup + migrazioni prima di riavviare l'API. Vedi [Migration Strategy](migration-strategy.md) per dettagli.
 
 ---
 
