@@ -128,6 +128,8 @@ CERTBOT_EMAIL=tua-email@example.com
 
 > **SMTP**: Se non configuri `Smtp__Host`, le email vengono loggate in console (utile per debug). Per la guida completa alla configurazione SMTP (Gmail per dev, Brevo per prod, DNS setup) vedi [Configurazione SMTP](smtp-configuration.md).
 
+> **SuperAdmin**: Il file `.env.prod.example` include anche le variabili `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName` per creare l'utente admin iniziale al primo avvio. Dopo il primo deploy, rimuovi la password dal file `.env`. Vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+
 ### Aggiorna i nomi delle immagini nel compose
 
 ```bash

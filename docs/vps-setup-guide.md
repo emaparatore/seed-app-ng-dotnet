@@ -249,6 +249,8 @@ IMAGE_TAG=latest
 
 > **Email SMTP (opzionale):** il file `.env.prod.example` include anche le variabili `Smtp__*` per l'invio di email transazionali (reset password, notifiche). Se non le configuri, il sistema logga le email in console. Per la configurazione completa (provider, record DNS, verifica dominio), vedi [Configurazione SMTP](smtp-configuration.md).
 
+> **SuperAdmin (primo avvio):** il file `.env.prod.example` include anche le variabili `SuperAdmin__*` per creare l'utente amministratore iniziale al primo avvio. Dopo il primo deploy e la verifica dell'accesso, rimuovi `SuperAdmin__Password` dal file `.env` per sicurezza. Per dettagli vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+
 > **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
 
 Per generare una password sicura:

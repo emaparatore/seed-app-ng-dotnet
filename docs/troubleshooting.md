@@ -4,6 +4,7 @@ Common issues and solutions not tied to a specific documentation topic. For topi
 - [VPS Setup Guide — Troubleshooting](vps-setup-guide.md#13-troubleshooting)
 - [SMTP Configuration — Troubleshooting](smtp-configuration.md#troubleshooting)
 - [Migration Strategy — Rollback](migration-strategy.md#rollback)
+- [Admin Dashboard — Configurazione](admin-dashboard.md#configurazione-iniziale)
 
 ## Docker
 

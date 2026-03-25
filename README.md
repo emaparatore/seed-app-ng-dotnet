@@ -218,6 +218,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
 | [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
 | [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
+| [Admin Dashboard](docs/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
 
 ## Tech stack
