@@ -1,0 +1,171 @@
+<div class="page-header">
+  <h1>Gestione utenti</h1>
+  <button mat-flat-button *hasPermission="permissions.Users.Create" (click)="openCreateDialog()">
+    <mat-icon>person_add</mat-icon>
+    Nuovo utente
+  </button>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Cerca utente</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [formControl]="searchControl" placeholder="Nome, cognome o email..." />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Ruolo</mat-label>
+    <mat-select [formControl]="roleFilterControl" (selectionChange)="onFilterChange()">
+      <mat-option value="">Tutti</mat-option>
+      @for (role of roles(); track role.id) {
+        <mat-option [value]="role.name">{{ role.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Stato</mat-label>
+    <mat-select [formControl]="statusFilterControl" (selectionChange)="onFilterChange()">
+      <mat-option value="">Tutti</mat-option>
+      <mat-option value="active">Attivi</mat-option>
+      <mat-option value="inactive">Disattivati</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Da</mat-label>
+    <input matInput [matDatepicker]="dateFromPicker" [formControl]="dateFromControl" (dateChange)="onFilterChange()" />
+    <mat-datepicker-toggle matIconSuffix [for]="dateFromPicker" />
+    <mat-datepicker #dateFromPicker />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>A</mat-label>
+    <input matInput [matDatepicker]="dateToPicker" [formControl]="dateToControl" (dateChange)="onFilterChange()" />
+    <mat-datepicker-toggle matIconSuffix [for]="dateToPicker" />
+    <mat-datepicker #dateToPicker />
+  </mat-form-field>
+
+  <button mat-icon-button matTooltip="Pulisci filtri" (click)="clearFilters()">
+    <mat-icon>filter_list_off</mat-icon>
+  </button>
+</div>
+
+@if (loading()) {
+  <!-- Skeleton loading -->
+  <div class="skeleton-table">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-cell wide"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (users().length === 0) {
+  <div class="empty-state">
+    <mat-icon>people_outline</mat-icon>
+    <p>Nessun utente trovato.</p>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="users()" matSort (matSortChange)="onSortChange($event)">
+      <!-- Name column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header="lastName">Nome</th>
+        <td mat-cell *matCellDef="let user" (click)="navigateToDetail(user)">
+          <div class="name-cell">
+            <div class="user-avatar">{{ getInitials(user) }}</div>
+            <span class="user-name" [matTooltip]="getFullName(user)">{{ getFullName(user) }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Email column -->
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header="email">Email</th>
+        <td mat-cell *matCellDef="let user">
+          <span class="email-text" [matTooltip]="user.email">{{ user.email }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Roles column -->
+      <ng-container matColumnDef="roles">
+        <th mat-header-cell *matHeaderCellDef>Ruoli</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="role-chips">
+            @for (role of user.roles; track role) {
+              <mat-chip-option disabled selected>{{ role }}</mat-chip-option>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Status column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header="isActive">Stato</th>
+        <td mat-cell *matCellDef="let user">
+          <span class="status-badge" [class.active]="user.isActive" [class.inactive]="!user.isActive">
+            {{ user.isActive ? 'Attivo' : 'Disattivato' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Created at column -->
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header="createdAt">Registrazione</th>
+        <td mat-cell *matCellDef="let user">
+          <span class="date-text">{{ user.createdAt | date: 'dd/MM/yyyy' }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Actions column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Azioni</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="action-buttons">
+            @if (hasPermission(permissions.Users.ToggleStatus)) {
+              <button
+                mat-icon-button
+                [matTooltip]="user.isActive ? 'Disattiva' : 'Attiva'"
+                (click)="toggleStatus(user, $event)"
+              >
+                <mat-icon>{{ user.isActive ? 'person_off' : 'person' }}</mat-icon>
+              </button>
+            }
+            @if (hasPermission(permissions.Users.Delete)) {
+              <button mat-icon-button matTooltip="Elimina" (click)="deleteUser(user, $event)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" class="clickable-row" (click)="navigateToDetail(row)"></tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    [length]="totalCount()"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[5, 10, 25, 50]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons
+  />
+}

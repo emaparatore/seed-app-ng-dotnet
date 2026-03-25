@@ -249,6 +249,8 @@ IMAGE_TAG=latest
 
 > **Email SMTP (opzionale):** il file `.env.prod.example` include anche le variabili `Smtp__*` per l'invio di email transazionali (reset password, notifiche). Se non le configuri, il sistema logga le email in console. Per la configurazione completa (provider, record DNS, verifica dominio), vedi [Configurazione SMTP](smtp-configuration.md).
 
+> **SuperAdmin (primo avvio):** il file `.env.prod.example` include anche le variabili `SuperAdmin__*` per creare l'utente amministratore iniziale al primo avvio. Dopo il primo deploy e la verifica dell'accesso, rimuovi `SuperAdmin__Password` dal file `.env` per sicurezza. Per dettagli vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+
 > **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
 
 Per generare una password sicura:
@@ -462,7 +464,7 @@ ls -la /opt/seed-app/scripts/
 # Devi vedere migrate.sh e restore.sh con permessi di esecuzione
 ```
 
-> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Strategia Migration in Produzione](production-migrations.md).
+> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
 
 ---
 

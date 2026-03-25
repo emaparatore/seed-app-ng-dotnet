@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Seed.Application.Auth.Commands.ForgotPassword;
 using Seed.Application.Common.Interfaces;
+using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 using Seed.Shared.Configuration;
 
@@ -23,7 +24,8 @@ public class ForgotPasswordCommandHandlerTests
             store, null, null, null, null, null, null, null, null);
         _emailService = Substitute.For<IEmailService>();
         var clientSettings = Options.Create(new ClientSettings { BaseUrl = "http://localhost:4200" });
-        _handler = new ForgotPasswordCommandHandler(_userManager, _emailService, clientSettings);
+        var auditService = Substitute.For<IAuditService>();
+        _handler = new ForgotPasswordCommandHandler(_userManager, _emailService, clientSettings, auditService);
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
+using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
 using Seed.Shared.Configuration;
 
@@ -12,7 +13,8 @@ namespace Seed.Application.Auth.Commands.Register;
 public sealed class RegisterCommandHandler(
     UserManager<ApplicationUser> userManager,
     IEmailService emailService,
-    IOptions<ClientSettings> clientSettings) : IRequestHandler<RegisterCommand, Result<string>>
+    IOptions<ClientSettings> clientSettings,
+    IAuditService auditService) : IRequestHandler<RegisterCommand, Result<string>>
 {
     private readonly ClientSettings _clientSettings = clientSettings.Value;
 
@@ -33,6 +35,8 @@ public sealed class RegisterCommandHandler(
         var result = await userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
             return Result<string>.Failure(result.Errors.Select(e => e.Description).ToArray());
+
+        await auditService.LogAsync(AuditActions.UserCreated, "User", user.Id.ToString(), $"Email: {request.Email}", user.Id, cancellationToken: cancellationToken);
 
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebUtility.UrlEncode(token);

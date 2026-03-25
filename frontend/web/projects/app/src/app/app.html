@@ -6,6 +6,9 @@
   <span class="spacer"></span>
 
   @if (authService.isAuthenticated()) {
+    @if (permissionService.isAdmin()) {
+      <a mat-button routerLink="/admin">Admin</a>
+    }
     <a class="user-name-link" routerLink="/profile">
       {{ authService.currentUser()?.firstName }} {{ authService.currentUser()?.lastName }}
     </a>

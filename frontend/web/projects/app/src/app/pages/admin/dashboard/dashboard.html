@@ -1,0 +1,112 @@
+@if (loading()) {
+  <!-- Skeleton loading -->
+  <div class="stats-grid">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-card">
+        <div class="skeleton-icon"></div>
+        <div class="skeleton-text"></div>
+        <div class="skeleton-number"></div>
+      </div>
+    }
+  </div>
+  <div class="charts-grid">
+    <div class="skeleton-chart"></div>
+    <div class="skeleton-chart"></div>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (stats()) {
+  <!-- Stats cards -->
+  <div class="stats-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <mat-icon class="stat-icon">people</mat-icon>
+        <span class="stat-value">{{ stats()!.totalUsers }}</span>
+        <span class="stat-label">Utenti totali</span>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card stat-active">
+      <mat-card-content>
+        <mat-icon class="stat-icon">person</mat-icon>
+        <span class="stat-value">{{ stats()!.activeUsers }}</span>
+        <span class="stat-label">Utenti attivi</span>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card stat-inactive">
+      <mat-card-content>
+        <mat-icon class="stat-icon">person_off</mat-icon>
+        <span class="stat-value">{{ stats()!.inactiveUsers }}</span>
+        <span class="stat-label">Utenti disattivati</span>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <mat-icon class="stat-icon">person_add</mat-icon>
+        <span class="stat-value">{{ stats()!.registrationsLast7Days }}</span>
+        <span class="stat-label">Registrazioni (7 gg)</span>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <mat-icon class="stat-icon">person_add</mat-icon>
+        <span class="stat-value">{{ stats()!.registrationsLast30Days }}</span>
+        <span class="stat-label">Registrazioni (30 gg)</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Trend registrazioni (30 giorni)</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-line-chart [data]="stats()!.registrationTrend" />
+      </mat-card-content>
+    </mat-card>
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Distribuzione per ruolo</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-donut-chart [data]="stats()!.usersByRole" />
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Recent activity -->
+  <mat-card class="activity-card">
+    <mat-card-header>
+      <mat-card-title>Attività recenti</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (stats()!.recentActivity.length === 0) {
+        <p class="no-activity">Nessuna attività recente.</p>
+      } @else {
+        <div class="activity-list">
+          @for (activity of stats()!.recentActivity; track activity.id) {
+            <div class="activity-item">
+              <mat-icon class="activity-icon">history</mat-icon>
+              <div class="activity-details">
+                <span class="activity-action">{{ activity.action }}</span>
+                <span class="activity-entity">{{ activity.entityType }}</span>
+              </div>
+              <span class="activity-time">{{ activity.timestamp | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <a mat-button routerLink="/admin/audit-log">Vedi tutto</a>
+    </mat-card-actions>
+  </mat-card>
+}

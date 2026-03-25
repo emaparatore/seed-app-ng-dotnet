@@ -12,6 +12,7 @@ public class ConfirmEmailCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly IPermissionService _permissionService;
     private readonly ConfirmEmailCommandHandler _handler;
 
     public ConfirmEmailCommandHandlerTests()
@@ -20,7 +21,13 @@ public class ConfirmEmailCommandHandlerTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _tokenService = Substitute.For<ITokenService>();
-        _handler = new ConfirmEmailCommandHandler(_userManager, _tokenService);
+        _permissionService = Substitute.For<IPermissionService>();
+        var auditService = Substitute.For<IAuditService>();
+        _permissionService.GetPermissionsAsync(Arg.Any<Guid>())
+            .Returns(new HashSet<string>() as IReadOnlySet<string>);
+        _userManager.GetRolesAsync(Arg.Any<ApplicationUser>())
+            .Returns(new List<string>());
+        _handler = new ConfirmEmailCommandHandler(_userManager, _tokenService, _permissionService, auditService);
     }
 
     [Fact]
@@ -92,9 +99,10 @@ public class ConfirmEmailCommandHandlerTests
         };
         _userManager.FindByEmailAsync(command.Email).Returns(user);
         _userManager.ConfirmEmailAsync(user, command.Token).Returns(IdentityResult.Success);
+        _userManager.GetRolesAsync(user).Returns(new List<string> { "User" });
 
         var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
-        _tokenService.GenerateTokensAsync(user).Returns(tokenResult);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 

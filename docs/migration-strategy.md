@@ -1,10 +1,64 @@
-# Strategia Migration in Produzione
+# Migration Strategy
 
-Questo documento descrive come vengono gestite le migrazioni EF Core in produzione.
+Questo documento descrive come vengono gestite le migrazioni EF Core in tutti gli ambienti: sviluppo locale e produzione.
 
-## Panoramica
+## Sviluppo locale
 
-Le migrazioni vengono applicate automaticamente durante il deploy tramite un **EF Core Migration Bundle** — un eseguibile standalone incluso nell'immagine Docker dell'API. Il flusso è:
+In ambiente `Development`, l'API applica automaticamente le migrazioni pendenti all'avvio tramite `MigrateAsync()` in `Program.cs`:
+
+```csharp
+if (app.Environment.IsDevelopment())
+{
+    await dbContext.Database.MigrateAsync();
+    // seeder roles, super admin, system settings...
+}
+```
+
+**Flusso locale:**
+1. `docker compose up` (o `dotnet run`) avvia l'API
+2. All'avvio, vengono applicate automaticamente tutte le migrazioni pendenti
+3. Vengono eseguiti i seeder (ruoli/permessi, super admin, impostazioni di sistema)
+
+**Quando aggiungi una nuova migrazione in locale:**
+1. Crea la migrazione: `dotnet ef migrations add <NomeDescrittivo> --project src/Seed.Infrastructure --startup-project src/Seed.Api`
+2. Riavvia l'API — la migrazione viene applicata automaticamente
+
+Non è necessario eseguire `dotnet ef database update` manualmente in locale.
+
+### Switch tra branch con migrazioni diverse
+
+Se switchi su un branch che ha migrazioni diverse (es. meno avanzate o conflittuali), il DB locale potrebbe essere in uno stato incompatibile con il codice. `MigrateAsync()` applica solo migrazioni "in avanti" — non fa mai rollback automatico.
+
+**Caso benigno:** il branch ha meno migrazioni ma non tocca le stesse tabelle — le colonne/tabelle extra vengono ignorate da EF Core e di solito funziona.
+
+**Caso problematico:** migrazioni conflittuali (es. una colonna rinominata diversamente nei due branch) — l'API si avvia ma le query falliscono.
+
+**Soluzione consigliata — nuke and rebuild:**
+
+```bash
+# Dalla cartella docker/
+docker compose down -v   # ferma i container e cancella i volumi (DB incluso)
+docker compose up        # ricrea tutto da zero, i seeder ripopolano i dati
+```
+
+I dati locali vengono persi, ma i seeder (ruoli, super admin, impostazioni) li ricreano automaticamente all'avvio.
+
+**Alternativa — rollback manuale** (se vuoi preservare i dati):
+
+```bash
+# Da backend/ — porta il DB all'ultima migrazione del branch target
+dotnet ef database update <NomeUltimaMigrazione> \
+  --project src/Seed.Infrastructure \
+  --startup-project src/Seed.Api
+```
+
+---
+
+## Produzione
+
+### Panoramica
+
+In produzione, `MigrateAsync()` non viene chiamato. Le migrazioni vengono applicate durante il deploy tramite un **EF Core Migration Bundle** — un eseguibile standalone incluso nell'immagine Docker dell'API. Il flusso è:
 
 ```
 Push su master/dev
@@ -21,9 +75,9 @@ Push su master/dev
 
 Se la migrazione fallisce, lo script si interrompe e l'API vecchia resta attiva.
 
-## Come funziona
+### Come funziona
 
-### EF Core Migration Bundle
+#### EF Core Migration Bundle
 
 Il bundle viene generato nel Dockerfile dell'API (`backend/src/Seed.Api/Dockerfile`) durante la build:
 
@@ -41,7 +95,7 @@ Il bundle è un eseguibile Linux che:
 - Non richiede .NET SDK a runtime
 - Viene copiato nell'immagine runtime a `/app/efbundle`
 
-### Script di migrazione
+#### Script di migrazione
 
 Lo script `docker/scripts/migrate.sh` viene eseguito sulla VPS durante il deploy. Sequenza:
 
@@ -56,12 +110,14 @@ Il workflow `deploy.yml`:
 - Lo esegue dopo il `docker pull` e prima del `docker compose up -d`
 - Dopo il restart, aspetta che `/health/ready` risponda (max 60 secondi)
 
-### Validazione in CI
+#### Validazione in CI
 
 Il workflow `ci.yml` esegue due check aggiuntivi sulle PR:
 
 1. **Pending model changes** — `dotnet ef migrations has-pending-model-changes` fallisce se un'entità è stata modificata senza generare la migrazione corrispondente
 2. **Bundle build** — verifica che il bundle compili correttamente
+
+---
 
 ## Creare una nuova migrazione
 
@@ -83,6 +139,10 @@ dotnet ef migrations bundle \
 
 # 4. Commit e push — CI valida automaticamente
 ```
+
+In locale l'API applica la migrazione al prossimo avvio. In produzione viene applicata dal deploy CI/CD.
+
+---
 
 ## Regole per migrazioni production-safe
 
@@ -134,6 +194,8 @@ protected override void Up(MigrationBuilder migrationBuilder)
 - **Nomi descrittivi:** `AddOrdersTable`, `AddEmailIndexToUsers`, non `Update1` o `Fix`
 - **Implementa sempre** sia `Up()` che `Down()` (utile per lo sviluppo locale, anche se in produzione non usiamo `Down()`)
 
+---
+
 ## Rollback
 
 Tre livelli, dal meno al più impattante:
@@ -175,6 +237,8 @@ Richiede conferma interattiva (`yes/no`).
 
 > **Nota:** Non usare i metodi `Down()` di EF Core per rollback in produzione. Sono fragili, non testati in pratica, e possono causare perdita di dati. Il restore da backup è più sicuro.
 
+---
+
 ## Backup
 
 I backup vengono creati automaticamente prima di ogni migrazione in `/opt/seed-app/backups/`:
@@ -200,6 +264,8 @@ docker compose -f docker-compose.deploy.yml exec -T postgres \
   --no-owner --no-privileges | gzip > /opt/seed-app/backups/seeddb_manual.sql.gz
 ```
 
+---
+
 ## Setup iniziale sulla VPS
 
 Da eseguire una sola volta:
@@ -209,10 +275,13 @@ sudo mkdir -p /opt/seed-app/backups
 sudo chown deploy:deploy /opt/seed-app/backups
 ```
 
+---
+
 ## File coinvolti
 
 | File | Ruolo |
 |------|-------|
+| `backend/src/Seed.Api/Program.cs` | `MigrateAsync()` automatico in Development |
 | `backend/src/Seed.Api/Dockerfile` | Build del migration bundle nell'immagine API |
 | `docker/scripts/migrate.sh` | Backup + migrazione automatica (usato dal deploy) |
 | `docker/scripts/restore.sh` | Restore manuale da backup |

@@ -19,7 +19,8 @@ public class DeleteAccountCommandHandlerTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _tokenService = Substitute.For<ITokenService>();
-        _handler = new DeleteAccountCommandHandler(_userManager, _tokenService);
+        var auditService = Substitute.For<IAuditService>();
+        _handler = new DeleteAccountCommandHandler(_userManager, _tokenService, auditService);
     }
 
     [Fact]

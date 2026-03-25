@@ -89,8 +89,8 @@ Questo limita i danni in caso di furto del token.
 
 | File | Descrizione |
 |------|-------------|
-| `ApplicationUser.cs` | Estende `IdentityUser<Guid>`. Campi aggiuntivi: FirstName, LastName, CreatedAt, UpdatedAt, IsActive |
-| `ApplicationRole.cs` | Estende `IdentityRole<Guid>`. Campi aggiuntivi: Description, CreatedAt |
+| `ApplicationUser.cs` | Estende `IdentityUser<Guid>`. Campi aggiuntivi: FirstName, LastName, CreatedAt, UpdatedAt, IsActive, MustChangePassword, IsDeleted |
+| `ApplicationRole.cs` | Estende `IdentityRole<Guid>`. Campi aggiuntivi: Description, CreatedAt, IsSystemRole |
 | `RefreshToken.cs` | Entita' per i refresh token. Campi: Token, ExpiresAt, RevokedAt, ReplacedByToken, UserId. Proprieta' computed: IsExpired, IsRevoked, IsActive |
 
 ### Configurazione (`Seed.Shared/Configuration/`)
@@ -106,7 +106,7 @@ Questo limita i danni in caso di furto del token.
 | Cartella | Contenuto |
 |----------|-----------|
 | `Common/Result.cs` | Tipo generico `Result<T>` con Succeeded, Data, Errors |
-| `Common/Models/` | AuthResponse, UserDto, TokenResult — record immutabili per le risposte |
+| `Common/Models/` | AuthResponse (include Permissions[] e MustChangePassword), UserDto (include Roles[]), TokenResult — record immutabili per le risposte |
 | `Common/Interfaces/ITokenService.cs` | Interfaccia per generazione/refresh/revoca token |
 | `Common/Interfaces/IEmailService.cs` | Interfaccia per invio email (`SendPasswordResetEmailAsync`, `SendEmailVerificationAsync`) |
 | `DependencyInjection.cs` | Registra MediatR e FluentValidation |
@@ -199,6 +199,7 @@ L'interceptor funzionale (`HttpInterceptorFn`):
    - Tenta un refresh automatico del token
    - Se il refresh ha successo, ripete la richiesta originale con il nuovo token
    - Se il refresh fallisce, esegue logout
+3. Se riceve un 403 con codice `PASSWORD_CHANGE_REQUIRED`, redirige a `/change-password`
 
 ### Pagine App (`frontend/web/projects/app/`)
 
@@ -209,6 +210,7 @@ L'interceptor funzionale (`HttpInterceptorFn`):
 | Confirm Email | `/confirm-email` | guestGuard | Auto-chiama API con email+token dai query param. Mostra spinner/successo/errore |
 | Forgot Password | `/forgot-password` | guestGuard | Form email per richiedere reset password |
 | Reset Password | `/reset-password` | guestGuard | Se aperto via link email: mostra solo campo nuova password (email e token pre-compilati dai query params). Se aperto manualmente: mostra form completo con email + token + nuova password |
+| Change Password | `/change-password` | authGuard + mustChangePasswordGuard | Cambio password obbligatorio (vedi [Admin Dashboard](admin-dashboard.md#cambio-password-obbligatorio)) |
 | Home | `/` | authGuard | Pagina protetta con info utente |
 
 Layout: toolbar Material in cima con nome utente + bottone Logout (visibili solo se autenticato).
@@ -430,9 +432,15 @@ Il frontend sara' su `http://localhost:4200`.
 
 ---
 
-## Cosa NON e' stato implementato (opzionale)
+## Funzionalità correlate
 
-- Ruoli e autorizzazione basata su ruoli
-- Cambio password
-- Account lockout
+Le seguenti funzionalità estendono il sistema di autenticazione base e sono documentate separatamente:
+
+- **Ruoli e autorizzazione RBAC** — sistema completo con 16 permessi granulari, 3 ruoli di sistema, authorization handler. Vedi [Admin Dashboard](admin-dashboard.md#sistema-di-permessi-rbac).
+- **Cambio password obbligatorio** — flusso che blocca la navigazione finché l'utente non cambia la password temporanea. Vedi [Admin Dashboard](admin-dashboard.md#cambio-password-obbligatorio).
+- **Invalidazione token immediata** — blacklist basata su `IDistributedCache` per disattivazione utenti e cambio ruoli. Vedi [Admin Dashboard](admin-dashboard.md#sistema-di-permessi-rbac).
+- **Audit log autenticazione** — tutti gli eventi auth (login, logout, cambio password, reset, ecc.) vengono registrati. Vedi [Admin Dashboard](admin-dashboard.md#audit-log).
+
+### Ancora da implementare
+
 - Re-invio email di verifica (utile se il link scade)

@@ -1,0 +1,101 @@
+<div class="page-header">
+  <h1>Gestione ruoli</h1>
+  <button mat-flat-button *hasPermission="permissions.Roles.Create" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Nuovo ruolo
+  </button>
+</div>
+
+@if (loading()) {
+  <!-- Skeleton loading -->
+  <div class="skeleton-table">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <div class="skeleton-cell wide"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (roles().length === 0) {
+  <div class="empty-state">
+    <mat-icon>shield</mat-icon>
+    <p>Nessun ruolo trovato.</p>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="roles()">
+      <!-- Name column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let role">
+          <span class="role-name">{{ role.name }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Description column -->
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Descrizione</th>
+        <td mat-cell *matCellDef="let role">{{ role.description ?? '—' }}</td>
+      </ng-container>
+
+      <!-- User count column -->
+      <ng-container matColumnDef="userCount">
+        <th mat-header-cell *matHeaderCellDef>Utenti</th>
+        <td mat-cell *matCellDef="let role">{{ role.userCount }}</td>
+      </ng-container>
+
+      <!-- System role column -->
+      <ng-container matColumnDef="system">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let role">
+          @if (role.isSystemRole) {
+            <span class="system-badge">Sistema</span>
+          }
+        </td>
+      </ng-container>
+
+      <!-- Created at column -->
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Creazione</th>
+        <td mat-cell *matCellDef="let role">{{ role.createdAt | date: 'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <!-- Actions column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Azioni</th>
+        <td mat-cell *matCellDef="let role">
+          <div class="action-buttons">
+            <button mat-icon-button matTooltip="Modifica" (click)="navigateToDetail(role); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+            </button>
+            @if (hasPermission(permissions.Roles.Delete)) {
+              <button
+                mat-icon-button
+                matTooltip="Elimina"
+                [disabled]="role.isSystemRole"
+                (click)="deleteRole(role, $event)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" class="clickable-row" (click)="navigateToDetail(row)"></tr>
+    </table>
+  </div>
+}

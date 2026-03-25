@@ -1,0 +1,73 @@
+<h2 mat-dialog-title>Nuovo utente</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form" (ngSubmit)="onSubmit()">
+    <div class="name-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="firstName" />
+        @if (form.controls.firstName.hasError('required')) {
+          <mat-error>Il nome è obbligatorio</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Cognome</mat-label>
+        <input matInput formControlName="lastName" />
+        @if (form.controls.lastName.hasError('required')) {
+          <mat-error>Il cognome è obbligatorio</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" type="email" />
+      @if (form.controls.email.hasError('required')) {
+        <mat-error>L'email è obbligatoria</mat-error>
+      } @else if (form.controls.email.hasError('email')) {
+        <mat-error>Email non valida</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="password-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput formControlName="password" [type]="showPassword() ? 'text' : 'password'" />
+        <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()">
+          <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>La password è obbligatoria</mat-error>
+        } @else if (form.controls.password.hasError('minlength')) {
+          <mat-error>Minimo 8 caratteri</mat-error>
+        }
+      </mat-form-field>
+      <button mat-stroked-button type="button" (click)="generatePassword()" matTooltip="Genera password">
+        <mat-icon>casino</mat-icon>
+      </button>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Ruoli</mat-label>
+      <mat-select formControlName="roleNames" multiple>
+        @for (role of data.roles; track role.id) {
+          <mat-option [value]="role.name">{{ role.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (errorMessage()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annulla</button>
+  <button mat-flat-button (click)="onSubmit()" [disabled]="saving()">
+    @if (saving()) {
+      Creazione...
+    } @else {
+      Crea utente
+    }
+  </button>
+</mat-dialog-actions>

@@ -1,15 +1,21 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Seed.Api.Authorization;
 using Seed.Api.Extensions;
 using Seed.Api.Middleware;
 using Seed.Application;
+using Seed.Application.Common.Interfaces;
 using Seed.Infrastructure;
 using Seed.Infrastructure.Persistence;
+using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
 
@@ -44,9 +50,36 @@ builder.Services
             ValidIssuer = jwtSettings.Issuer,
             ValidAudience = jwtSettings.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = ClaimTypes.Role
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var blacklistService = context.HttpContext.RequestServices
+                    .GetRequiredService<ITokenBlacklistService>();
+
+                var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var iatClaim = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Iat);
+
+                if (userIdClaim is not null && iatClaim is not null)
+                {
+                    var userId = Guid.Parse(userIdClaim);
+                    var issuedAt = DateTimeOffset.FromUnixTimeSeconds(long.Parse(iatClaim)).UtcDateTime;
+
+                    if (await blacklistService.IsUserTokenBlacklistedAsync(userId, issuedAt))
+                    {
+                        context.Fail("Token has been revoked.");
+                    }
+                }
+            }
         };
     });
+
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services
     .AddApiVersioning(options =>
@@ -139,6 +172,15 @@ if (app.Environment.IsDevelopment())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
 
+    var seeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
+    await seeder.SeedAsync();
+
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
+    await adminSeeder.SeedAsync();
+
+    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
+    await settingsSeeder.SeedAsync();
+
     app.UseSwaggerWithUI();
 }
 
@@ -149,6 +191,7 @@ app.UseCors("AllowedOrigins");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<MustChangePasswordMiddleware>();
 
 app.MapControllers();
 
