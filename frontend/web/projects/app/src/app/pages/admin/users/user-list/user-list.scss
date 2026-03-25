@@ -37,38 +37,57 @@
 // Table
 .table-container {
   overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 table {
   width: 100%;
-  table-layout: fixed;
 }
 
-.mat-column-name {
-  width: 22%;
+th.mat-mdc-header-cell,
+td.mat-mdc-cell {
+  box-sizing: border-box;
+  vertical-align: middle;
+  align-self: stretch;
 }
 
-.mat-column-email {
-  width: 25%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+th.mat-mdc-header-cell,
+td.mat-mdc-cell,
+.mat-column-name,
+.mat-column-email,
+.mat-column-roles,
+.mat-column-status,
+.mat-column-createdAt,
+.mat-column-actions {
+  min-width: 0;
+}
+
+th.mat-mdc-header-cell {
   white-space: nowrap;
 }
 
+.mat-column-name {
+  flex: 2.2 0 240px;
+}
+
+.mat-column-email {
+  flex: 1.8 0 220px;
+}
+
 .mat-column-roles {
-  width: 18%;
+  flex: 1.4 0 180px;
 }
 
 .mat-column-status {
-  width: 10%;
+  flex: 0.9 0 120px;
 }
 
 .mat-column-createdAt {
-  width: 14%;
+  flex: 0.95 0 140px;
 }
 
 .mat-column-actions {
-  width: 11%;
+  flex: 0 0 112px;
 }
 
 .clickable-row {
@@ -84,6 +103,8 @@ table {
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  min-width: 0;
+  width: 100%;
 }
 
 .user-avatar {
@@ -102,15 +123,29 @@ table {
 
 .user-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-text,
+.date-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .role-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  max-width: 100%;
 
   mat-chip-option {
     --mdc-chip-label-text-size: 12px;
+    max-width: 100%;
   }
 }
 
@@ -120,6 +155,7 @@ table {
   border-radius: 16px;
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 
   &.active {
     background: #e8f5e9;
@@ -135,6 +171,14 @@ table {
 .action-buttons {
   display: flex;
   gap: 4px;
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  table {
+    min-width: 980px;
+  }
 }
 
 // Error state
@@ -230,5 +274,17 @@ table {
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+@media (max-width: 960px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .filter-field,
+  .search-field {
+    min-width: min(100%, 220px);
   }
 }
