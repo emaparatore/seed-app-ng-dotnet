@@ -10,7 +10,8 @@ COPY src/Seed.Domain/Seed.Domain.csproj src/Seed.Domain/
 COPY src/Seed.Infrastructure/Seed.Infrastructure.csproj src/Seed.Infrastructure/
 COPY src/Seed.Shared/Seed.Shared.csproj src/Seed.Shared/
 
-RUN dotnet restore Seed.slnx
+RUN dotnet restore src/Seed.Api/Seed.Api.csproj
+RUN dotnet restore src/Seed.Bootstrap/Seed.Bootstrap.csproj
 
 COPY . .
 
