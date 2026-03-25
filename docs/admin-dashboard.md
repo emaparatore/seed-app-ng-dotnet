@@ -83,7 +83,7 @@ Tutti i seeder sono idempotenti: esecuzioni ripetute non creano duplicati.
 
 ### 4. Produzione
 
-Nel file `docker/.env.prod`:
+Nel file `.env` usato dal deploy (letto da `docker-compose.deploy.yml`):
 
 ```env
 SuperAdmin__Email=<email-reale>
@@ -92,7 +92,7 @@ SuperAdmin__FirstName=Super
 SuperAdmin__LastName=Admin
 ```
 
-> **Importante:** dopo il primo deploy e la verifica dell'accesso, rimuovere le variabili `SuperAdmin__Password` dal file `.env.prod` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
+> **Importante:** configurare il file `.env` sul server **prima** di eseguire il deploy. Il seeder gira all'avvio dell'applicazione: se le variabili non sono presenti al primo avvio, non viene creato nessun SuperAdmin (solo un warning nei log). Dopo il primo deploy e la verifica dell'accesso, rimuovere la variabile `SuperAdmin__Password` dal file `.env` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
 
 ---
 
