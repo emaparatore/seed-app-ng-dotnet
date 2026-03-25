@@ -213,6 +213,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | Document | Description |
 |---|---|
 | [Authentication](docs/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
+| [Bootstrap Console](docs/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |
 | [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
 | [Migration Strategy](docs/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
 | [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
