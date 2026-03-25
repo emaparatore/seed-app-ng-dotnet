@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Seed.Api/Seed.Api.csproj" />
+    <Project Path="src/Seed.Bootstrap/Seed.Bootstrap.csproj" />
     <Project Path="src/Seed.Application/Seed.Application.csproj" />
     <Project Path="src/Seed.Domain/Seed.Domain.csproj" />
     <Project Path="src/Seed.Infrastructure/Seed.Infrastructure.csproj" />

@@ -249,7 +249,7 @@ IMAGE_TAG=latest
 
 > **Email SMTP (opzionale):** il file `.env.prod.example` include anche le variabili `Smtp__*` per l'invio di email transazionali (reset password, notifiche). Se non le configuri, il sistema logga le email in console. Per la configurazione completa (provider, record DNS, verifica dominio), vedi [Configurazione SMTP](smtp-configuration.md).
 
-> **SuperAdmin (primo avvio):** il file `.env.prod.example` include anche le variabili `SuperAdmin__*` per creare l'utente amministratore iniziale al primo avvio. Dopo il primo deploy e la verifica dell'accesso, rimuovi `SuperAdmin__Password` dal file `.env` per sicurezza. Per dettagli vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+> **SuperAdmin (bootstrap iniziale):** il file `.env.prod.example` include anche le variabili `SuperAdmin__*` per creare l'utente amministratore iniziale durante il deploy. Dopo il primo deploy e la verifica dell'accesso, rimuovi `SuperAdmin__Password` dal file `.env` per sicurezza. Per dettagli vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
 
 > **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
 
@@ -461,10 +461,10 @@ Verifica che gli script siano eseguibili:
 ```bash
 ssh deploy@TUO_IP_VPS
 ls -la /opt/seed-app/scripts/
-# Devi vedere migrate.sh e restore.sh con permessi di esecuzione
+# Devi vedere migrate.sh, seed.sh e restore.sh con permessi di esecuzione
 ```
 
-> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` che: (1) crea un backup compresso del database, (2) applica le migrazioni pendenti con EF Core bundle, (3) verifica la salute del database. Se la migrazione fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
+> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` per backup + migrazioni e `scripts/seed.sh` per il bootstrap applicativo (ruoli, permessi, impostazioni e SuperAdmin iniziale tramite il runner `Seed.Bootstrap`). Se una di queste fasi fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
 
 ---
 
@@ -742,6 +742,9 @@ cat backup.sql | docker compose -f docker-compose.deploy.yml exec -T postgres ps
 
 # Esegui migrazioni manualmente (backup + migrazione)
 bash scripts/migrate.sh
+
+# Esegui bootstrap applicativo manualmente
+bash scripts/seed.sh
 
 # Restore da backup pre-migrazione (interattivo)
 bash scripts/restore.sh /opt/seed-app/backups/seeddb_YYYYMMDD_HHMMSS.sql.gz

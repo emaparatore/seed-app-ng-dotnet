@@ -13,9 +13,29 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.deploy.yml}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/seed-app/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 
-# Load environment variables
+# Load environment variables from Docker-style .env without shell-evaluating values.
 if [ -f .env ]; then
-  set -a; source .env; set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+
+    case "$line" in
+      ''|\#*)
+        continue
+        ;;
+    esac
+
+    key="${line%%=*}"
+    value="${line#*=}"
+    export "$key=$value"
+  done < .env
+fi
+
+# Fallback for environments where the full connection string is not explicitly set.
+if [ -z "${ConnectionStrings__DefaultConnection:-}" ] \
+  && [ -n "${POSTGRES_DB:-}" ] \
+  && [ -n "${POSTGRES_USER:-}" ] \
+  && [ -n "${POSTGRES_PASSWORD:-}" ]; then
+  ConnectionStrings__DefaultConnection="Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
 fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

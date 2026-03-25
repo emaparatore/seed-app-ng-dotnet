@@ -52,6 +52,28 @@ dotnet ef migrations add <MigrationName> --project src/Seed.Infrastructure --sta
 dotnet ef database update --project src/Seed.Infrastructure --startup-project src/Seed.Api
 ```
 
+### Bootstrap & Seeding
+
+`Seed.Bootstrap` is a dedicated console application for production initialization. It validates configuration and seeds required data (roles, permissions, admin user, system settings). Run once during initial deployment, before or after the API starts.
+
+```bash
+# Run locally
+dotnet run --project src/Seed.Bootstrap
+
+# In production, use Docker or run with environment variables
+ASPNETCORE_ENVIRONMENT=Production \
+ConnectionStrings__DefaultConnection="postgres://..." \
+JwtSettings__Secret="..." \
+dotnet run --project src/Seed.Bootstrap
+```
+
+To add a new seeder:
+1. Create a seeder class in `src/Seed.Infrastructure/Persistence/Seeders/`
+2. Register it in `InfrastructureServiceCollectionExtensions.cs`
+3. Call it in `src/Seed.Bootstrap/Program.cs` in the `SeedApplicationDataAsync` function
+
+See [docs/bootstrap-console.md](../docs/bootstrap-console.md) for full details.
+
 ## Frontend Web (Angular)
 
 Angular workspace at `frontend/web/` with 4 projects:

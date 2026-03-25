@@ -150,7 +150,7 @@ dotnet test backend/Seed.slnx
 - **Naming env vars `SuperAdmin__*`** (non `SEED_ADMIN_*`): coerente con il pattern ASP.NET config binding usato nel progetto (es. `JwtSettings__Secret`, `Smtp__Host`). Il piano principale usava `SEED_ADMIN_*` ma il mini-plan specificava `SuperAdmin__*` che è il pattern corretto.
 - **Idempotenza via `GetUsersInRoleAsync`**: controlla se esiste già un utente con ruolo SuperAdmin, non solo per email — così funziona anche se il SuperAdmin è stato creato manualmente con un'email diversa.
 - **Aggiunto riferimento Infrastructure a UnitTests.csproj**: necessario per testare `SuperAdminSeeder` che risiede in Infrastructure. Alternativa scartata: spostare il seeder in Application (avrebbe introdotto dipendenza da UserManager nel layer Application).
-- **Seeding solo in Development**: il seeder è nello stesso blocco `if (app.Environment.IsDevelopment())` come documentato nel mini-plan Step 4 nota. Per produzione, il seeding va gestito separatamente (migration bundle o script di deploy).
+- **Seeding in produzione tramite deploy esplicito**: in development il bootstrap resta comodo all'avvio dell'app, mentre staging/production eseguono il seeding idempotente come step dedicato del deploy (`seed.sh` + runner console `Seed.Bootstrap`). In questo modo l'API non dipende dal bootstrap operativo per partire e il processo resta allineato alla strategia di deploy.
 
 ### Deviazioni dal piano
 - **Nessuna deviazione significativa**: implementazione fedele al mini-plan.

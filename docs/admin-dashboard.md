@@ -23,7 +23,7 @@ Area amministrativa con gestione utenti, ruoli, impostazioni di sistema, audit l
 
 ### 1. Variabili d'ambiente per il SuperAdmin
 
-Al primo avvio, il sistema crea automaticamente un utente SuperAdmin. Le credenziali vengono lette dalla configurazione.
+Durante il bootstrap iniziale, il sistema crea automaticamente un utente SuperAdmin. Le credenziali vengono lette dalla configurazione.
 
 **Con Docker** (consigliato): configurare nel file `docker/.env`:
 
@@ -66,12 +66,17 @@ export SuperAdmin__LastName=Admin
 
 ### 2. Avvio
 
-Avviare l'applicazione normalmente. All'avvio, in ordine:
+In **Development**, avviando l'applicazione normalmente:
 
 1. Le migration EF Core vengono applicate (`MigrateAsync`)
-2. Il seeder crea i 16 permessi e i 3 ruoli di sistema (SuperAdmin, Admin, User)
-3. Il seeder crea l'utente SuperAdmin (se non esiste già)
-4. Il seeder crea le impostazioni di sistema con i valori di default
+2. Il seeder crea i 16 permessi, i 3 ruoli di sistema, il SuperAdmin iniziale e le impostazioni di default
+
+In **Staging/Production**, invece, il bootstrap iniziale avviene durante il deploy:
+
+1. `scripts/migrate.sh` applica le migration
+2. `scripts/seed.sh` esegue il bootstrap applicativo
+3. `seed.sh` lancia il runner console `Seed.Bootstrap`
+4. Solo dopo il bootstrap l'API viene riavviata
 
 Tutti i seeder sono idempotenti: esecuzioni ripetute non creano duplicati.
 
@@ -92,7 +97,7 @@ SuperAdmin__FirstName=Super
 SuperAdmin__LastName=Admin
 ```
 
-> **Importante:** configurare il file `.env` sul server **prima** di eseguire il deploy. Il seeder gira all'avvio dell'applicazione: se le variabili non sono presenti al primo avvio, non viene creato nessun SuperAdmin (solo un warning nei log). Dopo il primo deploy e la verifica dell'accesso, rimuovere la variabile `SuperAdmin__Password` dal file `.env` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
+> **Importante:** configurare il file `.env` sul server **prima** di eseguire il deploy. In produzione il seeder viene eseguito come step esplicito del deploy, dopo le migration e prima del riavvio dell'API. Se le variabili non sono presenti, non viene creato nessun SuperAdmin (solo un warning nei log). Dopo il primo deploy e la verifica dell'accesso, rimuovere la variabile `SuperAdmin__Password` dal file `.env` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
 
 ---
 
@@ -148,7 +153,7 @@ Quando un utente viene disattivato o i suoi ruoli cambiano, i token JWT attivi v
 
 ## SuperAdmin seeding
 
-Il seeder `SuperAdminSeeder` crea l'utente iniziale al primo avvio:
+Il seeder `SuperAdminSeeder` crea l'utente iniziale durante il bootstrap:
 
 - Legge la configurazione dalla sezione `SuperAdmin` (env vars o appsettings)
 - Se non esiste nessun utente con ruolo SuperAdmin, ne crea uno
@@ -338,7 +343,7 @@ Le impostazioni sono raggruppate per categoria:
 - Cache in-memory con invalidazione automatica al salvataggio (TTL 5 minuti)
 - Solo le impostazioni modificate vengono inviate al backend
 
-> **Nota:** le impostazioni sono seminiate nel database al primo avvio. I valori di default sono definiti in `Seed.Domain/Authorization/SystemSettingsDefaults.cs`. Da quel momento vengono lette sempre e solo dal database.
+> **Nota:** le impostazioni sono seminiate nel database durante il bootstrap iniziale. I valori di default sono definiti in `Seed.Domain/Authorization/SystemSettingsDefaults.cs`. Da quel momento vengono lette sempre e solo dal database.
 
 ---
 

@@ -171,15 +171,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
-
-    var seeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
-    await seeder.SeedAsync();
-
-    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
-    await adminSeeder.SeedAsync();
-
-    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
-    await settingsSeeder.SeedAsync();
+    await SeedApplicationDataAsync(app.Services);
 
     app.UseSwaggerWithUI();
 }
@@ -227,3 +219,17 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 });
 
 app.Run();
+
+static async Task SeedApplicationDataAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+
+    var rolesSeeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
+    await rolesSeeder.SeedAsync();
+
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
+    await adminSeeder.SeedAsync();
+
+    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
+    await settingsSeeder.SeedAsync();
+}
