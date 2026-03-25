@@ -92,7 +92,7 @@ SuperAdmin__FirstName=Super
 SuperAdmin__LastName=Admin
 ```
 
-> **Importante:** configurare il file `.env` sul server **prima** di eseguire il deploy. Il seeder gira all'avvio dell'applicazione: se le variabili non sono presenti al primo avvio, non viene creato nessun SuperAdmin (solo un warning nei log). Dopo il primo deploy e la verifica dell'accesso, rimuovere la variabile `SuperAdmin__Password` dal file `.env` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
+> **Importante:** configurare il file `.env` sul server **prima** di eseguire il deploy. In produzione il seeder viene eseguito come step esplicito del deploy, dopo le migration e prima del riavvio dell'API. Se le variabili non sono presenti, non viene creato nessun SuperAdmin (solo un warning nei log). Dopo il primo deploy e la verifica dell'accesso, rimuovere la variabile `SuperAdmin__Password` dal file `.env` per sicurezza. Il seeder non sovrascrive un SuperAdmin esistente.
 
 ---
 

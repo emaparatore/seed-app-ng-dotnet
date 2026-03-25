@@ -106,8 +106,9 @@ Lo script `docker/scripts/migrate.sh` viene eseguito sulla VPS durante il deploy
 5. **Cleanup** — rimuove backup più vecchi di 7 giorni
 
 Il workflow `deploy.yml`:
-- Copia `scripts/migrate.sh` sulla VPS via SCP
-- Lo esegue dopo il `docker pull` e prima del `docker compose up -d`
+- Copia `scripts/migrate.sh` e `scripts/seed.sh` sulla VPS via SCP
+- Fa `docker pull` dell'immagine API da usare per migrazioni e bootstrap
+- Esegue `migrate.sh`, poi `seed.sh`, e solo dopo riavvia l'API
 - Dopo il restart, aspetta che `/health/ready` risponda (max 60 secondi)
 
 #### Validazione in CI

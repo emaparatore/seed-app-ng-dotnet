@@ -19,6 +19,8 @@ using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
 
+var seedOnly = args.Contains("--seed", StringComparer.OrdinalIgnoreCase);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) =>
@@ -172,16 +174,21 @@ if (app.Environment.IsDevelopment())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
 
-    var seeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
-    await seeder.SeedAsync();
+    if (!seedOnly)
+    {
+        await SeedApplicationDataAsync(app.Services);
+    }
 
-    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
-    await adminSeeder.SeedAsync();
+    if (!seedOnly)
+    {
+        app.UseSwaggerWithUI();
+    }
+}
 
-    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
-    await settingsSeeder.SeedAsync();
-
-    app.UseSwaggerWithUI();
+if (seedOnly)
+{
+    await SeedApplicationDataAsync(app.Services);
+    return;
 }
 
 app.UseExceptionHandler();
@@ -227,3 +234,17 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 });
 
 app.Run();
+
+static async Task SeedApplicationDataAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+
+    var rolesSeeder = scope.ServiceProvider.GetRequiredService<RolesAndPermissionsSeeder>();
+    await rolesSeeder.SeedAsync();
+
+    var adminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
+    await adminSeeder.SeedAsync();
+
+    var settingsSeeder = scope.ServiceProvider.GetRequiredService<SystemSettingsSeeder>();
+    await settingsSeeder.SeedAsync();
+}
