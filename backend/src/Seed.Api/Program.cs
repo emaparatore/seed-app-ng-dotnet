@@ -19,8 +19,6 @@ using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
 
-var seedOnly = args.Contains("--seed", StringComparer.OrdinalIgnoreCase);
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) =>
@@ -173,22 +171,9 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
-
-    if (!seedOnly)
-    {
-        await SeedApplicationDataAsync(app.Services);
-    }
-
-    if (!seedOnly)
-    {
-        app.UseSwaggerWithUI();
-    }
-}
-
-if (seedOnly)
-{
     await SeedApplicationDataAsync(app.Services);
-    return;
+
+    app.UseSwaggerWithUI();
 }
 
 app.UseExceptionHandler();

@@ -4,7 +4,8 @@ set -euo pipefail
 # =============================================================================
 # Application Seeding Script
 # Runs idempotent bootstrap data initialization (roles, permissions, settings,
-# and initial SuperAdmin) using the API image, without starting the HTTP server.
+# and initial SuperAdmin) using the dedicated bootstrap runner shipped in the
+# API image.
 #
 # Usage: bash scripts/seed.sh
 # =============================================================================
@@ -57,7 +58,8 @@ done
 echo "[2/3] Running application seeding..."
 docker compose -f "$COMPOSE_FILE" run --rm --no-deps \
   -e ConnectionStrings__DefaultConnection="$ConnectionStrings__DefaultConnection" \
+  --entrypoint dotnet \
   api \
-  --seed
+  /app/bootstrap/Seed.Bootstrap.dll
 
 echo "[3/3] Seeding completed successfully."

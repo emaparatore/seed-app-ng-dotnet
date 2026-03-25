@@ -2,7 +2,7 @@
 
 ## Overview
 
-L'applicazione necessita di un'area amministrativa riservata che consenta al proprietario e ai suoi delegati di gestire utenti, ruoli, configurazioni e monitorare lo stato del sistema. L'accesso è regolato da un sistema di permessi granulari basato su ruoli (RBAC). Al primo avvio viene creato automaticamente un SuperAdmin, le cui credenziali sono lette da variabili d'ambiente.
+L'applicazione necessita di un'area amministrativa riservata che consenta al proprietario e ai suoi delegati di gestire utenti, ruoli, configurazioni e monitorare lo stato del sistema. L'accesso è regolato da un sistema di permessi granulari basato su ruoli (RBAC). Durante il bootstrap iniziale viene creato automaticamente un SuperAdmin, le cui credenziali sono lette da variabili d'ambiente.
 
 ---
 
@@ -49,7 +49,7 @@ Il sistema di autorizzazione si basa su tre concetti:
 
 ### RF-01: Seeding dell'Admin iniziale
 
-Il sistema crea automaticamente un utente SuperAdmin al primo avvio, se non ne esiste già uno. Le credenziali vengono lette da variabili d'ambiente (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRSTNAME`, `SEED_ADMIN_LASTNAME`). L'operazione è idempotente e avviene dopo le migration. Il nuovo utente ha il flag "deve cambiare password" attivo. L'evento viene registrato nel log di audit.
+Il sistema crea automaticamente un utente SuperAdmin durante il bootstrap iniziale, se non ne esiste già uno. Le credenziali vengono lette da variabili d'ambiente (`SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName`). L'operazione è idempotente e avviene dopo le migration. Il nuovo utente ha il flag "deve cambiare password" attivo. L'evento viene registrato nel log di audit.
 
 ### RF-02: Cambio password obbligatorio al primo accesso
 
@@ -133,11 +133,11 @@ Pagina con: stato DB, stato email, versione app, ambiente, uptime, utilizzo memo
 ### US-001: Primo accesso dell'admin
 
 **As a** proprietario dell'app,
-**I want** che un account SuperAdmin venga creato automaticamente al primo avvio con le credenziali configurate,
+**I want** che un account SuperAdmin venga creato automaticamente durante il bootstrap iniziale con le credenziali configurate,
 **So that** posso accedere immediatamente alla dashboard.
 
 **Acceptance Criteria:**
-- [ ] Se non esiste un SuperAdmin, il sistema ne crea uno leggendo `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRSTNAME`, `SEED_ADMIN_LASTNAME` dalle variabili d'ambiente
+- [ ] Se non esiste un SuperAdmin, il sistema ne crea uno leggendo `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName` dalle variabili d'ambiente
 - [ ] Se un SuperAdmin esiste già, l'operazione viene saltata senza errori
 - [ ] Il nuovo utente ha il flag `MustChangePassword = true`
 - [ ] L'operazione avviene dopo le migration del database
@@ -381,4 +381,4 @@ US-016 (system health) ── dipende da US-017
  -> Crescita indefinita per v1. Indici appropriati + paginazione lato server mantengono le performance accettabili. In RF-07 prevedere un campo `AuditLog.RetentionMonths` con default `0` (= nessun limite), così il giorno che serve basta implementare il job di cleanup.
 
 6. **Impostazioni di sistema — valori iniziali**: da dove vengono i valori di default delle impostazioni (RF-07)? Da `appsettings.json`? Hardcoded? Da migration?
- -> Hardcoded con seeding al primo avvio. I default sono definiti in una classe C# (`SystemSettingsDefaults`). Al primo avvio il seeder li scrive nel DB se mancano (idempotente, stesso pattern di RF-01). Da quel momento il `SettingsService` legge sempre e solo dal DB con cache in-memory + invalidazione al salvataggio.
+ -> Hardcoded con seeding al bootstrap iniziale. I default sono definiti in una classe C# (`SystemSettingsDefaults`). Durante il bootstrap il seeder li scrive nel DB se mancano (idempotente, stesso pattern di RF-01). Da quel momento il `SettingsService` legge sempre e solo dal DB con cache in-memory + invalidazione al salvataggio.

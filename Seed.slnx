@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="backend/src/Seed.Api/Seed.Api.csproj" />
+  <Project Path="backend/src/Seed.Bootstrap/Seed.Bootstrap.csproj" />
   <Project Path="backend/src/Seed.Application/Seed.Application.csproj" />
   <Project Path="backend/src/Seed.Domain/Seed.Domain.csproj" />
   <Project Path="backend/src/Seed.Infrastructure/Seed.Infrastructure.csproj" />
