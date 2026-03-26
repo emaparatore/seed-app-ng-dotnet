@@ -9,6 +9,7 @@ import {
   LoginRequest,
   MessageResponse,
   RegisterRequest,
+  ResendConfirmationEmailRequest,
   ResetPasswordRequest,
   User,
 } from '../models/auth.models';
@@ -76,6 +77,10 @@ export class AuthService {
     }
     this.clearAuth();
     this.router.navigate(['/login']);
+  }
+
+  resendConfirmationEmail(request: ResendConfirmationEmailRequest): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/resend-confirmation-email`, request);
   }
 
   forgotPassword(request: ForgotPasswordRequest): Observable<MessageResponse> {

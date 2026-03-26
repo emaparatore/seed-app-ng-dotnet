@@ -11,6 +11,7 @@ using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
+using Seed.Application.Auth.Commands.ResendConfirmationEmail;
 using Seed.Application.Auth.Commands.ChangePassword;
 using Seed.Application.Auth.Commands.DeleteAccount;
 using Seed.Application.Auth.Commands.ResetPassword;
@@ -37,6 +38,14 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
+    }
+
+    [HttpPost("resend-confirmation-email")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendConfirmationEmail(ResendConfirmationEmailCommand command)
+    {
+        var result = await sender.Send(command);
+        return Ok(new { message = result.Data });
     }
 
     [HttpPost("login")]
