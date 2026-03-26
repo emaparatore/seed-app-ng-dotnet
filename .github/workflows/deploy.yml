@@ -86,14 +86,16 @@ jobs:
 
       - name: Sync deploy scripts to VPS
         if: steps.check.outputs.should_deploy == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "docker/scripts/migrate.sh,docker/scripts/seed.sh"
-          target: "/opt/seed-app/"
-          strip_components: 1
+        run: |
+          install -m 600 /dev/null /tmp/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /opt/seed-app/scripts"
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/scripts/migrate.sh docker/scripts/seed.sh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/scripts/
+
+          echo "Verifying scripts exist on VPS..."
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "test -f /opt/seed-app/scripts/migrate.sh && test -f /opt/seed-app/scripts/seed.sh && echo 'OK: both scripts found' || { echo 'ERROR: scripts missing after copy'; exit 1; }"
+          rm -f /tmp/deploy_key
 
       - name: Deploy via SSH
         if: steps.check.outputs.should_deploy == 'true'
