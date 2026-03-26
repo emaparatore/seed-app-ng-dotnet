@@ -12,6 +12,7 @@ public class RefreshTokenCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
+    private readonly IPermissionService _permissionService;
     private readonly RefreshTokenCommandHandler _handler;
 
     public RefreshTokenCommandHandlerTests()
@@ -20,7 +21,12 @@ public class RefreshTokenCommandHandlerTests
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
         _tokenService = Substitute.For<ITokenService>();
-        _handler = new RefreshTokenCommandHandler(_tokenService, _userManager);
+        _permissionService = Substitute.For<IPermissionService>();
+        _permissionService.GetPermissionsAsync(Arg.Any<Guid>())
+            .Returns(new HashSet<string>() as IReadOnlySet<string>);
+        _userManager.GetRolesAsync(Arg.Any<ApplicationUser>())
+            .Returns(new List<string>());
+        _handler = new RefreshTokenCommandHandler(_tokenService, _userManager, _permissionService);
     }
 
     [Fact]
@@ -85,6 +91,10 @@ public class RefreshTokenCommandHandlerTests
 
         _tokenService.RefreshTokenAsync(command.RefreshToken).Returns(tokenResult);
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
+        _userManager.GetRolesAsync(user).Returns(new List<string> { "User" });
+
+        var permissions = new HashSet<string> { "Users.Read" } as IReadOnlySet<string>;
+        _permissionService.GetPermissionsAsync(userId).Returns(permissions);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -92,5 +102,7 @@ public class RefreshTokenCommandHandlerTests
         result.Data!.AccessToken.Should().Be("new-access");
         result.Data.RefreshToken.Should().Be("new-refresh");
         result.Data.User.Email.Should().Be("user@test.com");
+        result.Data.User.Roles.Should().Contain("User");
+        result.Data.Permissions.Should().Contain("Users.Read");
     }
 }

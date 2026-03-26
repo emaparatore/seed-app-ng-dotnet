@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
-import { AuthService } from 'shared-auth';
+import { AuthService, PermissionService } from 'shared-auth';
 import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
 
 @Component({
@@ -13,4 +13,5 @@ import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
 })
 export class App {
   protected readonly authService = inject(AuthService);
+  protected readonly permissionService = inject(PermissionService);
 }

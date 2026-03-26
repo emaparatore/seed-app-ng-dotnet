@@ -1,0 +1,40 @@
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 500px;
+}
+
+.permission-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.permission-group {
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.group-header {
+  margin-bottom: 6px;
+}
+
+.group-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.group-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding-left: 28px;
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 13px;
+  margin: 0;
+}

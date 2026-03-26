@@ -52,6 +52,28 @@ dotnet ef migrations add <MigrationName> --project src/Seed.Infrastructure --sta
 dotnet ef database update --project src/Seed.Infrastructure --startup-project src/Seed.Api
 ```
 
+### Bootstrap & Seeding
+
+`Seed.Bootstrap` is a dedicated console application for production initialization. It validates configuration and seeds required data (roles, permissions, admin user, system settings). Run once during initial deployment, before or after the API starts.
+
+```bash
+# Run locally
+dotnet run --project src/Seed.Bootstrap
+
+# In production, use Docker or run with environment variables
+ASPNETCORE_ENVIRONMENT=Production \
+ConnectionStrings__DefaultConnection="postgres://..." \
+JwtSettings__Secret="..." \
+dotnet run --project src/Seed.Bootstrap
+```
+
+To add a new seeder:
+1. Create a seeder class in `src/Seed.Infrastructure/Persistence/Seeders/`
+2. Register it in `InfrastructureServiceCollectionExtensions.cs`
+3. Call it in `src/Seed.Bootstrap/Program.cs` in the `SeedApplicationDataAsync` function
+
+See [docs/bootstrap-console.md](../docs/bootstrap-console.md) for full details.
+
 ## Frontend Web (Angular)
 
 Angular workspace at `frontend/web/` with 4 projects:
@@ -110,7 +132,7 @@ Connection string for local development: `Host=localhost;Database=seeddb;Usernam
 
 ## Database Migrations
 
-See `docs/production-migrations.md` for the full production migration strategy.
+See `docs/migration-strategy.md` for the full migration strategy (local and production).
 
 **Rules for production-safe migrations:**
 - **Always safe:** new table, nullable column, column with default value, new index
@@ -243,9 +265,11 @@ Keep the title short (<70 chars). Put details in the body, not the title. The PR
 Existing docs:
 - `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
 - `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
-- `docs/production-migrations.md` — Migration bundles, backup procedures, expand-contract patterns, rollback. Read before creating or modifying any EF Core migration.
+- `docs/migration-strategy.md` — Migration strategy for local (auto via MigrateAsync) and production (bundle + CI/CD). Backup, rollback, expand-contract patterns. Read before creating or modifying any EF Core migration.
 - `docs/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
 - `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
+- `docs/admin-dashboard.md` — Admin area: RBAC permissions, SuperAdmin seeding, user/role management, audit log, system settings, system health, navigation guards. Read when touching admin features, permissions, or audit logging.
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
+- `docs/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
 - `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.

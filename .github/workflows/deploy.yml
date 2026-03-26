@@ -5,6 +5,9 @@ on:
     workflows: ["Docker Publish"]
     types: [completed]
     branches: [master, dev]
+    # NOTE: `workflow_run` executes the workflow definition from the repository
+    # default branch. Keep that branch aligned with deploy fixes, otherwise runs
+    # triggered from `dev` can still execute an older deploy.yml.
 
 concurrency:
   group: deploy-${{ github.event.workflow_run.head_branch }}
@@ -62,7 +65,7 @@ jobs:
 
           if [ -z "$SERVICES" ]; then
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
-            echo "No images were built — skipping deploy."
+            echo "No images were built - skipping deploy."
           else
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
             echo "Deploying services: $SERVICES"
@@ -79,21 +82,24 @@ jobs:
       # OPTION A: Docker Compose on VPS via SSH (ACTIVE)
       # ============================================================
       # Required secrets (configure in repo Settings > Secrets):
-      #   DEPLOY_HOST    — VPS IP or hostname
-      #   DEPLOY_USER    — SSH user (e.g. "deploy")
-      #   DEPLOY_SSH_KEY — Private SSH key
-      #   GHCR_TOKEN     — GitHub PAT with read:packages scope
+      #   DEPLOY_HOST    - VPS IP or hostname
+      #   DEPLOY_USER    - SSH user (e.g. "deploy")
+      #   DEPLOY_SSH_KEY - Private SSH key
+      #   GHCR_TOKEN     - GitHub PAT with read:packages scope
 
-      - name: Sync migration scripts to VPS
+      - name: Sync deploy scripts to VPS
         if: steps.check.outputs.should_deploy == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "docker/scripts/"
-          target: "/opt/seed-app/"
-          strip_components: 1
+        run: |
+          install -m 600 /dev/null /tmp/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /opt/seed-app/scripts /opt/seed-app/backups"
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/scripts/
+
+          echo "Verifying scripts exist on VPS..."
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "chmod 755 /opt/seed-app/scripts/*.sh && ls -l /opt/seed-app/scripts && test -f /opt/seed-app/scripts/migrate.sh && test -f /opt/seed-app/scripts/seed.sh && test -f /opt/seed-app/scripts/restore.sh && echo 'OK: deploy scripts synced'" \
+            || { echo 'ERROR: deploy scripts missing after copy'; exit 1; }
+          rm -f /tmp/deploy_key
 
       - name: Deploy via SSH
         if: steps.check.outputs.should_deploy == 'true'
@@ -103,30 +109,72 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -eu
+
             if [ -f /opt/seed-app/docker-compose.deploy.yml ]; then
               DEPLOY_DIR=/opt/seed-app
+              COMPOSE_FILE=/opt/seed-app/docker-compose.deploy.yml
             elif [ -f /opt/seed-app/docker/docker-compose.deploy.yml ]; then
               DEPLOY_DIR=/opt/seed-app/docker
+              COMPOSE_FILE=/opt/seed-app/docker/docker-compose.deploy.yml
             else
               echo "docker-compose.deploy.yml not found in /opt/seed-app or /opt/seed-app/docker"
               exit 1
             fi
+
+            SCRIPT_DIR=/opt/seed-app/scripts
+
+            if [ ! -f "$SCRIPT_DIR/migrate.sh" ]; then
+              echo "Migration script not found at $SCRIPT_DIR/migrate.sh"
+              exit 1
+            fi
+
+            if [ ! -f "$SCRIPT_DIR/seed.sh" ]; then
+              echo "Seed script not found at $SCRIPT_DIR/seed.sh"
+              exit 1
+            fi
+
+            if [ ! -f "$SCRIPT_DIR/restore.sh" ]; then
+              echo "Restore script not found at $SCRIPT_DIR/restore.sh"
+              exit 1
+            fi
+
+            echo "Deploy directory: $DEPLOY_DIR"
+            echo "Compose file: $COMPOSE_FILE"
+            echo "Available deploy scripts:"
+            ls -l "$SCRIPT_DIR"
+
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
-            # Always run migrations (efbundle is idempotent — safe to run even with no pending changes)
+
+            echo "Pulling API image for migrations and seeding..."
+            docker compose -f "$COMPOSE_FILE" pull api
+
             echo "Running database migrations..."
-            bash scripts/migrate.sh
-            echo "Migrations complete."
+            if COMPOSE_FILE="$COMPOSE_FILE" bash "$SCRIPT_DIR/migrate.sh"; then
+              echo "Migrations complete."
+            else
+              MIGRATE_EXIT=$?
+              echo "ERROR: Database migrations failed with exit code $MIGRATE_EXIT."
+              exit "$MIGRATE_EXIT"
+            fi
+
+            echo "Running application seeding..."
+            if COMPOSE_FILE="$COMPOSE_FILE" bash "$SCRIPT_DIR/seed.sh"; then
+              echo "Application seeding complete."
+            else
+              SEED_EXIT=$?
+              echo "ERROR: Application seeding failed with exit code $SEED_EXIT."
+              exit "$SEED_EXIT"
+            fi
 
             if [ "${{ steps.check.outputs.api }}" = "success" ]; then
-              docker compose -f docker-compose.deploy.yml pull api
-              docker compose -f docker-compose.deploy.yml up -d --no-deps api
+              docker compose -f "$COMPOSE_FILE" up -d --no-deps api
 
-              # Wait for API to become healthy
               echo "Waiting for API health check..."
               for i in $(seq 1 30); do
-                if docker compose -f docker-compose.deploy.yml exec -T api curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; then
+                if docker compose -f "$COMPOSE_FILE" exec -T api curl -sf http://localhost:8080/health/ready > /dev/null 2>&1; then
                   echo "API is healthy."
                   break
                 fi
@@ -137,10 +185,12 @@ jobs:
                 sleep 2
               done
             fi
+
             if [ "${{ steps.check.outputs.web }}" = "success" ]; then
-              docker compose -f docker-compose.deploy.yml pull web
-              docker compose -f docker-compose.deploy.yml up -d --no-deps web
+              docker compose -f "$COMPOSE_FILE" pull web
+              docker compose -f "$COMPOSE_FILE" up -d --no-deps web
             fi
+
             docker image prune -f
 
       # ============================================================

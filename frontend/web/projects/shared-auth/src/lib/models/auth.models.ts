@@ -3,6 +3,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  roles: string[];
 }
 
 export interface LoginRequest {
@@ -22,6 +23,13 @@ export interface AuthResponse {
   refreshToken: string;
   expiresAt: string;
   user: User;
+  permissions: string[];
+  mustChangePassword: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface ForgotPasswordRequest {

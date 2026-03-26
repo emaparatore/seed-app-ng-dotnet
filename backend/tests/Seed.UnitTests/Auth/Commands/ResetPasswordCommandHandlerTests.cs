@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 using Seed.Application.Auth.Commands.ResetPassword;
+using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
 
 namespace Seed.UnitTests.Auth.Commands;
@@ -16,7 +17,8 @@ public class ResetPasswordCommandHandlerTests
         var store = Substitute.For<IUserStore<ApplicationUser>>();
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
-        _handler = new ResetPasswordCommandHandler(_userManager);
+        var auditService = Substitute.For<IAuditService>();
+        _handler = new ResetPasswordCommandHandler(_userManager, auditService);
     }
 
     [Fact]

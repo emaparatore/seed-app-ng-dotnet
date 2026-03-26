@@ -1,0 +1,254 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+  }
+}
+
+// Role header
+.role-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.role-icon-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary, #6750a4);
+  color: var(--mat-sys-on-primary, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.role-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  .role-description {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    font-size: 14px;
+  }
+}
+
+.role-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.system-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.user-count {
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+}
+
+// Detail grid
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
+}
+
+.detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+// Info list
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
+
+.info-value {
+  font-size: 14px;
+}
+
+// Permissions
+.permissions-card {
+  grid-column: 1 / -1;
+}
+
+.readonly-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #fff3e0;
+  color: #e65100;
+  margin-left: 12px;
+}
+
+.no-permissions {
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
+
+.permission-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.permission-group {
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.group-header {
+  margin-bottom: 8px;
+}
+
+.group-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.group-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-left: 28px;
+}
+
+// Error state
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--mat-sys-error, #b3261e);
+  }
+
+  p {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    margin: 0;
+  }
+}
+
+// Skeleton loading
+.skeleton-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-icon-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container-high, #ece6f0);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--mat-sys-surface-container-high, #ece6f0);
+  animation: pulse 1.5s ease-in-out infinite;
+
+  &.wide {
+    width: 200px;
+  }
+
+  &.medium {
+    width: 140px;
+  }
+}
+
+.skeleton-card {
+  height: 200px;
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container, #f3edf7);
+  animation: pulse 1.5s ease-in-out infinite;
+
+  &.tall {
+    height: 300px;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

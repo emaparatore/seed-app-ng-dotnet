@@ -11,6 +11,7 @@ using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
+using Seed.Application.Auth.Commands.ChangePassword;
 using Seed.Application.Auth.Commands.DeleteAccount;
 using Seed.Application.Auth.Commands.ResetPassword;
 using Seed.Application.Auth.Queries.GetCurrentUser;
@@ -42,7 +43,12 @@ public class AuthController(ISender sender) : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> Login(LoginCommand command)
     {
-        var result = await sender.Send(command);
+        var enrichedCommand = command with
+        {
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        var result = await sender.Send(enrichedCommand);
         return result.Succeeded ? Ok(result.Data) : Unauthorized(new { errors = result.Errors });
     }
 
@@ -58,7 +64,9 @@ public class AuthController(ISender sender) : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(LogoutCommand command)
     {
-        var result = await sender.Send(command);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var enrichedCommand = command with { UserId = userId };
+        var result = await sender.Send(enrichedCommand);
         return result.Succeeded ? NoContent() : BadRequest(new { errors = result.Errors });
     }
 
@@ -76,6 +84,17 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(command);
         return result.Succeeded ? Ok(new { message = result.Data }) : BadRequest(new { errors = result.Errors });
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var command = new ChangePasswordCommand(userId, request.CurrentPassword, request.NewPassword);
+        var result = await sender.Send(command);
+        return result.Succeeded ? Ok(new { message = "Password changed successfully." }) : BadRequest(new { errors = result.Errors });
     }
 
     [Authorize]

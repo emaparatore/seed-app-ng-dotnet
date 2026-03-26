@@ -21,7 +21,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
+<ItemGroup>
     <ProjectReference Include="..\..\src\Seed.Api\Seed.Api.csproj" />
     <ProjectReference Include="..\..\src\Seed.Infrastructure\Seed.Infrastructure.csproj" />
   </ItemGroup>

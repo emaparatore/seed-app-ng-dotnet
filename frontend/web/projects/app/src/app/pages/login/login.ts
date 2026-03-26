@@ -32,7 +32,13 @@ export class Login {
     this.error.set(null);
 
     this.authService.login(this.form.getRawValue()).subscribe({
-      next: () => this.router.navigate(['/']),
+      next: () => {
+        if (this.authService.mustChangePassword()) {
+          this.router.navigate(['/change-password']);
+        } else {
+          this.router.navigate(['/']);
+        }
+      },
       error: (err) => {
         this.error.set(err.error?.errors?.[0] ?? 'Login failed.');
         this.loading.set(false);

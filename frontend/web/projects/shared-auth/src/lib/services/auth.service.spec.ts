@@ -15,7 +15,9 @@ describe('AuthService', () => {
     accessToken: 'test-access-token',
     refreshToken: 'test-refresh-token',
     expiresAt: '2026-12-31T00:00:00Z',
-    user: { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe' },
+    user: { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe', roles: [] },
+    permissions: [],
+    mustChangePassword: false,
   };
 
   beforeEach(() => {
