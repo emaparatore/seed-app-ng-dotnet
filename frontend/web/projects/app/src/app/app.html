@@ -12,6 +12,9 @@
     <a class="user-name-link" routerLink="/profile">
       {{ authService.currentUser()?.firstName }} {{ authService.currentUser()?.lastName }}
     </a>
+    <a class="user-icon-link" routerLink="/profile" aria-label="Profile">
+      <mat-icon>account_circle</mat-icon>
+    </a>
     <button mat-button type="button" (click)="authService.logout()">Logout</button>
   } @else {
     <button mat-button type="button" routerLink="/login">Login</button>

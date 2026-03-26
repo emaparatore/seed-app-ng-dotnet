@@ -2,12 +2,13 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { AuthService, PermissionService } from 'shared-auth';
 import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, PwaInstallPrompt],
+  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, PwaInstallPrompt],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

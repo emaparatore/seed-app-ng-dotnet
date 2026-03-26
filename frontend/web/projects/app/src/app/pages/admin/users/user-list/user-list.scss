@@ -288,3 +288,22 @@ th.mat-mdc-header-cell {
     min-width: min(100%, 220px);
   }
 }
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .filters-bar {
+    gap: 8px;
+  }
+
+  .filter-field {
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .search-field {
+    min-width: 100%;
+  }
+}
