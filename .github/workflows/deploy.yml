@@ -5,6 +5,9 @@ on:
     workflows: ["Docker Publish"]
     types: [completed]
     branches: [master, dev]
+    # NOTE: `workflow_run` executes the workflow definition from the repository
+    # default branch. Keep that branch aligned with deploy fixes, otherwise runs
+    # triggered from `dev` can still execute an older deploy.yml.
 
 concurrency:
   group: deploy-${{ github.event.workflow_run.head_branch }}
@@ -89,12 +92,13 @@ jobs:
         run: |
           install -m 600 /dev/null /tmp/deploy_key
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /opt/seed-app/scripts"
-          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/scripts/migrate.sh docker/scripts/seed.sh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/scripts/
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /opt/seed-app/scripts /opt/seed-app/backups"
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/scripts/
 
           echo "Verifying scripts exist on VPS..."
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "test -f /opt/seed-app/scripts/migrate.sh && test -f /opt/seed-app/scripts/seed.sh && echo 'OK: both scripts found' || { echo 'ERROR: scripts missing after copy'; exit 1; }"
+            "chmod 755 /opt/seed-app/scripts/*.sh && ls -l /opt/seed-app/scripts && test -f /opt/seed-app/scripts/migrate.sh && test -f /opt/seed-app/scripts/seed.sh && test -f /opt/seed-app/scripts/restore.sh && echo 'OK: deploy scripts synced'" \
+            || { echo 'ERROR: deploy scripts missing after copy'; exit 1; }
           rm -f /tmp/deploy_key
 
       - name: Deploy via SSH
@@ -105,7 +109,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            set -euo pipefail
+            set -eu
 
             if [ -f /opt/seed-app/docker-compose.deploy.yml ]; then
               DEPLOY_DIR=/opt/seed-app
@@ -118,15 +122,27 @@ jobs:
               exit 1
             fi
 
-            if [ ! -f /opt/seed-app/scripts/migrate.sh ]; then
-              echo "Migration script not found at /opt/seed-app/scripts/migrate.sh"
+            SCRIPT_DIR=/opt/seed-app/scripts
+
+            if [ ! -f "$SCRIPT_DIR/migrate.sh" ]; then
+              echo "Migration script not found at $SCRIPT_DIR/migrate.sh"
               exit 1
             fi
 
-            if [ ! -f /opt/seed-app/scripts/seed.sh ]; then
-              echo "Seed script not found at /opt/seed-app/scripts/seed.sh"
+            if [ ! -f "$SCRIPT_DIR/seed.sh" ]; then
+              echo "Seed script not found at $SCRIPT_DIR/seed.sh"
               exit 1
             fi
+
+            if [ ! -f "$SCRIPT_DIR/restore.sh" ]; then
+              echo "Restore script not found at $SCRIPT_DIR/restore.sh"
+              exit 1
+            fi
+
+            echo "Deploy directory: $DEPLOY_DIR"
+            echo "Compose file: $COMPOSE_FILE"
+            echo "Available deploy scripts:"
+            ls -l "$SCRIPT_DIR"
 
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
@@ -136,12 +152,22 @@ jobs:
             docker compose -f "$COMPOSE_FILE" pull api
 
             echo "Running database migrations..."
-            COMPOSE_FILE="$COMPOSE_FILE" bash /opt/seed-app/scripts/migrate.sh
-            echo "Migrations complete."
+            if COMPOSE_FILE="$COMPOSE_FILE" bash "$SCRIPT_DIR/migrate.sh"; then
+              echo "Migrations complete."
+            else
+              MIGRATE_EXIT=$?
+              echo "ERROR: Database migrations failed with exit code $MIGRATE_EXIT."
+              exit "$MIGRATE_EXIT"
+            fi
 
             echo "Running application seeding..."
-            COMPOSE_FILE="$COMPOSE_FILE" bash /opt/seed-app/scripts/seed.sh
-            echo "Application seeding complete."
+            if COMPOSE_FILE="$COMPOSE_FILE" bash "$SCRIPT_DIR/seed.sh"; then
+              echo "Application seeding complete."
+            else
+              SEED_EXIT=$?
+              echo "ERROR: Application seeding failed with exit code $SEED_EXIT."
+              exit "$SEED_EXIT"
+            fi
 
             if [ "${{ steps.check.outputs.api }}" = "success" ]; then
               docker compose -f "$COMPOSE_FILE" up -d --no-deps api
