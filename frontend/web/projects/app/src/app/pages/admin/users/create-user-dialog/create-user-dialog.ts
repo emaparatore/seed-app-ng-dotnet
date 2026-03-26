@@ -32,7 +32,7 @@ export interface CreateUserDialogData {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      min-width: 400px;
+      min-width: min(400px, 70vw);
     }
 
     .name-row {
@@ -58,6 +58,13 @@ export interface CreateUserDialogData {
       color: var(--mat-sys-error, #b3261e);
       font-size: 13px;
       margin: 0;
+    }
+
+    @media (max-width: 480px) {
+      .name-row {
+        flex-direction: column;
+        gap: 0;
+      }
     }
   `,
 })

@@ -212,3 +212,29 @@ table {
     opacity: 0.5;
   }
 }
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 12px;
+
+    h1 {
+      font-size: 20px;
+    }
+  }
+
+  .filters-bar {
+    gap: 8px;
+  }
+
+  .filter-field,
+  .search-field,
+  .action-filter {
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .detail-content {
+    padding: 12px 16px;
+  }
+}
