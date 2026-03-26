@@ -34,6 +34,20 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
+          @switch (resendStatus()) {
+            @case ('idle') {
+              <button mat-button (click)="resendEmail()">Resend confirmation email</button>
+            }
+            @case ('loading') {
+              <button mat-button disabled>Sending...</button>
+            }
+            @case ('success') {
+              <span class="success-message">Confirmation email sent! Check your inbox.</span>
+            }
+            @case ('error') {
+              <button mat-button (click)="resendEmail()">Try again</button>
+            }
+          }
           <a mat-button routerLink="/login">Go to login</a>
         </mat-card-actions>
       }

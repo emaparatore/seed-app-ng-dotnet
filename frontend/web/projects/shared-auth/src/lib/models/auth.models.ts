@@ -42,6 +42,10 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
+export interface ResendConfirmationEmailRequest {
+  email: string;
+}
+
 export interface DeleteAccountRequest {
   password: string;
 }

@@ -6,6 +6,24 @@
     <mat-card-content>
       @if (error()) {
         <p class="error-message">{{ error() }}</p>
+        @if (showResendOption()) {
+          @switch (resendStatus()) {
+            @case ('idle') {
+              <button mat-button type="button" (click)="resendConfirmationEmail()">
+                Resend confirmation email
+              </button>
+            }
+            @case ('loading') {
+              <button mat-button type="button" disabled>Sending...</button>
+            }
+            @case ('success') {
+              <p class="success-message">Confirmation email sent! Check your inbox.</p>
+            }
+            @case ('error') {
+              <button mat-button type="button" (click)="resendConfirmationEmail()">Try again</button>
+            }
+          }
+        }
       }
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="full-width">
