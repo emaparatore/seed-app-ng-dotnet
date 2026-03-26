@@ -91,7 +91,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "docker/scripts/"
+          source: "docker/scripts/migrate.sh,docker/scripts/seed.sh"
           target: "/opt/seed-app/"
           strip_components: 1
 
