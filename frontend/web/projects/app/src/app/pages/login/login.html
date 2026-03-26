@@ -6,24 +6,6 @@
     <mat-card-content>
       @if (error()) {
         <p class="error-message">{{ error() }}</p>
-        @if (showResendOption()) {
-          @switch (resendStatus()) {
-            @case ('idle') {
-              <button mat-button type="button" (click)="resendConfirmationEmail()">
-                Resend confirmation email
-              </button>
-            }
-            @case ('loading') {
-              <button mat-button type="button" disabled>Sending...</button>
-            }
-            @case ('success') {
-              <p class="success-message">Confirmation email sent! Check your inbox.</p>
-            }
-            @case ('error') {
-              <button mat-button type="button" (click)="resendConfirmationEmail()">Try again</button>
-            }
-          }
-        }
       }
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="full-width">
@@ -49,6 +31,30 @@
           {{ loading() ? 'Logging in...' : 'Login' }}
         </button>
       </form>
+      @if (showResendOption()) {
+        <div class="resend-banner">
+          @switch (resendStatus()) {
+            @case ('idle') {
+              <p>Didn't receive the email?</p>
+              <button mat-flat-button color="accent" type="button" (click)="resendConfirmationEmail()">
+                Resend confirmation email
+              </button>
+            }
+            @case ('loading') {
+              <button mat-flat-button disabled type="button">Sending...</button>
+            }
+            @case ('success') {
+              <p class="success-message">Confirmation email sent! Check your inbox.</p>
+            }
+            @case ('error') {
+              <p>Something went wrong.</p>
+              <button mat-flat-button color="accent" type="button" (click)="resendConfirmationEmail()">
+                Try again
+              </button>
+            }
+          }
+        </div>
+      }
     </mat-card-content>
     <mat-card-actions align="end">
       <a mat-button routerLink="/forgot-password">Forgot password?</a>
