@@ -20,6 +20,8 @@ export class Login {
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
+  protected readonly showResendOption = signal(false);
+  protected readonly resendStatus = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -40,9 +42,22 @@ export class Login {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.errors?.[0] ?? 'Login failed.');
+        const errorMsg = err.error?.errors?.[0] ?? 'Login failed.';
+        this.error.set(errorMsg);
+        this.showResendOption.set(errorMsg.includes('verify your email'));
+        this.resendStatus.set('idle');
         this.loading.set(false);
       },
+    });
+  }
+
+  protected resendConfirmationEmail(): void {
+    const email = this.form.controls.email.value;
+    if (!email) return;
+    this.resendStatus.set('loading');
+    this.authService.resendConfirmationEmail({ email }).subscribe({
+      next: () => this.resendStatus.set('success'),
+      error: () => this.resendStatus.set('error'),
     });
   }
 }

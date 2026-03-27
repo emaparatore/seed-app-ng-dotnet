@@ -27,12 +27,25 @@ E' stato implementato un sistema completo di autenticazione JWT con refresh toke
           → genera Refresh Token opaco (30 giorni, salvato su DB)
           → ritorna token + dati utente (auto-login)
 
-1b. LOGIN (utente non verificato)
+1b. RE-INVIO EMAIL DI CONFERMA
+   Client → POST /api/v1/auth/resend-confirmation-email { email: "..." }
+   Server → cerca utente per email
+          → se non esiste, inattivo, o gia' confermato → ritorna SEMPRE successo (anti-enumerazione)
+          → se esiste e non confermato: genera nuovo token di verifica (ASP.NET Identity)
+          → costruisce link: {Client:BaseUrl}/confirm-email?email=...&token=...
+          → invia email via IEmailService
+          → ritorna SEMPRE successo (protezione email enumeration)
+
+   Accessibile da:
+   - Pagina /confirm-email (stato errore, es. link scaduto)
+   - Pagina /login (quando login fallisce per email non confermata)
+
+1c. LOGIN (utente non verificato)
    Client → POST /api/v1/auth/login
    Server → trova utente, verifica password
           → se EmailConfirmed == false → errore "verifica la tua email"
 
-1c. LOGIN (utente verificato)
+1d. LOGIN (utente verificato)
    Client → POST /api/v1/auth/login
    Server → verifica credenziali + EmailConfirmed
           → genera Access Token JWT (60 min)

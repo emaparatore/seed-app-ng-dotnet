@@ -187,3 +187,25 @@
     opacity: 0.5;
   }
 }
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .activity-item {
+    gap: 8px;
+  }
+
+  .activity-time {
+    font-size: 11px;
+  }
+}

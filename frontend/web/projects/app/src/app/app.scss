@@ -37,3 +37,24 @@
 .user-name-link:hover {
   text-decoration: underline;
 }
+
+.user-icon-link {
+  display: none;
+  color: inherit;
+  line-height: 0;
+}
+
+@media (max-width: 600px) {
+  .top-nav {
+    padding: 0 8px;
+  }
+
+  .user-name-link {
+    display: none;
+  }
+
+  .user-icon-link {
+    display: inline-flex;
+    align-items: center;
+  }
+}

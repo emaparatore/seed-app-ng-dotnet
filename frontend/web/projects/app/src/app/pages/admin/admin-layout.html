@@ -1,33 +1,55 @@
-<div class="admin-container">
-  <nav class="admin-sidebar">
+<mat-sidenav-container class="admin-container">
+  <mat-sidenav
+    [mode]="sidenavMode()"
+    [opened]="sidenavOpened()"
+    (openedChange)="sidenavOpened.set($event)"
+    class="admin-sidebar"
+  >
     <mat-nav-list>
-      <a mat-list-item routerLink="dashboard" routerLinkActive="active" *hasPermission="permissions.Dashboard.ViewStats">
+      <a mat-list-item routerLink="dashboard" routerLinkActive="active"
+         *hasPermission="permissions.Dashboard.ViewStats" (click)="onNavClick()">
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <span matListItemTitle>Dashboard</span>
       </a>
-      <a mat-list-item routerLink="users" routerLinkActive="active" *hasPermission="permissions.Users.Read">
+      <a mat-list-item routerLink="users" routerLinkActive="active"
+         *hasPermission="permissions.Users.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>people</mat-icon>
         <span matListItemTitle>Utenti</span>
       </a>
-      <a mat-list-item routerLink="roles" routerLinkActive="active" *hasPermission="permissions.Roles.Read">
+      <a mat-list-item routerLink="roles" routerLinkActive="active"
+         *hasPermission="permissions.Roles.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
         <span matListItemTitle>Ruoli</span>
       </a>
-      <a mat-list-item routerLink="audit-log" routerLinkActive="active" *hasPermission="permissions.AuditLog.Read">
+      <a mat-list-item routerLink="audit-log" routerLinkActive="active"
+         *hasPermission="permissions.AuditLog.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>history</mat-icon>
         <span matListItemTitle>Audit Log</span>
       </a>
-      <a mat-list-item routerLink="settings" routerLinkActive="active" *hasPermission="permissions.Settings.Read">
+      <a mat-list-item routerLink="settings" routerLinkActive="active"
+         *hasPermission="permissions.Settings.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>settings</mat-icon>
         <span matListItemTitle>Impostazioni</span>
       </a>
-      <a mat-list-item routerLink="system-health" routerLinkActive="active" *hasPermission="permissions.SystemHealth.Read">
+      <a mat-list-item routerLink="system-health" routerLinkActive="active"
+         *hasPermission="permissions.SystemHealth.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>monitor_heart</mat-icon>
         <span matListItemTitle>Stato Sistema</span>
       </a>
     </mat-nav-list>
-  </nav>
-  <main class="admin-content">
-    <router-outlet />
-  </main>
-</div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="admin-content-wrapper">
+    @if (isMobile()) {
+      <div class="mobile-header">
+        <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="mobile-title">Admin</span>
+      </div>
+    }
+    <main class="admin-content">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

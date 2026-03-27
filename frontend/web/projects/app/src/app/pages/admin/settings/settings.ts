@@ -267,6 +267,21 @@ import { SettingsGroup, SystemSetting, UpdateSettingItem } from './settings.mode
         opacity: 0.5;
       }
     }
+
+    @media (max-width: 768px) {
+      .settings-page {
+        max-width: 100%;
+      }
+
+      .page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+
+        h1 {
+          font-size: 20px;
+        }
+      }
+    }
   `,
 })
 export class SettingsComponent implements OnInit {

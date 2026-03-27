@@ -51,6 +51,7 @@ export class RoleList implements OnInit {
   protected openCreateDialog(): void {
     const dialogRef = this.dialog.open(CreateRoleDialog, {
       width: '600px',
+      maxWidth: '95vw',
       data: { existingRoles: this.roles() },
     });
 
@@ -79,6 +80,7 @@ export class RoleList implements OnInit {
 
     const dialogRef = this.dialog.open(ConfirmDialog, {
       width: '400px',
+      maxWidth: '95vw',
       data: {
         title: 'Elimina ruolo',
         message,

@@ -125,6 +125,7 @@ export class UserList implements OnInit {
   protected openCreateDialog(): void {
     const dialogRef = this.dialog.open(CreateUserDialog, {
       width: '500px',
+      maxWidth: '95vw',
       data: { roles: this.roles() },
     });
 

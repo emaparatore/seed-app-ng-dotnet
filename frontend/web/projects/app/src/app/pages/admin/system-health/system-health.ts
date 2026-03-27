@@ -338,6 +338,27 @@ import { SystemHealth } from './system-health.models';
         opacity: 0.5;
       }
     }
+
+    @media (max-width: 768px) {
+      .health-page {
+        max-width: 100%;
+      }
+
+      .page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+
+        h1 {
+          font-size: 20px;
+        }
+      }
+
+      .status-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
   `,
 })
 export class SystemHealthComponent implements OnInit {
