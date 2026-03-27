@@ -152,6 +152,7 @@ docker compose version
 sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
+sudo ufw allow 8443/tcp   # staging (Cloudflare Origin Rule → porta 8443)
 sudo ufw enable
 ```
 
@@ -169,65 +170,79 @@ To                         Action      From
 OpenSSH                    ALLOW       Anywhere
 80/tcp                     ALLOW       Anywhere
 443/tcp                    ALLOW       Anywhere
+8443/tcp                   ALLOW       Anywhere
 ```
 
 ---
 
 ## 5. Preparazione della Directory di Deploy
 
+Il deploy usa una struttura a due ambienti separati, entrambi sullo stesso VPS. Il CI/CD copia automaticamente i file nelle directory corrette ad ogni deploy; qui devi solo creare la struttura e configurare il file `.env`.
+
 ```bash
 sudo mkdir -p /opt/seed-app
 sudo chown deploy:deploy /opt/seed-app
-cd /opt/seed-app
 ```
 
-### Copia i file necessari dal repository
+### 5.1 Crea la struttura delle directory
 
-Puoi clonare il repo o copiare solo i file necessari. Ecco i file minimi:
+```bash
+mkdir -p /opt/seed-app/production/{scripts,nginx/templates}
+mkdir -p /opt/seed-app/staging/{scripts,nginx/templates}
+mkdir -p /opt/seed-app/backups/{production,staging}
+```
+
+La struttura finale sarà:
 
 ```
 /opt/seed-app/
-  docker-compose.deploy.yml
-  .env
-  nginx/
-    nginx.conf
-    templates/
-      default.conf.template
+├── production/
+│   ├── docker-compose.deploy.yml   ← copiato dal CI ad ogni deploy
+│   ├── .env                         ← creato manualmente (una volta sola)
+│   ├── nginx/                       ← copiato dal CI ad ogni deploy
+│   └── scripts/                     ← copiato dal CI ad ogni deploy
+├── staging/
+│   ├── docker-compose.deploy.yml
+│   ├── .env
+│   ├── nginx/
+│   └── scripts/
+└── backups/
+    ├── production/                  ← backup pre-migrazione production
+    └── staging/                     ← backup pre-migrazione staging
 ```
 
-**Opzione 1 — Clona il repo** (consigliato per la prima volta):
+### 5.2 Copia i file nginx (solo primo setup)
+
+Il CI/CD aggiorna i file nginx ad ogni deploy, ma per il primo avvio manuale dello stack devi copiarli tu. Dal tuo PC locale:
 
 ```bash
-cd /opt/seed-app
-git clone https://github.com/TUO_USERNAME/seed-app-ng-dotnet.git .
+scp docker/nginx/nginx.conf deploy@TUO_IP_VPS:/opt/seed-app/production/nginx/nginx.conf
+scp docker/nginx/templates/* deploy@TUO_IP_VPS:/opt/seed-app/production/nginx/templates/
 
-# I file sono nella cartella docker/, spostiamoci
-cd docker
-```
-
-> Nota: se cloni il repo, i comandi docker compose vanno eseguiti dalla cartella `docker/`.
-
-**Opzione 2 — Copia solo i file necessari** (con scp dal tuo PC locale):
-
-```bash
-# Dal tuo PC locale
-scp -r docker/docker-compose.deploy.yml docker/nginx deploy@TUO_IP_VPS:/opt/seed-app/
-scp docker/.env.prod.example deploy@TUO_IP_VPS:/opt/seed-app/.env
+# Stessa cosa per staging (stesso nginx.conf, il dominio viene dal .env)
+scp docker/nginx/nginx.conf deploy@TUO_IP_VPS:/opt/seed-app/staging/nginx/nginx.conf
+scp docker/nginx/templates/* deploy@TUO_IP_VPS:/opt/seed-app/staging/nginx/templates/
 ```
 
 ---
 
 ## 6. Configurazione delle Variabili d'Ambiente
 
+Ogni ambiente ha il proprio file `.env`. Crea i file partendo dall'esempio nel repo.
+
+### 6.1 Production
+
 ```bash
-cd /opt/seed-app    # o /opt/seed-app/docker se hai clonato il repo
-cp .env.prod.example .env  # se non l'hai gia copiato
-nano .env
+nano /opt/seed-app/production/.env
 ```
 
-Compila tutti i valori:
-
 ```env
+# --- Stack Configuration ---
+COMPOSE_PROJECT_NAME=seed-production
+NGINX_HTTP_PORT=80
+NGINX_HTTPS_PORT=443
+SEQ_PORT=8081
+
 # --- PostgreSQL ---
 POSTGRES_DB=seeddb
 POSTGRES_USER=seed
@@ -243,15 +258,53 @@ AllowedHosts=*
 DOMAIN_NAME=tuodominio.com
 GHCR_OWNER=tuo-github-username
 IMAGE_TAG=latest
+CLIENT_BASE_URL=https://tuodominio.com
 ```
 
-> **Nota su `AllowedHosts`**: il valore `*` e sicuro in questo setup perche l'API non e esposta direttamente — solo Nginx riceve traffico esterno e fa da reverse proxy. L'healthcheck interno usa `localhost`, quindi un valore restrittivo (es. solo il dominio) causerebbe il fallimento dell'healthcheck e il container risulterebbe "unhealthy".
+### 6.2 Staging
 
-> **Email SMTP (opzionale):** il file `.env.prod.example` include anche le variabili `Smtp__*` per l'invio di email transazionali (reset password, notifiche). Se non le configuri, il sistema logga le email in console. Per la configurazione completa (provider, record DNS, verifica dominio), vedi [Configurazione SMTP](smtp-configuration.md).
+```bash
+nano /opt/seed-app/staging/.env
+```
 
-> **SuperAdmin (bootstrap iniziale):** il file `.env.prod.example` include anche le variabili `SuperAdmin__*` per creare l'utente amministratore iniziale durante il deploy. Dopo il primo deploy e la verifica dell'accesso, rimuovi `SuperAdmin__Password` dal file `.env` per sicurezza. Per dettagli vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+```env
+# --- Stack Configuration ---
+COMPOSE_PROJECT_NAME=seed-staging
+NGINX_HTTP_PORT=8080
+NGINX_HTTPS_PORT=8443
+SEQ_PORT=8082
 
-> **IMPORTANTE**: usa password forti e uniche. Non committare mai il file `.env` su git.
+# --- PostgreSQL ---
+POSTGRES_DB=seeddb
+POSTGRES_USER=seed
+POSTGRES_PASSWORD=AltroPasswordForte456!
+
+# --- ASP.NET Core API ---
+ASPNETCORE_ENVIRONMENT=Staging
+ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=AltroPasswordForte456!
+JwtSettings__Secret=AltraSecretKeyRandomDiAlmeno32CaratteriAbc456
+AllowedHosts=*
+
+# --- VPS Deployment ---
+DOMAIN_NAME=staging.tuodominio.com
+GHCR_OWNER=tuo-github-username
+IMAGE_TAG=dev
+CLIENT_BASE_URL=https://staging.tuodominio.com
+```
+
+> **`COMPOSE_PROJECT_NAME`**: differenzia i container tra i due stack. Con `seed-production` i container si chiamano `seed-production-api-1`, con `seed-staging` diventano `seed-staging-api-1`. Senza questa variabile i nomi colliderebbero.
+
+> **Porte staging**: nginx staging ascolta su 8080 (HTTP) e 8443 (HTTPS). Una Cloudflare Origin Rule reindirizza il traffico `staging.tuodominio.com` alla porta 8443 del VPS.
+
+> **Database separato**: ogni stack ha il proprio volume postgres (`seed-production_postgres_data` vs `seed-staging_postgres_data`), quindi i dati sono completamente isolati.
+
+> **Nota su `AllowedHosts`**: il valore `*` e sicuro perche l'API non e esposta direttamente — solo Nginx riceve traffico esterno. L'healthcheck interno usa `localhost`, quindi un valore restrittivo causerebbe il fallimento dell'healthcheck.
+
+> **Email SMTP (opzionale):** le variabili `Smtp__*` configurano l'invio email. Se non le configuri, il sistema logga le email in console. Vedi [Configurazione SMTP](smtp-configuration.md).
+
+> **SuperAdmin (bootstrap iniziale):** aggiungi le variabili `SuperAdmin__*` al `.env` production per creare l'admin iniziale. Dopo il primo deploy, rimuovi `SuperAdmin__Password` per sicurezza. Vedi [Admin Dashboard](admin-dashboard.md#configurazione-iniziale).
+
+> **IMPORTANTE**: usa password forti e uniche per i due ambienti. Non committare mai i file `.env` su git.
 
 Per generare una password sicura:
 
@@ -278,8 +331,26 @@ Nel pannello Cloudflare > **DNS** > **Records**, crea:
 |------|------|--------|-------|-----|
 | A | @ | TUO_IP_VPS | Proxied (nuvola arancione) | Auto |
 | A | www | TUO_IP_VPS | Proxied (nuvola arancione) | Auto |
+| A | staging | TUO_IP_VPS | Proxied (nuvola arancione) | Auto |
 
 > **Proxied (nuvola arancione)** significa che il traffico passa attraverso Cloudflare (CDN, DDoS protection, caching). Se la nuvola e grigia, il traffico va diretto al server.
+
+### 7.3b Configurare la Cloudflare Origin Rule per staging
+
+Il container nginx staging ascolta sulla porta 8443, ma Cloudflare riceve il traffico sulla porta 443. Devi configurare una **Origin Rule** per reindirizzare il traffico di `staging.tuodominio.com` alla porta corretta sul VPS.
+
+Nel pannello Cloudflare > **Rules** > **Origin Rules**:
+
+1. Clicca **Create rule**
+2. **Rule name**: `Staging port redirect`
+3. **When incoming requests match**: usa "Custom filter expression":
+   ```
+   (http.host eq "staging.tuodominio.com")
+   ```
+4. **Then**: seleziona **Destination Port** → imposta `8443`
+5. Clicca **Deploy**
+
+Questo fa sì che Cloudflare si connetta al tuo VPS su porta 8443 quando il dominio e `staging.tuodominio.com`, mentre production continua su 443.
 
 ### 7.3 Cambiare i nameserver
 
@@ -341,9 +412,35 @@ curl -I https://tuodominio.com 2>/dev/null | grep -i cf-ray
 
 ---
 
+## 7b. Cloudflare Access — Protezione Staging
+
+Lo staging non deve essere pubblicamente accessibile. Cloudflare Access (piano Free, fino a 50 utenti) permette di proteggere `staging.tuodominio.com` con autenticazione via email/OTP, senza alcuna configurazione lato VPS.
+
+### Configurazione
+
+1. Nel pannello Cloudflare > **Zero Trust** (in alto a sinistra nel menu)
+2. Se e la prima volta, crea il tuo account Zero Trust (gratuito)
+3. Vai su **Access** > **Applications** > **Add an application**
+4. Scegli **Self-hosted**
+5. Configura:
+   - **Application name**: `Staging`
+   - **Application domain**: `staging.tuodominio.com`
+   - **Path**: lascia vuoto (protegge tutto)
+6. Nella sezione **Policies**, aggiungi una policy:
+   - **Policy name**: `Team`
+   - **Action**: Allow
+   - **Include**: Emails → inserisci le email autorizzate (es. la tua email di lavoro)
+7. Salva
+
+Da questo momento, chi tenta di accedere a `staging.tuodominio.com` vede una pagina di login Cloudflare Access e deve inserire la propria email. Cloudflare invia un codice OTP, e solo le email nella whitelist vengono autorizzate.
+
+---
+
 ## 8. Certificato SSL (Cloudflare Origin Certificate)
 
 Prima di avviare lo stack, dobbiamo configurare il certificato SSL per il tratto Cloudflare <-> VPS (modalita Full Strict). Usiamo un **Cloudflare Origin Certificate**, gratuito e valido 15 anni, senza bisogno di rinnovo.
+
+Il certificato wildcard `*.tuodominio.com` copre sia `tuodominio.com` che `staging.tuodominio.com`, quindi basta un solo certificato per entrambi gli ambienti.
 
 ### 8.1 Genera il certificato su Cloudflare
 
@@ -353,27 +450,47 @@ Prima di avviare lo stack, dobbiamo configurare il certificato SSL per il tratto
 4. Clicca **Create**
 5. **Copia subito** il certificato (Origin Certificate) e la chiave privata (Private Key) — la chiave privata non sara piu visibile dopo aver chiuso la pagina
 
-### 8.2 Salva i certificati sul server
+### 8.2 Salva i certificati sul server — production
+
+Il nome del volume Docker e derivato da `COMPOSE_PROJECT_NAME` nel `.env`. Con `COMPOSE_PROJECT_NAME=seed-production`, il volume si chiama `seed-production_certbot_conf`.
 
 ```bash
 # Crea il volume Docker e la directory per i certificati
-docker volume create seed-app-deploy_certbot_conf
-sudo mkdir -p /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
+docker volume create seed-production_certbot_conf
+sudo mkdir -p /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/
 
 # Salva il certificato (incolla il contenuto di "Origin Certificate")
-sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/fullchain.pem
+sudo nano /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/fullchain.pem
 
 # Salva la chiave privata (incolla il contenuto di "Private Key")
-sudo nano /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/privkey.pem
+sudo nano /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/privkey.pem
 ```
 
-> **Nota**: sostituisci `tuodominio.com` con il tuo dominio reale. Il percorso deve corrispondere alla variabile `DOMAIN_NAME` nel file `.env`.
+### 8.3 Salva i certificati sul server — staging
 
-### 8.3 Verifica
+Lo staging usa lo stesso wildcard certificate. Copia i file nel volume staging:
 
 ```bash
-# Controlla che i file esistano e non siano vuoti
-sudo ls -la /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
+docker volume create seed-staging_certbot_conf
+sudo mkdir -p /var/lib/docker/volumes/seed-staging_certbot_conf/_data/live/staging.tuodominio.com/
+
+# Copia gli stessi file (o incollali di nuovo)
+sudo cp /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/fullchain.pem \
+  /var/lib/docker/volumes/seed-staging_certbot_conf/_data/live/staging.tuodominio.com/fullchain.pem
+sudo cp /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/privkey.pem \
+  /var/lib/docker/volumes/seed-staging_certbot_conf/_data/live/staging.tuodominio.com/privkey.pem
+```
+
+> **Nota**: il percorso `live/<DOMAIN_NAME>/` deve corrispondere alla variabile `DOMAIN_NAME` nel file `.env` di ciascun ambiente.
+
+### 8.4 Verifica
+
+```bash
+# Production
+sudo ls -la /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/
+
+# Staging
+sudo ls -la /var/lib/docker/volumes/seed-staging_certbot_conf/_data/live/staging.tuodominio.com/
 ```
 
 Dovresti vedere `fullchain.pem` e `privkey.pem`, entrambi con dimensione > 0.
@@ -405,10 +522,10 @@ Se le immagini non sono ancora state pubblicate, puoi triggerare il workflow man
 
 Puoi verificare che le immagini esistano su: `https://github.com/TUO_USERNAME/TUO_REPO/pkgs/container`
 
-### 9.3 Avvia lo stack
+### 9.3 Avvia lo stack production
 
 ```bash
-cd /opt/seed-app    # o /opt/seed-app/docker se hai clonato il repo
+cd /opt/seed-app/production
 
 # Pull delle immagini
 docker compose -f docker-compose.deploy.yml pull
@@ -417,9 +534,11 @@ docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-### 9.4 Verifica
+### 9.4 Verifica production
 
 ```bash
+cd /opt/seed-app/production
+
 # Controlla che tutti i container siano running
 docker compose -f docker-compose.deploy.yml ps
 
@@ -441,30 +560,31 @@ docker compose -f docker-compose.deploy.yml logs web
 
 ### 9.5 Setup Migrazioni Database
 
-Dopo il primo deploy, configura la directory per i backup automatici del database. I backup vengono creati automaticamente prima di ogni migrazione durante il deploy.
+I backup vengono creati automaticamente prima di ogni migrazione durante il deploy, nelle directory:
+- Production: `/opt/seed-app/backups/production/`
+- Staging: `/opt/seed-app/backups/staging/`
 
-```bash
-# Crea la directory per i backup
-sudo mkdir -p /opt/seed-app/backups
-sudo chown deploy:deploy /opt/seed-app/backups
-```
-
-Copia gli script di migrazione dal repository (il deploy automatico li aggiorna ad ogni rilascio, ma per il primo deploy servono manualmente):
+Le directory sono state create al punto 5.1. Copia gli script di migrazione per il primo avvio manuale (il CI/CD li aggiornera automaticamente a ogni deploy):
 
 ```bash
 # Dal tuo PC locale
-scp -r docker/scripts deploy@TUO_IP_VPS:/opt/seed-app/
+scp docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
+  deploy@TUO_IP_VPS:/opt/seed-app/production/scripts/
+
+scp docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
+  deploy@TUO_IP_VPS:/opt/seed-app/staging/scripts/
 ```
 
 Verifica che gli script siano eseguibili:
 
 ```bash
 ssh deploy@TUO_IP_VPS
-ls -la /opt/seed-app/scripts/
+chmod 755 /opt/seed-app/production/scripts/*.sh /opt/seed-app/staging/scripts/*.sh
+ls -la /opt/seed-app/production/scripts/
 # Devi vedere migrate.sh, seed.sh e restore.sh con permessi di esecuzione
 ```
 
-> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` per backup + migrazioni e `scripts/seed.sh` per il bootstrap applicativo (ruoli, permessi, impostazioni e SuperAdmin iniziale tramite il runner `Seed.Bootstrap`). Se una di queste fasi fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni in `/opt/seed-app/backups/`. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
+> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` (backup + migrazioni EF Core) e `scripts/seed.sh` (bootstrap: ruoli, permessi, impostazioni, SuperAdmin). Se una di queste fasi fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
 
 ---
 
@@ -579,14 +699,17 @@ docker compose -f docker-compose.deploy.yml logs --tail 100 api
 
 ### Seq (dashboard log strutturati)
 
-Seq e accessibile solo da localhost (127.0.0.1:8081) per sicurezza. Accedi tramite SSH tunnel:
+Seq e accessibile solo da localhost per sicurezza (production su 8081, staging su 8082). Accedi tramite SSH tunnel:
 
 ```bash
-# Dal tuo PC locale
+# Production (dal tuo PC locale)
 ssh -L 8081:localhost:8081 deploy@TUO_IP_VPS
+
+# Staging (dal tuo PC locale)
+ssh -L 8082:localhost:8082 deploy@TUO_IP_VPS
 ```
 
-Poi apri nel browser: http://localhost:8081
+Poi apri nel browser: http://localhost:8081 (o 8082 per staging)
 
 ### Statistiche dei container
 
@@ -631,8 +754,9 @@ environment:
 **Soluzione**: imposta `AllowedHosts=*` nel `.env`. E sicuro perche l'API non e esposta direttamente — Nginx fa da reverse proxy.
 
 ```bash
-# Verifica dall'interno del container
-docker exec seed-api curl -f http://localhost:8080/health/ready
+# Verifica dall'interno del container (il nome e generato da COMPOSE_PROJECT_NAME)
+# production: seed-production-api-1, staging: seed-staging-api-1
+docker exec seed-production-api-1 curl -f http://localhost:8080/health/ready
 ```
 
 ### Angular SSR: "URL with hostname is not allowed"
@@ -646,8 +770,11 @@ docker exec seed-api curl -f http://localhost:8080/health/ready
 **Causa**: i file del certificato SSL non esistono o sono vuoti.
 
 ```bash
-# Verifica che i certificati esistano
-sudo ls -la /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/live/tuodominio.com/
+# Production
+sudo ls -la /var/lib/docker/volumes/seed-production_certbot_conf/_data/live/tuodominio.com/
+
+# Staging
+sudo ls -la /var/lib/docker/volumes/seed-staging_certbot_conf/_data/live/staging.tuodominio.com/
 ```
 
 Se mancano o sono vuoti, ripeti il punto 8 (Cloudflare Origin Certificate).
@@ -701,7 +828,13 @@ Verifica in ordine:
 ### Riavvio completo dello stack
 
 ```bash
-cd /opt/seed-app
+# Production
+cd /opt/seed-app/production
+docker compose -f docker-compose.deploy.yml down
+docker compose -f docker-compose.deploy.yml up -d
+
+# Staging
+cd /opt/seed-app/staging
 docker compose -f docker-compose.deploy.yml down
 docker compose -f docker-compose.deploy.yml up -d
 ```
@@ -711,6 +844,8 @@ docker compose -f docker-compose.deploy.yml up -d
 ---
 
 ## Comandi Utili — Cheat Sheet
+
+I comandi seguenti vanno eseguiti dalla directory dell'ambiente (`cd /opt/seed-app/production` oppure `cd /opt/seed-app/staging`).
 
 ```bash
 # Avvia lo stack
@@ -741,14 +876,73 @@ docker compose -f docker-compose.deploy.yml exec postgres pg_dump -U seed seeddb
 cat backup.sql | docker compose -f docker-compose.deploy.yml exec -T postgres psql -U seed seeddb
 
 # Esegui migrazioni manualmente (backup + migrazione)
-bash scripts/migrate.sh
+BACKUP_DIR=/opt/seed-app/backups/production bash scripts/migrate.sh
+# oppure per staging:
+BACKUP_DIR=/opt/seed-app/backups/staging bash scripts/migrate.sh
 
 # Esegui bootstrap applicativo manualmente
 bash scripts/seed.sh
 
 # Restore da backup pre-migrazione (interattivo)
-bash scripts/restore.sh /opt/seed-app/backups/seeddb_YYYYMMDD_HHMMSS.sql.gz
+bash scripts/restore.sh /opt/seed-app/backups/production/seeddb_YYYYMMDD_HHMMSS.sql.gz
 
 # Lista backup disponibili
-ls -lh /opt/seed-app/backups/
+ls -lh /opt/seed-app/backups/production/
+ls -lh /opt/seed-app/backups/staging/
 ```
+
+---
+
+## Migrazione dalla struttura precedente
+
+Se hai già un VPS con la struttura precedente (repo clonato in `/opt/seed-app/`), esegui questi passi per migrare alla nuova struttura senza perdere production.
+
+> ⚠️ Production avrà circa 1 minuto di downtime durante il riavvio dello stack.
+
+```bash
+# 1. Ferma lo stack corrente
+cd /opt/seed-app/docker
+docker compose -f docker-compose.deploy.yml down
+
+# 2. Crea la nuova struttura
+mkdir -p /opt/seed-app/production/{scripts,nginx/templates}
+mkdir -p /opt/seed-app/staging/{scripts,nginx/templates}
+mkdir -p /opt/seed-app/backups/{production,staging}
+
+# 3. Sposta i file production
+cp /opt/seed-app/docker/docker-compose.deploy.yml /opt/seed-app/production/
+cp /opt/seed-app/docker/.env /opt/seed-app/production/
+cp -r /opt/seed-app/docker/nginx/nginx.conf /opt/seed-app/production/nginx/
+cp -r /opt/seed-app/docker/nginx/templates/* /opt/seed-app/production/nginx/templates/
+cp /opt/seed-app/scripts/*.sh /opt/seed-app/production/scripts/ 2>/dev/null || true
+mv /opt/seed-app/backups/*.sql.gz /opt/seed-app/backups/production/ 2>/dev/null || true
+
+# 4. Aggiungi le nuove variabili al .env production
+echo "COMPOSE_PROJECT_NAME=seed-production" >> /opt/seed-app/production/.env
+echo "NGINX_HTTP_PORT=80" >> /opt/seed-app/production/.env
+echo "NGINX_HTTPS_PORT=443" >> /opt/seed-app/production/.env
+echo "SEQ_PORT=8081" >> /opt/seed-app/production/.env
+echo "CLIENT_BASE_URL=https://tuodominio.com" >> /opt/seed-app/production/.env
+
+# 5. Crea il volume SSL per il nuovo nome (seed-production_certbot_conf)
+docker volume create seed-production_certbot_conf
+sudo cp -r /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/* \
+  /var/lib/docker/volumes/seed-production_certbot_conf/_data/
+
+# 6. Avvia production con la nuova struttura
+cd /opt/seed-app/production
+docker compose -f docker-compose.deploy.yml up -d
+
+# 7. Verifica che production funzioni
+curl https://tuodominio.com/health/ready
+
+# 8. Apri porta firewall per staging
+sudo ufw allow 8443/tcp
+
+# 9. Rimuovi il vecchio repo clonato (dopo verifica)
+rm -rf /opt/seed-app/backend /opt/seed-app/frontend /opt/seed-app/.git /opt/seed-app/.github
+rm -rf /opt/seed-app/docs /opt/seed-app/.claude /opt/seed-app/CLAUDE.md /opt/seed-app/README.md
+rm -rf /opt/seed-app/.gitignore /opt/seed-app/Seed.slnx /opt/seed-app/docker /opt/seed-app/scripts
+```
+
+Dopo la migrazione, configura Cloudflare per staging (sezione 7.2, 7.3b e 7b) e crea il file `.env` per staging (sezione 6.2).

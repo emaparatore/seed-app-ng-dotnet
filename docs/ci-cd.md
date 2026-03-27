@@ -83,8 +83,22 @@ Alternative options (commented out in the workflow):
 - **Option C:** Kubernetes (kubectl)
 
 Uses GitHub Environments:
-- `staging` - auto-deploy on `dev` push
-- `production` - deploy on `master` push (configure required reviewers if needed)
+- `staging` - auto-deploy on `dev` push → deploys to `/opt/seed-app/staging/`
+- `production` - deploy on `master` push (configure required reviewers if needed) → deploys to `/opt/seed-app/production/`
+
+**Dual-environment deploy paths:**
+
+| Branch | Environment | Deploy dir | Backup dir | Image tag |
+|--------|-------------|------------|------------|-----------|
+| `master` | production | `/opt/seed-app/production` | `/opt/seed-app/backups/production` | `latest` |
+| `dev` | staging | `/opt/seed-app/staging` | `/opt/seed-app/backups/staging` | `dev` |
+
+The CI copies these files to the deploy dir on each run:
+- `docker/docker-compose.deploy.yml`
+- `docker/scripts/migrate.sh`, `seed.sh`, `restore.sh`
+- `docker/nginx/nginx.conf` and `docker/nginx/templates/*`
+
+The `.env` file in each deploy dir is **never overwritten by CI** — it must be created manually once (see [VPS Setup Guide](vps-setup-guide.md#6-configurazione-delle-variabili-dambiente)).
 
 ### 4. Hotfix Back-merge (`hotfix-backmerge.yml`)
 
@@ -113,8 +127,10 @@ Both `dev` and `master` have these rules:
 ### Environments
 
 **Settings > Environments:**
-- Create `staging` environment
+- Create `staging` environment (no required reviewers — auto-deploy)
 - Create `production` environment (add required reviewers when working in a team)
+
+> Both environments use the same repository secrets (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `GHCR_TOKEN`) since they deploy to the same VPS. The deploy dir is determined automatically from the branch.
 
 ## Caching
 
