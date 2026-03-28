@@ -177,22 +177,14 @@ OpenSSH                    ALLOW       Anywhere
 
 ## 5. Preparazione della Directory di Deploy
 
-Il deploy usa una struttura a due ambienti separati, entrambi sullo stesso VPS. Il CI/CD copia automaticamente i file nelle directory corrette ad ogni deploy; qui devi solo creare la struttura e configurare il file `.env`.
+Il deploy usa una struttura a due ambienti separati, entrambi sullo stesso VPS. Il CI/CD crea automaticamente le subdirectory e copia tutti i file (compose, nginx, scripts) ad ogni deploy; qui devi solo creare la directory root e configurare il file `.env`.
 
 ```bash
 sudo mkdir -p /opt/seed-app
 sudo chown deploy:deploy /opt/seed-app
 ```
 
-### 5.1 Crea la struttura delle directory
-
-```bash
-mkdir -p /opt/seed-app/production/{scripts,nginx/templates}
-mkdir -p /opt/seed-app/staging/{scripts,nginx/templates}
-mkdir -p /opt/seed-app/backups/{production,staging}
-```
-
-La struttura finale sarà:
+La struttura creata dal CI/CD ad ogni deploy sarà:
 
 ```
 /opt/seed-app/
@@ -211,18 +203,7 @@ La struttura finale sarà:
     └── staging/                     ← backup pre-migrazione staging
 ```
 
-### 5.2 Copia i file nginx (solo primo setup)
-
-Il CI/CD aggiorna i file nginx ad ogni deploy, ma per il primo avvio manuale dello stack devi copiarli tu. Dal tuo PC locale:
-
-```bash
-scp docker/nginx/nginx.conf deploy@TUO_IP_VPS:/opt/seed-app/production/nginx/nginx.conf
-scp docker/nginx/templates/* deploy@TUO_IP_VPS:/opt/seed-app/production/nginx/templates/
-
-# Stessa cosa per staging (stesso nginx.conf, il dominio viene dal .env)
-scp docker/nginx/nginx.conf deploy@TUO_IP_VPS:/opt/seed-app/staging/nginx/nginx.conf
-scp docker/nginx/templates/* deploy@TUO_IP_VPS:/opt/seed-app/staging/nginx/templates/
-```
+> **Nota**: non serve creare manualmente le subdirectory ne copiare file nginx o scripts — il CI/CD li crea e sincronizza automaticamente al primo deploy e a ogni deploy successivo.
 
 ---
 
@@ -497,102 +478,23 @@ Dovresti vedere `fullchain.pem` e `privkey.pem`, entrambi con dimensione > 0.
 
 ---
 
-## 9. Primo Deploy Manuale
+## 9. Configurazione GitHub Actions (Secrets + Environments)
 
-### 9.1 Login a GitHub Container Registry
+Prima di effettuare il primo deploy, configura i secrets e gli ambienti su GitHub. Servono una chiave SSH dedicata e un PAT per il pull delle immagini.
 
-Crea un Personal Access Token (PAT) su GitHub:
-1. Vai su GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic)
+### 9.1 Crea un Personal Access Token (PAT)
+
+1. Vai su GitHub > **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**
 2. Crea un nuovo token con lo scope `read:packages`
-3. Copia il token
+3. Copia il token — servira sia per il login manuale sul VPS che come GitHub Secret
+
+### 9.2 Login a GHCR sul VPS
 
 ```bash
 echo "IL_TUO_GITHUB_PAT" | docker login ghcr.io -u TUO_GITHUB_USERNAME --password-stdin
 ```
 
-### 9.2 Pubblica le immagini Docker (prima volta)
-
-Prima di poter fare il pull, le immagini devono esistere su GitHub Container Registry. Il workflow **Docker Publish** (`docker-publish.yml`) le pubblica automaticamente su push a `master` o `dev`, ma solo se ci sono modifiche in `backend/` o `frontend/web/`.
-
-Se le immagini non sono ancora state pubblicate, puoi triggerare il workflow manualmente:
-
-1. Vai su GitHub → **Actions** → **Docker Publish**
-2. Clicca **Run workflow** → seleziona il branch (`master` o `dev`) → **Run workflow**
-3. Attendi che il workflow completi con successo
-
-Puoi verificare che le immagini esistano su: `https://github.com/TUO_USERNAME/TUO_REPO/pkgs/container`
-
-### 9.3 Avvia lo stack production
-
-```bash
-cd /opt/seed-app/production
-
-# Pull delle immagini
-docker compose -f docker-compose.deploy.yml pull
-
-# Avvia tutti i servizi
-docker compose -f docker-compose.deploy.yml up -d
-```
-
-### 9.4 Verifica production
-
-```bash
-cd /opt/seed-app/production
-
-# Controlla che tutti i container siano running
-docker compose -f docker-compose.deploy.yml ps
-
-# Controlla i log (Ctrl+C per uscire)
-docker compose -f docker-compose.deploy.yml logs -f
-
-# Testa l'applicazione
-curl https://tuodominio.com/health/ready
-curl https://tuodominio.com
-```
-
-Se qualcosa non funziona, controlla i log del singolo servizio:
-
-```bash
-docker compose -f docker-compose.deploy.yml logs nginx
-docker compose -f docker-compose.deploy.yml logs api
-docker compose -f docker-compose.deploy.yml logs web
-```
-
-### 9.5 Setup Migrazioni Database
-
-I backup vengono creati automaticamente prima di ogni migrazione durante il deploy, nelle directory:
-- Production: `/opt/seed-app/backups/production/`
-- Staging: `/opt/seed-app/backups/staging/`
-
-Le directory sono state create al punto 5.1. Copia gli script di migrazione per il primo avvio manuale (il CI/CD li aggiornera automaticamente a ogni deploy):
-
-```bash
-# Dal tuo PC locale
-scp docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
-  deploy@TUO_IP_VPS:/opt/seed-app/production/scripts/
-
-scp docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
-  deploy@TUO_IP_VPS:/opt/seed-app/staging/scripts/
-```
-
-Verifica che gli script siano eseguibili:
-
-```bash
-ssh deploy@TUO_IP_VPS
-chmod 755 /opt/seed-app/production/scripts/*.sh /opt/seed-app/staging/scripts/*.sh
-ls -la /opt/seed-app/production/scripts/
-# Devi vedere migrate.sh, seed.sh e restore.sh con permessi di esecuzione
-```
-
-> **Come funziona**: durante ogni deploy, il CI/CD esegue automaticamente `scripts/migrate.sh` (backup + migrazioni EF Core) e `scripts/seed.sh` (bootstrap: ruoli, permessi, impostazioni, SuperAdmin). Se una di queste fasi fallisce, l'API vecchia resta attiva. I backup sono conservati per 7 giorni. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
-
----
-
-## 10. Configurazione GitHub Actions Secrets
-
-Per abilitare il deploy automatico dal CI/CD servono una chiave SSH dedicata e alcuni secrets su GitHub.
-
-### 10.1 Genera una chiave SSH dedicata al deploy
+### 9.3 Genera una chiave SSH dedicata al deploy
 
 Usa una chiave separata da quella personale, senza passphrase (le CI/CD non possono inserirla interattivamente — la chiave è già protetta dalla cifratura dei GitHub Secrets).
 
@@ -606,7 +508,7 @@ Quando chiede la passphrase, premi **Invio** due volte senza scrivere nulla.
 
 > Su Windows il file viene creato in `C:\Users\TUO_UTENTE\.ssh\deploy_key`.
 
-### 10.2 Aggiungi la chiave pubblica sul VPS
+### 9.4 Aggiungi la chiave pubblica sul VPS
 
 Copia il contenuto della chiave **pubblica** e aggiungilo alle authorized_keys dell'utente `deploy` sul server:
 
@@ -626,15 +528,15 @@ echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
 exit
 ```
 
-### 10.3 Verifica la connessione
+### 9.5 Verifica la connessione
 
 ```bash
 ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
 ```
 
-Deve entrare senza chiedere password né passphrase.
+Deve entrare senza chiedere password ne passphrase.
 
-### 10.4 Configura i secrets su GitHub
+### 9.6 Configura i secrets su GitHub
 
 1. Vai nel tuo repository GitHub > **Settings** > **Secrets and variables** > **Actions**
 2. Aggiungi questi **Repository secrets**:
@@ -658,13 +560,64 @@ cat ~/.ssh/deploy_key
 
 > Copia **tutto** il contenuto, incluse le righe `-----BEGIN` e `-----END`.
 
-### Ambienti (opzionale ma consigliato)
+### 9.7 Configura gli ambienti (opzionale ma consigliato)
 
 In **Settings > Environments**, configura:
 - **staging**: nessuna approvazione richiesta (auto-deploy su push a `dev`)
 - **production**: aggiungi reviewer richiesti (deploy su push a `master`)
 
 Se usi VPS separati per staging e production, configura secrets diversi per ogni environment.
+
+---
+
+## 10. Primo Deploy
+
+Con i secrets configurati al punto 9, il primo deploy avviene tramite CI/CD — non serve avviare lo stack manualmente. Il CI crea le directory, copia i file (compose, nginx, scripts), esegue le migrazioni, il seeding e avvia lo stack.
+
+### 10.1 Pubblica le immagini Docker e triggera il deploy
+
+1. Vai su GitHub → **Actions** → **Docker Publish**
+2. Clicca **Run workflow** → seleziona il branch (`master` per production, `dev` per staging)
+3. Spunta **Force API image rebuild** e **Force Web image rebuild**
+4. Clicca **Run workflow** e attendi che completi con successo
+
+Al termine del Docker Publish, il workflow **Deploy** parte automaticamente: copia i file sul VPS, esegue il pull delle immagini, le migrazioni, il seeding e avvia lo stack.
+
+Puoi verificare che le immagini esistano su: `https://github.com/TUO_USERNAME/TUO_REPO/pkgs/container`
+
+### 10.2 Verifica
+
+```bash
+cd /opt/seed-app/production
+
+# Controlla che tutti i container siano running
+docker compose -f docker-compose.deploy.yml ps
+
+# Controlla i log (Ctrl+C per uscire)
+docker compose -f docker-compose.deploy.yml logs -f
+
+# Testa l'applicazione
+curl https://tuodominio.com/health/ready
+curl https://tuodominio.com
+```
+
+Se qualcosa non funziona, controlla i log del singolo servizio:
+
+```bash
+docker compose -f docker-compose.deploy.yml logs nginx
+docker compose -f docker-compose.deploy.yml logs api
+docker compose -f docker-compose.deploy.yml logs web
+```
+
+### 10.3 Migrazioni Database
+
+Le migrazioni e il seeding vengono eseguiti automaticamente dal CI/CD ad ogni deploy — non serve copiare script ne eseguirli manualmente. Il CI copia gli script, esegue `migrate.sh` (backup + migrazioni EF Core) e `seed.sh` (bootstrap: ruoli, permessi, impostazioni, SuperAdmin). Se una di queste fasi fallisce, l'API vecchia resta attiva.
+
+I backup pre-migrazione vengono salvati in:
+- Production: `/opt/seed-app/backups/production/`
+- Staging: `/opt/seed-app/backups/staging/`
+
+I backup sono conservati per 7 giorni. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
 
 ---
 
@@ -895,7 +848,7 @@ ls -lh /opt/seed-app/backups/staging/
 
 ## Migrazione dalla struttura precedente
 
-Se hai già un VPS con la struttura precedente (repo clonato in `/opt/seed-app/`), esegui questi passi per migrare alla nuova struttura senza perdere production.
+Se hai già un VPS con la struttura precedente (repo clonato in `/opt/seed-app/`), esegui questi passi per migrare alla nuova struttura. Il CI/CD si occupa di copiare compose, nginx e scripts — qui devi solo spostare il `.env`, il volume SSL e i backup.
 
 > ⚠️ Production avrà circa 1 minuto di downtime durante il riavvio dello stack.
 
@@ -904,45 +857,37 @@ Se hai già un VPS con la struttura precedente (repo clonato in `/opt/seed-app/`
 cd /opt/seed-app/docker
 docker compose -f docker-compose.deploy.yml down
 
-# 2. Crea la nuova struttura
-mkdir -p /opt/seed-app/production/{scripts,nginx/templates}
-mkdir -p /opt/seed-app/staging/{scripts,nginx/templates}
-mkdir -p /opt/seed-app/backups/{production,staging}
+# 2. Crea la directory production e sposta il .env
+mkdir -p /opt/seed-app/production
+cp /opt/seed-app/docker/.env /opt/seed-app/production/.env
 
-# 3. Sposta i file production
-cp /opt/seed-app/docker/docker-compose.deploy.yml /opt/seed-app/production/
-cp /opt/seed-app/docker/.env /opt/seed-app/production/
-cp -r /opt/seed-app/docker/nginx/nginx.conf /opt/seed-app/production/nginx/
-cp -r /opt/seed-app/docker/nginx/templates/* /opt/seed-app/production/nginx/templates/
-cp /opt/seed-app/scripts/*.sh /opt/seed-app/production/scripts/ 2>/dev/null || true
-mv /opt/seed-app/backups/*.sql.gz /opt/seed-app/backups/production/ 2>/dev/null || true
-
-# 4. Aggiungi le nuove variabili al .env production
+# 3. Aggiungi le nuove variabili al .env production
 echo "COMPOSE_PROJECT_NAME=seed-production" >> /opt/seed-app/production/.env
 echo "NGINX_HTTP_PORT=80" >> /opt/seed-app/production/.env
 echo "NGINX_HTTPS_PORT=443" >> /opt/seed-app/production/.env
 echo "SEQ_PORT=8081" >> /opt/seed-app/production/.env
 echo "CLIENT_BASE_URL=https://tuodominio.com" >> /opt/seed-app/production/.env
 
+# 4. Sposta i backup esistenti
+mkdir -p /opt/seed-app/backups/{production,staging}
+mv /opt/seed-app/backups/*.sql.gz /opt/seed-app/backups/production/ 2>/dev/null || true
+
 # 5. Crea il volume SSL per il nuovo nome (seed-production_certbot_conf)
 docker volume create seed-production_certbot_conf
 sudo cp -r /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/* \
   /var/lib/docker/volumes/seed-production_certbot_conf/_data/
 
-# 6. Avvia production con la nuova struttura
-cd /opt/seed-app/production
-docker compose -f docker-compose.deploy.yml up -d
-
-# 7. Verifica che production funzioni
-curl https://tuodominio.com/health/ready
-
-# 8. Apri porta firewall per staging
+# 6. Apri porta firewall per staging
 sudo ufw allow 8443/tcp
 
-# 9. Rimuovi il vecchio repo clonato (dopo verifica)
+# 7. Rimuovi il vecchio repo clonato
 rm -rf /opt/seed-app/backend /opt/seed-app/frontend /opt/seed-app/.git /opt/seed-app/.github
 rm -rf /opt/seed-app/docs /opt/seed-app/.claude /opt/seed-app/CLAUDE.md /opt/seed-app/README.md
 rm -rf /opt/seed-app/.gitignore /opt/seed-app/Seed.slnx /opt/seed-app/docker /opt/seed-app/scripts
 ```
 
-Dopo la migrazione, configura Cloudflare per staging (sezione 7.2, 7.3b e 7b) e crea il file `.env` per staging (sezione 6.2).
+Dopo i passi manuali:
+
+1. **Triggera il deploy da GitHub Actions**: vai su **Docker Publish** → **Run workflow** su `master` → spunta **Force API** e **Force Web** → il deploy parte automaticamente e copia tutti i file, avvia lo stack e esegue le migrazioni
+2. **Verifica**: `curl https://tuodominio.com/health/ready`
+3. **Configura staging**: Cloudflare (sezione 7.2, 7.3b e 7b), crea il file `.env` per staging (sezione 6.2), volume SSL staging (sezione 8.3), poi triggera Docker Publish su `dev`

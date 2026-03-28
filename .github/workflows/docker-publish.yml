@@ -2,6 +2,17 @@ name: Docker Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      force_api:
+        description: "Force API image rebuild"
+        required: false
+        type: boolean
+        default: false
+      force_web:
+        description: "Force Web image rebuild"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [master, dev]
 
@@ -32,7 +43,7 @@ jobs:
 
   build-api:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || inputs.force_api == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +84,7 @@ jobs:
 
   build-web:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || inputs.force_web == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

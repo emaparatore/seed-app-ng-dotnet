@@ -44,6 +44,7 @@ Cloudflare Origin Rule su `staging.dominio.com` redirige il traffico alla porta 
 | Container names | Rimossi (generati dal compose project name) | Evita conflitti tra stack, il project name fa da prefisso |
 | Database staging | DB separato nello stack staging | Isolamento completo, dati di test non inquinano production |
 | Backup directory | `/opt/seed-app/backups/{production,staging}/` | Backup separati per ambiente |
+| Force publish | `docker-publish.yml` con input `force_api`/`force_web` | Permette il primo deploy senza operazioni manuali: il CI crea directory, copia file e avvia lo stack |
 
 ---
 
@@ -157,47 +158,41 @@ Riscrittura parziale per la nuova struttura:
 ### Task 8 (manuale, post-deploy): Migrazione VPS
 Questa è un'operazione manuale da fare sul VPS. Va documentata nella guida ma non è codice.
 
+Grazie al force publish su `docker-publish.yml` e al deploy automatico, i passi manuali sono ridotti al minimo — non serve copiare compose, nginx o scripts manualmente: il CI li copia al primo deploy.
+
 Passi:
 1. Fermare lo stack corrente: `cd /opt/seed-app/docker && docker compose -f docker-compose.deploy.yml down`
-2. Creare la nuova struttura:
+2. Spostare il `.env` e i backup:
    ```bash
-   mkdir -p /opt/seed-app/{production,staging}/{docker/nginx/templates,scripts}
+   mkdir -p /opt/seed-app/production
+   cp /opt/seed-app/docker/.env /opt/seed-app/production/.env
    mkdir -p /opt/seed-app/backups/{production,staging}
-   ```
-3. Spostare i file production:
-   ```bash
-   cp /opt/seed-app/docker/docker-compose.deploy.yml /opt/seed-app/production/docker/
-   cp /opt/seed-app/docker/.env /opt/seed-app/production/docker/
-   cp -r /opt/seed-app/docker/nginx/ /opt/seed-app/production/docker/nginx/
-   cp /opt/seed-app/scripts/* /opt/seed-app/production/scripts/
    mv /opt/seed-app/backups/*.sql.gz /opt/seed-app/backups/production/ 2>/dev/null || true
    ```
-4. Aggiornare il `.env` di production con le nuove variabili:
+3. Aggiornare il `.env` di production con le nuove variabili:
    ```bash
-   echo "COMPOSE_PROJECT_NAME=seed-production" >> /opt/seed-app/production/docker/.env
-   echo "NGINX_HTTP_PORT=80" >> /opt/seed-app/production/docker/.env
-   echo "NGINX_HTTPS_PORT=443" >> /opt/seed-app/production/docker/.env
-   echo "SEQ_PORT=8081" >> /opt/seed-app/production/docker/.env
-   echo "CLIENT_BASE_URL=https://tuodominio.com" >> /opt/seed-app/production/docker/.env
+   echo "COMPOSE_PROJECT_NAME=seed-production" >> /opt/seed-app/production/.env
+   echo "NGINX_HTTP_PORT=80" >> /opt/seed-app/production/.env
+   echo "NGINX_HTTPS_PORT=443" >> /opt/seed-app/production/.env
+   echo "SEQ_PORT=8081" >> /opt/seed-app/production/.env
+   echo "CLIENT_BASE_URL=https://tuodominio.com" >> /opt/seed-app/production/.env
    ```
-5. Creare il volume SSL per staging (copia lo stesso wildcard cert):
+4. Creare il volume SSL per il nuovo nome:
    ```bash
-   docker volume create seed-staging_certbot_conf
+   docker volume create seed-production_certbot_conf
    sudo cp -r /var/lib/docker/volumes/seed-app-deploy_certbot_conf/_data/* \
-     /var/lib/docker/volumes/seed-staging_certbot_conf/_data/
+     /var/lib/docker/volumes/seed-production_certbot_conf/_data/
    ```
-   Rinominare/symlink la directory del cert per il subdomain staging se necessario.
-6. Creare `.env` per staging (copiare da production, modificare valori)
-7. Avviare production con il nuovo compose: `cd /opt/seed-app/production/docker && docker compose up -d`
-8. Verificare che production funzioni
-9. Rimuovere il vecchio repo clonato (dopo aver verificato che tutto funziona):
+5. Aprire porta firewall: `sudo ufw allow 8443/tcp`
+6. Rimuovere il vecchio repo clonato:
    ```bash
    rm -rf /opt/seed-app/backend /opt/seed-app/frontend /opt/seed-app/.git /opt/seed-app/.github
    rm -rf /opt/seed-app/docs /opt/seed-app/.claude /opt/seed-app/CLAUDE.md /opt/seed-app/README.md
-   rm -rf /opt/seed-app/.gitignore /opt/seed-app/Seed.slnx
+   rm -rf /opt/seed-app/.gitignore /opt/seed-app/Seed.slnx /opt/seed-app/docker /opt/seed-app/scripts
    ```
-10. Aprire porta firewall: `sudo ufw allow 8443/tcp`
-11. Configurare Cloudflare: DNS record + Access policy + Origin Rule
+7. **Triggerare Docker Publish** da GitHub Actions su `master` con force API + force Web → il deploy automatico copia i file, avvia lo stack, esegue migrazioni e seeding
+8. Verificare: `curl https://tuodominio.com/health/ready`
+9. Per staging: configurare Cloudflare (DNS, Origin Rule, Access), creare `.env` staging, volume SSL staging, poi triggerare Docker Publish su `dev`
 
 ---
 
@@ -209,7 +204,7 @@ Passi:
 4. **Task 5-7** — Documentazione
 5. **Task 8** — Migrazione manuale VPS (da fare DOPO aver mergiato i cambi e PRIMA del prossimo deploy)
 
-> ⚠️ **DECISION REQUIRED**: Il Task 8 (migrazione VPS) va fatto in una finestra di manutenzione. Production avrà ~1 minuto di downtime durante lo spostamento dei file e il riavvio dello stack. Confermi che va bene?
+> **Nota**: Il Task 8 (migrazione VPS) richiede ~1 minuto di downtime per fermare il vecchio stack. Il riavvio avviene tramite CI/CD (force publish → deploy automatico).
 
 ---
 
