@@ -97,10 +97,12 @@ Uses GitHub Environments:
 
 **Dual-environment deploy paths:**
 
-| Branch | Environment | Deploy dir | Backup dir | Image tag |
-|--------|-------------|------------|------------|-----------|
-| `master` | production | `/opt/seed-app/production` | `/opt/seed-app/backups/production` | `latest` |
-| `dev` | staging | `/opt/seed-app/staging` | `/opt/seed-app/backups/staging` | `dev` |
+| Branch | Environment | Deploy dir | Backup dir | Image tag prefix |
+|--------|-------------|------------|------------|------------------|
+| `master` | production | `/opt/seed-app/production` | `/opt/seed-app/backups/production` | `sha-` |
+| `dev` | staging | `/opt/seed-app/staging` | `/opt/seed-app/backups/staging` | `dev-sha-` |
+
+Il CI scrive il tag SHA immutabile del commit deployato (es. `sha-6d7da25`) nel `.env` del VPS, separatamente per ogni servizio (`API_IMAGE_TAG`, `WEB_IMAGE_TAG`). Solo i servizi effettivamente rebuildati vengono aggiornati.
 
 The CI creates the directory structure and copies these files to the deploy dir on each run:
 - `docker/docker-compose.deploy.yml`

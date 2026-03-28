@@ -31,7 +31,7 @@ services:
       - app-network
 
   api:
-    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/api:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/api:${API_IMAGE_TAG:-latest}
     env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
@@ -63,7 +63,7 @@ services:
       - app-network
 
   web:
-    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/web:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/web:${WEB_IMAGE_TAG:-latest}
     depends_on:
       api:
         condition: service_healthy

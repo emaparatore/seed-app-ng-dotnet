@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.name }}
+      image_tag_prefix: ${{ steps.env.outputs.tag_prefix }}
       image_tag: ${{ steps.env.outputs.tag }}
       deploy_dir: ${{ steps.env.outputs.deploy_dir }}
       backup_dir: ${{ steps.env.outputs.backup_dir }}
@@ -27,14 +28,17 @@ jobs:
         id: env
         run: |
           BRANCH="${{ github.event.workflow_run.head_branch }}"
+          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
           if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=sha-" >> "$GITHUB_OUTPUT"
+            echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
             echo "deploy_dir=/opt/seed-app/production" >> "$GITHUB_OUTPUT"
             echo "backup_dir=/opt/seed-app/backups/production" >> "$GITHUB_OUTPUT"
           elif [ "$BRANCH" = "dev" ]; then
             echo "name=staging" >> "$GITHUB_OUTPUT"
-            echo "tag=dev" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=dev-sha-" >> "$GITHUB_OUTPUT"
+            echo "tag=dev-sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
             echo "deploy_dir=/opt/seed-app/staging" >> "$GITHUB_OUTPUT"
             echo "backup_dir=/opt/seed-app/backups/staging" >> "$GITHUB_OUTPUT"
           fi
@@ -177,7 +181,19 @@ jobs:
 
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
-            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
+
+            IMAGE_TAG="${{ needs.determine-environment.outputs.image_tag }}"
+            echo "Image tag for this deploy: $IMAGE_TAG"
+
+            if [ "${{ steps.check.outputs.api }}" = "success" ]; then
+              sed -i "s/^API_IMAGE_TAG=.*/API_IMAGE_TAG=${IMAGE_TAG}/" .env
+              echo "Updated API_IMAGE_TAG to $IMAGE_TAG"
+            fi
+
+            if [ "${{ steps.check.outputs.web }}" = "success" ]; then
+              sed -i "s/^WEB_IMAGE_TAG=.*/WEB_IMAGE_TAG=${IMAGE_TAG}/" .env
+              echo "Updated WEB_IMAGE_TAG to $IMAGE_TAG"
+            fi
 
             echo "Pulling API image for migrations and seeding..."
             docker compose -f "$COMPOSE_FILE" pull api

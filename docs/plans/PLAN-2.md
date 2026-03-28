@@ -14,12 +14,12 @@ Configurare deploy automatico su due ambienti (staging e production) sullo stess
 /opt/seed-app/
 ├── production/
 │   ├── docker-compose.deploy.yml   ← copiato dal CI
-│   ├── .env                         ← IMAGE_TAG=latest, DOMAIN_NAME=dominio.com
+│   ├── .env                         ← API_IMAGE_TAG=sha-xxx, WEB_IMAGE_TAG=sha-xxx, DOMAIN_NAME=dominio.com
 │   ├── nginx/                       ← config nginx (già presente)
 │   └── scripts/                     ← migrate.sh, seed.sh, restore.sh
 ├── staging/
 │   ├── docker-compose.deploy.yml   ← copiato dal CI
-│   ├── .env                         ← IMAGE_TAG=dev, DOMAIN_NAME=staging.dominio.com
+│   ├── .env                         ← API_IMAGE_TAG=dev-sha-xxx, WEB_IMAGE_TAG=dev-sha-xxx, DOMAIN_NAME=staging.dominio.com
 │   ├── nginx/                       ← stessa config, dominio diverso da .env
 │   └── scripts/
 └── backups/                         ← condiviso (sottocartelle per env)

@@ -238,7 +238,9 @@ AllowedHosts=*
 # --- VPS Deployment ---
 DOMAIN_NAME=tuodominio.com
 GHCR_OWNER=tuo-github-username
-IMAGE_TAG=latest
+# Il CI aggiorna automaticamente questi valori con il tag SHA del commit deployato
+API_IMAGE_TAG=latest
+WEB_IMAGE_TAG=latest
 CLIENT_BASE_URL=https://tuodominio.com
 ```
 
@@ -269,7 +271,9 @@ AllowedHosts=*
 # --- VPS Deployment ---
 DOMAIN_NAME=staging.tuodominio.com
 GHCR_OWNER=tuo-github-username
-IMAGE_TAG=dev
+# Il CI aggiorna automaticamente questi valori con il tag SHA del commit deployato
+API_IMAGE_TAG=dev
+WEB_IMAGE_TAG=dev
 CLIENT_BASE_URL=https://staging.tuodominio.com
 ```
 
