@@ -87,6 +87,13 @@ Path filtering applies here too — only changed images are rebuilt on push. Use
 
 **Active method:** Docker Compose on VPS via SSH — pulls images from GHCR, runs EF Core migrations, deploys with health checks, and prunes old images.
 
+**Deploy script behavior — partial updates + infrastructure ensure:**
+The script updates only the services that were rebuilt in the current run (`api` and/or `web`) using `--no-deps`. After those updates, it always runs `docker compose up -d nginx` to ensure infrastructure services are up. This means:
+- `nginx` is started if it isn't running (e.g., first deploy, server restart, container crash)
+- `postgres` and `seq` are started as dependencies of `nginx` → `web` → `api` on the first `up`
+
+> **Important:** If you add a new infrastructure service to `docker-compose.deploy.yml` (e.g. Redis, a background worker), make sure to add an explicit `docker compose up -d <service>` in the deploy script — otherwise it will only start when the full stack is restarted manually.
+
 Alternative options (commented out in the workflow):
 - **Option B:** Azure Container Apps
 - **Option C:** Kubernetes (kubectl)
