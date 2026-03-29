@@ -216,6 +216,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [Bootstrap Console](docs/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |
 | [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
 | [Migration Strategy](docs/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
+| [Rollback Guide](docs/rollback.md) | Production rollback strategies: image rollback, git revert, DB restore |
 | [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
 | [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
 | [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |

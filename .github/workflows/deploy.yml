@@ -19,18 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.name }}
+      image_tag_prefix: ${{ steps.env.outputs.tag_prefix }}
       image_tag: ${{ steps.env.outputs.tag }}
+      deploy_dir: ${{ steps.env.outputs.deploy_dir }}
+      backup_dir: ${{ steps.env.outputs.backup_dir }}
     steps:
       - name: Determine target environment
         id: env
         run: |
           BRANCH="${{ github.event.workflow_run.head_branch }}"
+          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
           if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=sha-" >> "$GITHUB_OUTPUT"
+            echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "deploy_dir=/opt/seed-app/production" >> "$GITHUB_OUTPUT"
+            echo "backup_dir=/opt/seed-app/backups/production" >> "$GITHUB_OUTPUT"
           elif [ "$BRANCH" = "dev" ]; then
             echo "name=staging" >> "$GITHUB_OUTPUT"
-            echo "tag=dev" >> "$GITHUB_OUTPUT"
+            echo "tag_prefix=dev-sha-" >> "$GITHUB_OUTPUT"
+            echo "tag=dev-sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "deploy_dir=/opt/seed-app/staging" >> "$GITHUB_OUTPUT"
+            echo "backup_dir=/opt/seed-app/backups/staging" >> "$GITHUB_OUTPUT"
           fi
 
   deploy:
@@ -76,6 +86,7 @@ jobs:
         run: |
           echo "Deploying to: ${{ needs.determine-environment.outputs.environment }}"
           echo "Image tag:    ${{ needs.determine-environment.outputs.image_tag }}"
+          echo "Deploy dir:   ${{ needs.determine-environment.outputs.deploy_dir }}"
           echo "Services:     ${{ steps.check.outputs.services }}"
 
       # ============================================================
@@ -92,17 +103,38 @@ jobs:
         run: |
           install -m 600 /dev/null /tmp/deploy_key
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p /opt/seed-app/docker /opt/seed-app/scripts /opt/seed-app/backups"
+
+          DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates /opt/seed-app/backups/production /opt/seed-app/backups/staging"
 
           echo "Syncing docker-compose.deploy.yml..."
-          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/docker-compose.deploy.yml ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/docker/docker-compose.deploy.yml
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/docker-compose.deploy.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/docker-compose.deploy.yml
 
           echo "Syncing deploy scripts..."
-          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/scripts/
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/scripts/
+
+          echo "Syncing nginx config..."
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/nginx/nginx.conf \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/nginx/nginx.conf
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/nginx/templates/* \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/nginx/templates/
 
           echo "Verifying files exist on VPS..."
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "chmod 755 /opt/seed-app/scripts/*.sh && test -f /opt/seed-app/docker/docker-compose.deploy.yml && test -f /opt/seed-app/scripts/migrate.sh && test -f /opt/seed-app/scripts/seed.sh && test -f /opt/seed-app/scripts/restore.sh && echo 'OK: deploy files synced'" \
+            "chmod 755 ${DEPLOY_DIR}/scripts/*.sh \
+             && test -f ${DEPLOY_DIR}/docker-compose.deploy.yml \
+             && test -f ${DEPLOY_DIR}/scripts/migrate.sh \
+             && test -f ${DEPLOY_DIR}/scripts/seed.sh \
+             && test -f ${DEPLOY_DIR}/scripts/restore.sh \
+             && echo 'OK: deploy files synced'" \
             || { echo 'ERROR: deploy files missing after copy'; exit 1; }
           rm -f /tmp/deploy_key
 
@@ -116,18 +148,15 @@ jobs:
           script: |
             set -eu
 
-            if [ -f /opt/seed-app/docker-compose.deploy.yml ]; then
-              DEPLOY_DIR=/opt/seed-app
-              COMPOSE_FILE=/opt/seed-app/docker-compose.deploy.yml
-            elif [ -f /opt/seed-app/docker/docker-compose.deploy.yml ]; then
-              DEPLOY_DIR=/opt/seed-app/docker
-              COMPOSE_FILE=/opt/seed-app/docker/docker-compose.deploy.yml
-            else
-              echo "docker-compose.deploy.yml not found in /opt/seed-app or /opt/seed-app/docker"
+            DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
+            COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.deploy.yml"
+            SCRIPT_DIR="${DEPLOY_DIR}/scripts"
+            BACKUP_DIR="${{ needs.determine-environment.outputs.backup_dir }}"
+
+            if [ ! -f "$COMPOSE_FILE" ]; then
+              echo "docker-compose.deploy.yml not found at $COMPOSE_FILE"
               exit 1
             fi
-
-            SCRIPT_DIR=/opt/seed-app/scripts
 
             if [ ! -f "$SCRIPT_DIR/migrate.sh" ]; then
               echo "Migration script not found at $SCRIPT_DIR/migrate.sh"
@@ -146,18 +175,31 @@ jobs:
 
             echo "Deploy directory: $DEPLOY_DIR"
             echo "Compose file: $COMPOSE_FILE"
+            echo "Backup directory: $BACKUP_DIR"
             echo "Available deploy scripts:"
             ls -l "$SCRIPT_DIR"
 
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
-            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ needs.determine-environment.outputs.image_tag }}/' .env
+
+            IMAGE_TAG="${{ needs.determine-environment.outputs.image_tag }}"
+            echo "Image tag for this deploy: $IMAGE_TAG"
+
+            if [ "${{ steps.check.outputs.api }}" = "success" ]; then
+              sed -i "s/^API_IMAGE_TAG=.*/API_IMAGE_TAG=${IMAGE_TAG}/" .env
+              echo "Updated API_IMAGE_TAG to $IMAGE_TAG"
+            fi
+
+            if [ "${{ steps.check.outputs.web }}" = "success" ]; then
+              sed -i "s/^WEB_IMAGE_TAG=.*/WEB_IMAGE_TAG=${IMAGE_TAG}/" .env
+              echo "Updated WEB_IMAGE_TAG to $IMAGE_TAG"
+            fi
 
             echo "Pulling API image for migrations and seeding..."
             docker compose -f "$COMPOSE_FILE" pull api
 
             echo "Running database migrations..."
-            if COMPOSE_FILE="$COMPOSE_FILE" bash "$SCRIPT_DIR/migrate.sh"; then
+            if COMPOSE_FILE="$COMPOSE_FILE" BACKUP_DIR="$BACKUP_DIR" bash "$SCRIPT_DIR/migrate.sh"; then
               echo "Migrations complete."
             else
               MIGRATE_EXIT=$?

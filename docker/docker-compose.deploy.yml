@@ -1,9 +1,8 @@
-name: seed-app-deploy
+name: ${COMPOSE_PROJECT_NAME:-seed-production}
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: seed-postgres
     env_file: .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -21,20 +20,18 @@ services:
 
   seq:
     image: datalust/seq:latest
-    container_name: seed-seq
     environment:
       - ACCEPT_EULA=Y
       - SEQ_FIRSTRUN_NOAUTHENTICATION=true
     ports:
-      - "127.0.0.1:8081:80"
+      - "127.0.0.1:${SEQ_PORT:-8081}:80"
     volumes:
       - seq_data:/data
     networks:
       - app-network
 
   api:
-    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/api:${IMAGE_TAG:-latest}
-    container_name: seed-api
+    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/api:${API_IMAGE_TAG:-latest}
     env_file: .env
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
@@ -48,7 +45,7 @@ services:
       - Smtp__FromEmail=${Smtp__FromEmail:-}
       - Smtp__FromName=${Smtp__FromName:-Seed App}
       - Smtp__Security=${Smtp__Security:-StartTls}
-      - Client__BaseUrl=https://${DOMAIN_NAME}
+      - Client__BaseUrl=${CLIENT_BASE_URL}
       - Serilog__WriteTo__1__Name=Seq
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
     depends_on:
@@ -66,8 +63,7 @@ services:
       - app-network
 
   web:
-    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/web:${IMAGE_TAG:-latest}
-    container_name: seed-web
+    image: ghcr.io/${GHCR_OWNER}/seed-app-ng-dotnet/web:${WEB_IMAGE_TAG:-latest}
     depends_on:
       api:
         condition: service_healthy
@@ -76,10 +72,9 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: seed-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
     volumes:
