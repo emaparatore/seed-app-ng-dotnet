@@ -15,7 +15,7 @@ if [ -z "${1:-}" ]; then
   echo "Usage: $0 <backup_file.sql.gz>"
   echo ""
   echo "Available backups:"
-  ls -lh /opt/seed-app/backups/seeddb_*.sql.gz 2>/dev/null || echo "  No backups found."
+  ls -lh /opt/seed-app/backups/production/seeddb_*.sql.gz /opt/seed-app/backups/staging/seeddb_*.sql.gz 2>/dev/null || echo "  No backups found."
   exit 1
 fi
 

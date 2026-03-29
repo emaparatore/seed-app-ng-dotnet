@@ -55,7 +55,16 @@ hotfix/*      → PR direct to master (auto back-merge to dev)
 
 ### 2. Docker Publish (`docker-publish.yml`)
 
-**Trigger:** Push to `master` or `dev` (after PR merge)
+**Trigger:** Push to `master` or `dev` (after PR merge), or manual `workflow_dispatch`
+
+**Manual trigger inputs:**
+
+| Input | Type | Description |
+|-------|------|-------------|
+| `force_api` | boolean | Force API image rebuild (bypasses path filter) |
+| `force_web` | boolean | Force Web image rebuild (bypasses path filter) |
+
+On push, only changed images are rebuilt (path filtering). On manual trigger, you can selectively force rebuild one or both images — useful for the first deploy when no images exist on GHCR yet.
 
 **Registry:** GitHub Container Registry (`ghcr.io`)
 
@@ -70,7 +79,7 @@ hotfix/*      → PR direct to master (auto back-merge to dev)
 - `ghcr.io/<owner>/<repo>/api` - Backend API
 - `ghcr.io/<owner>/<repo>/web` - Frontend web
 
-Path filtering applies here too - only changed images are rebuilt.
+Path filtering applies here too — only changed images are rebuilt on push. Use `workflow_dispatch` with force inputs to bypass this.
 
 ### 3. Deploy (`deploy.yml`)
 
@@ -83,8 +92,24 @@ Alternative options (commented out in the workflow):
 - **Option C:** Kubernetes (kubectl)
 
 Uses GitHub Environments:
-- `staging` - auto-deploy on `dev` push
-- `production` - deploy on `master` push (configure required reviewers if needed)
+- `staging` - auto-deploy on `dev` push → deploys to `/opt/seed-app/staging/`
+- `production` - deploy on `master` push (configure required reviewers if needed) → deploys to `/opt/seed-app/production/`
+
+**Dual-environment deploy paths:**
+
+| Branch | Environment | Deploy dir | Backup dir | Image tag prefix |
+|--------|-------------|------------|------------|------------------|
+| `master` | production | `/opt/seed-app/production` | `/opt/seed-app/backups/production` | `sha-` |
+| `dev` | staging | `/opt/seed-app/staging` | `/opt/seed-app/backups/staging` | `dev-sha-` |
+
+Il CI scrive il tag SHA immutabile del commit deployato (es. `sha-6d7da25`) nel `.env` del VPS, separatamente per ogni servizio (`API_IMAGE_TAG`, `WEB_IMAGE_TAG`). Solo i servizi effettivamente rebuildati vengono aggiornati.
+
+The CI creates the directory structure and copies these files to the deploy dir on each run:
+- `docker/docker-compose.deploy.yml`
+- `docker/scripts/migrate.sh`, `seed.sh`, `restore.sh`
+- `docker/nginx/nginx.conf` and `docker/nginx/templates/*`
+
+No manual file copying is needed — even on the first deploy, the CI handles everything. The only prerequisite on the VPS is the root directory (`/opt/seed-app/` owned by the deploy user) and the `.env` file, which is **never overwritten by CI** and must be created manually once (see [VPS Setup Guide](vps-setup-guide.md#6-configurazione-delle-variabili-dambiente)).
 
 ### 4. Hotfix Back-merge (`hotfix-backmerge.yml`)
 
@@ -113,8 +138,10 @@ Both `dev` and `master` have these rules:
 ### Environments
 
 **Settings > Environments:**
-- Create `staging` environment
+- Create `staging` environment (no required reviewers — auto-deploy)
 - Create `production` environment (add required reviewers when working in a team)
+
+> Both environments use the same repository secrets (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `GHCR_TOKEN`) since they deploy to the same VPS. The deploy dir is determined automatically from the branch.
 
 ## Caching
 

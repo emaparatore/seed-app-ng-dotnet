@@ -212,9 +212,10 @@ L'API vecchia resta attiva perché `migrate.sh` usa `set -euo pipefail` e il dep
 Re-deploya l'immagine API precedente. Se la migrazione è backward-compatible (come da linee guida sopra), il vecchio codice funzionerà con il nuovo schema.
 
 ```bash
-# Sulla VPS
-cd /opt/seed-app  # o /opt/seed-app/docker
-sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=sha-<previous>/' .env
+# Sulla VPS (es. /opt/seed-app/production)
+cd /opt/seed-app/production
+# Imposta il tag SHA del commit precedente (leggibile dal .env prima del deploy)
+sed -i 's/^API_IMAGE_TAG=.*/API_IMAGE_TAG=sha-<previous>/' .env
 docker compose -f docker-compose.deploy.yml pull api
 docker compose -f docker-compose.deploy.yml up -d --no-deps api
 ```

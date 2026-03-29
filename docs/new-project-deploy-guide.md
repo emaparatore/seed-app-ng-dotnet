@@ -48,9 +48,9 @@ I workflow usano `${{ github.repository }}` per i nomi delle immagini, quindi **
 L'unica cosa da aggiornare e nel `docker-compose.deploy.yml` la variabile `GHCR_OWNER`:
 
 ```yaml
-# Questo si adatta automaticamente tramite .env
-image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/api:${IMAGE_TAG:-latest}
-image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/web:${IMAGE_TAG:-latest}
+# Questi si adattano automaticamente tramite .env
+image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/api:${API_IMAGE_TAG:-latest}
+image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/web:${WEB_IMAGE_TAG:-latest}
 ```
 
 > **Nota**: devi copiare `docker-compose.deploy.yml` nel nuovo progetto e aggiornare i nomi delle immagini da `seed-app-ng-dotnet` al nome del nuovo repo.
@@ -122,7 +122,9 @@ Smtp__UseSsl=true
 # --- VPS Deployment ---
 DOMAIN_NAME=nuovodominio.com
 GHCR_OWNER=tuo-github-username
-IMAGE_TAG=latest
+# Il CI aggiorna automaticamente questi valori con il tag SHA del commit deployato
+API_IMAGE_TAG=latest
+WEB_IMAGE_TAG=latest
 CERTBOT_EMAIL=tua-email@example.com
 ```
 
