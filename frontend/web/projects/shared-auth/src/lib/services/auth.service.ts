@@ -123,7 +123,12 @@ export class AuthService {
   }
 
   getProfile(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/me`).pipe(tap((user) => this._currentUser.set(user)));
+    return this.http.get<User>(`${this.apiUrl}/me`).pipe(
+      tap((user) => {
+        this._currentUser.set(user);
+        this._permissions.set(user.permissions ?? []);
+      }),
+    );
   }
 
   private handleAuthResponse(response: AuthResponse): void {

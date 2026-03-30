@@ -18,7 +18,7 @@ describe('Profile', () => {
     accessToken: any;
   };
   let dialog: { open: ReturnType<typeof vi.fn> };
-  const mockUser = { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe' };
+  const mockUser = { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe', roles: [], permissions: [] };
 
   beforeEach(async () => {
     authService = {

@@ -63,94 +63,9 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
 
 ---
 
-## Alternativa: Gmail SMTP (senza Docker)
+## Configurazione per Production e Staging: Brevo (ex Sendinblue)
 
-Per la maggior parte dei casi d'uso in development, [Mailpit](#development-locale-con-docker-mailpit) e' la soluzione consigliata. Gmail SMTP e' un'alternativa utile solo se hai bisogno di inviare email reali o se stai lavorando senza Docker (`dotnet run`).
-
-Gmail richiede una **App Password** (non la password dell'account). La password normale non funziona se hai il 2FA attivo (consigliato).
-
-### 1. Generare una App Password Gmail
-
-1. Vai su https://myaccount.google.com/security
-2. Assicurati che la **Verifica in due passaggi** sia attiva
-3. Vai su https://myaccount.google.com/apppasswords
-4. Seleziona "Altro (nome personalizzato)" → inserisci "Seed App"
-5. Copia la password di 16 caratteri generata (es. `abcd efgh ijkl mnop`)
-
-> **Gestione e revoca:** puoi visualizzare e revocare le App Password in qualsiasi momento dalla stessa pagina https://myaccount.google.com/apppasswords. La revoca e' immediata e non impatta la password del tuo account Google.
-
-### 2. Configurare con User Secrets (consigliato per dev)
-
-```bash
-cd backend/src/Seed.Api
-
-dotnet user-secrets init   # solo la prima volta
-dotnet user-secrets set "Smtp:Host" "smtp.gmail.com"
-dotnet user-secrets set "Smtp:Port" "587"
-dotnet user-secrets set "Smtp:Username" "tuaemail@gmail.com"
-dotnet user-secrets set "Smtp:Password" "abcd efgh ijkl mnop"
-dotnet user-secrets set "Smtp:FromEmail" "tuaemail@gmail.com"
-dotnet user-secrets set "Smtp:FromName" "Seed App Dev"
-dotnet user-secrets set "Smtp:Security" "StartTls"
-```
-
-Per gestire i secrets configurati:
-
-```bash
-cd backend/src/Seed.Api
-
-# Visualizzare tutti i secrets configurati
-dotnet user-secrets list
-
-# Rimuovere un singolo secret
-dotnet user-secrets remove "Smtp:Host"
-
-# Rimuovere tutti i secrets SMTP
-dotnet user-secrets remove "Smtp:Host"
-dotnet user-secrets remove "Smtp:Port"
-dotnet user-secrets remove "Smtp:Username"
-dotnet user-secrets remove "Smtp:Password"
-dotnet user-secrets remove "Smtp:FromEmail"
-dotnet user-secrets remove "Smtp:FromName"
-dotnet user-secrets remove "Smtp:Security"
-
-# Oppure rimuovere TUTTI i secrets (attenzione: cancella anche quelli non SMTP)
-dotnet user-secrets clear
-```
-
-> **Nota:** i User Secrets sono salvati fuori dal progetto (in `%APPDATA%\Microsoft\UserSecrets\` su Windows, `~/.microsoft/usersecrets/` su Linux/macOS), quindi non c'e' rischio di committarli accidentalmente.
-
-### 3. Oppure tramite appsettings.Development.json
-
-Crea o modifica `backend/src/Seed.Api/appsettings.Development.json`:
-
-```json
-{
-  "Smtp": {
-    "Host": "smtp.gmail.com",
-    "Port": 587,
-    "Username": "tuaemail@gmail.com",
-    "Password": "abcd efgh ijkl mnop",
-    "FromEmail": "tuaemail@gmail.com",
-    "FromName": "Seed App Dev",
-    "Security": "StartTls"
-  }
-}
-```
-
-> **Attenzione:** Non committare mai credenziali reali. Aggiungi `appsettings.Development.json` al `.gitignore` se contiene secret.
-
-### Limiti Gmail SMTP
-
-- **500 email/giorno** per account personali
-- **2000 email/giorno** per Google Workspace
-- Adatto solo per development e testing, non per produzione
-
----
-
-## Configurazione per Production: Brevo (ex Sendinblue)
-
-Brevo offre un piano gratuito con 300 email/giorno, sufficiente per molte applicazioni.
+Brevo offre un piano gratuito con 300 email/giorno, sufficiente per molte applicazioni. Lo stesso account Brevo puo' essere usato sia per production che per staging, usando sender separati per distinguere le email dei due ambienti.
 
 ### 1. Creare un account Brevo
 
@@ -171,16 +86,21 @@ Brevo offre un piano gratuito con 300 email/giorno, sufficiente per molte applic
    - **DKIM** — firma crittografica delle email
    - **DMARC** — policy di autenticazione (consigliato: `v=DMARC1; p=quarantine`)
 4. Verifica il dominio nel pannello Brevo
-5. Aggiungi il sender email in **Settings** → **Senders** (es. `noreply@tuodominio.com`)
+5. Aggiungi i sender email in **Settings** → **Senders**:
+   - Production: `noreply@tuodominio.com`
+   - Staging: `noreply-staging@tuodominio.com`
 
 Senza questa configurazione le email finiranno in spam o verranno rifiutate.
 
-### 3. Configurare tramite file `.env` (consigliato per prod)
+> **Nota:** entrambi i sender usano lo stesso dominio gia' verificato — non serve riconfigurare SPF/DKIM/DMARC per il sender staging.
+
+### 3. Configurare tramite file `.env`
 
 Le variabili SMTP vanno aggiunte allo stesso file `docker/.env` gia' usato per le altre configurazioni (database, JWT, ecc.). Il file `docker/.env.prod.example` contiene il template completo con tutte le variabili, incluse quelle SMTP.
 
+**Production** (`/opt/seed-app/production/.env`):
+
 ```env
-# Nel file docker/.env
 Smtp__Host=smtp-relay.brevo.com
 Smtp__Port=587
 Smtp__Username=tuaemail@brevo.com
@@ -189,6 +109,20 @@ Smtp__FromEmail=noreply@tuodominio.com
 Smtp__FromName=Seed App
 Smtp__Security=StartTls
 ```
+
+**Staging** (`/opt/seed-app/staging/.env`):
+
+```env
+Smtp__Host=smtp-relay.brevo.com
+Smtp__Port=587
+Smtp__Username=tuaemail@brevo.com
+Smtp__Password=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Smtp__FromEmail=noreply-staging@tuodominio.com
+Smtp__FromName=Seed App (Staging)
+Smtp__Security=StartTls
+```
+
+Credenziali SMTP identiche a prod — cambia solo `FromEmail` e `FromName`, cosi' le email di staging sono immediatamente riconoscibili. La quota giornaliera (300/giorno sul piano free) e' condivisa tra i due ambienti.
 
 Il `docker-compose.deploy.yml` passa automaticamente queste variabili al container API.
 
@@ -231,7 +165,7 @@ Se lavori senza Docker (`dotnet run`), `Smtp:Host` e' vuoto e il sistema usa `Co
 
 > **Nota:** Il token viene generato solo se l'email corrisponde a un utente esistente e attivo. Per motivi di sicurezza (prevenzione email enumeration), l'API restituisce sempre lo stesso messaggio di successo anche se l'utente non esiste.
 
-### 3. Con SMTP reale (Gmail o Brevo)
+### 3. Con SMTP reale (Brevo)
 
 1. Avvia il backend con la configurazione SMTP
 2. Vai su `/forgot-password` nel frontend
@@ -252,9 +186,9 @@ Se lavori senza Docker (`dotnet run`), `Smtp:Host` e' vuoto e il sistema usa `Co
 
 ## Riepilogo rapido
 
-| Ambiente         | Provider | Host                    | Porta | Metodo configurazione              |
-|------------------|----------|-------------------------|-------|------------------------------------|
-| Docker dev       | Mailpit  | `mailpit` (interno)     | 1025  | Automatico (`docker-compose.yml`)  |
-| Locale no Docker | Nessuno  | *(vuoto)*               | —     | Default (console fallback)         |
-| Locale no Docker | Gmail    | `smtp.gmail.com`        | 587   | `dotnet user-secrets` (opzionale)  |
-| Production       | Brevo    | `smtp-relay.brevo.com`  | 587   | File `.env` (`.env.prod.example`)  |
+| Ambiente         | Provider | Host                    | Porta | From                              | Metodo configurazione              |
+|------------------|----------|-------------------------|-------|-----------------------------------|------------------------------------|
+| Docker dev       | Mailpit  | `mailpit` (interno)     | 1025  | qualsiasi                         | Automatico (`docker-compose.yml`)  |
+| Locale no Docker | Nessuno  | *(vuoto)*               | —     | —                                 | Default (console fallback)         |
+| Staging          | Brevo    | `smtp-relay.brevo.com`  | 587   | `noreply-staging@tuodominio.com`  | File `.env` (staging)              |
+| Production       | Brevo    | `smtp-relay.brevo.com`  | 587   | `noreply@tuodominio.com`          | File `.env` (`.env.prod.example`)  |
