@@ -61,7 +61,7 @@ CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `ma
 | # | Finding | Severity |
 |---|---------|----------|
 | 3.1 | No dependency vulnerability scanning | ✅ FIXED |
-| 3.2 | No SAST / static security analysis | 🟠 HIGH |
+| 3.2 | No SAST / static security analysis | ✅ FIXED |
 | 3.3 | No container image scanning | 🟠 HIGH |
 | 3.4 | No secret scanning (Gitleaks / GitHub) | 🟡 MEDIUM |
 | 3.5 | No Dependabot configuration | 🟡 MEDIUM |
@@ -73,31 +73,8 @@ CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `ma
 **3.1 — Dependency vulnerability scanning** ✅ FIXED
 Added `dotnet list package --vulnerable --include-transitive` (NuGet) and `npm audit --audit-level=high` (npm) to [ci.yml](/.github/workflows/ci.yml). CI now fails if any HIGH/CRITICAL CVE is detected in dependencies.
 
-**3.2 — No SAST / static security analysis** 🟠 HIGH
-No static analysis tool (CodeQL, Semgrep, SonarCloud, Roslyn analyzers, ESLint security plugin) is configured. AI-generated code is particularly prone to subtle vulnerabilities (injection, auth bypass) that static analysis catches.
-**Fix:** Enable GitHub CodeQL — it's free for public repos and straightforward:
-```yaml
-# .github/workflows/codeql.yml
-name: CodeQL
-on:
-  push:
-    branches: [master, dev]
-  pull_request:
-    branches: [master, dev]
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        language: [csharp, javascript]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@v3
-      - uses: github/codeql-action/analyze@v3
-```
+**3.2 — SAST / static security analysis** ✅ FIXED
+Added Semgrep SAST scanning to [semgrep.yml](/.github/workflows/semgrep.yml). Runs on PRs and pushes to `master`/`dev`, covering both C# and TypeScript/JavaScript. Uses `--config auto` (community rules including OWASP top 10). Results are uploaded as SARIF for GitHub Security tab integration. Chosen over CodeQL because Semgrep is free for both public and private repos, avoiding vendor lock-in if the repo becomes private.
 
 **3.3 — No container image scanning** 🟠 HIGH
 Docker images are built and pushed to GHCR in [docker-publish.yml](.github/workflows/docker-publish.yml) without any vulnerability scan. A base image with known CVEs goes straight to production.
@@ -211,7 +188,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 3. **🟠 Add container image scanning** — Trivy in [docker-publish.yml](.github/workflows/docker-publish.yml). Catches base image vulnerabilities.
 
-4. **🟠 Enable CodeQL or Semgrep** — Free SAST for both C# and TypeScript/JavaScript. Critical when AI generates code.
+4. **✅ ~~Enable SAST scanning~~** — FIXED. Added Semgrep to [semgrep.yml](.github/workflows/semgrep.yml).
 
 5. **🟡 Configure Dependabot** — Create `.github/dependabot.yml` for automated dependency update PRs.
 
