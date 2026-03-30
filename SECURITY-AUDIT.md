@@ -60,7 +60,7 @@ CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `ma
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 3.1 | No dependency vulnerability scanning | 🔴 CRITICAL |
+| 3.1 | No dependency vulnerability scanning | ✅ FIXED |
 | 3.2 | No SAST / static security analysis | 🟠 HIGH |
 | 3.3 | No container image scanning | 🟠 HIGH |
 | 3.4 | No secret scanning (Gitleaks / GitHub) | 🟡 MEDIUM |
@@ -70,25 +70,8 @@ CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `ma
 | 3.8 | Production deploy uses GitHub Environments | ✅ PASS |
 | 3.9 | CI permissions are scoped (`contents: read`, `packages: write`) | ✅ PASS |
 
-**3.1 — No dependency vulnerability scanning** 🔴 CRITICAL
-Neither `dotnet list package --vulnerable` nor `npm audit` runs in CI. Known CVEs in dependencies will go undetected and ship to production. This is the single highest-impact gap because it's fully automated to fix and catches real-world exploits.
-**Fix:** Add these steps to [ci.yml](/.github/workflows/ci.yml):
-```yaml
-# After backend build step
-- name: Check for vulnerable NuGet packages
-  working-directory: backend
-  run: |
-    dotnet list Seed.slnx package --vulnerable --include-transitive 2>&1 | tee /tmp/nuget-audit.txt
-    if grep -qi "has the following vulnerable packages" /tmp/nuget-audit.txt; then
-      echo "::error::Vulnerable NuGet packages detected"
-      exit 1
-    fi
-
-# After npm ci step
-- name: Check for vulnerable npm packages
-  working-directory: frontend/web
-  run: npm audit --audit-level=high
-```
+**3.1 — Dependency vulnerability scanning** ✅ FIXED
+Added `dotnet list package --vulnerable --include-transitive` (NuGet) and `npm audit --audit-level=high` (npm) to [ci.yml](/.github/workflows/ci.yml). CI now fails if any HIGH/CRITICAL CVE is detected in dependencies.
 
 **3.2 — No SAST / static security analysis** 🟠 HIGH
 No static analysis tool (CodeQL, Semgrep, SonarCloud, Roslyn analyzers, ESLint security plugin) is configured. AI-generated code is particularly prone to subtle vulnerabilities (injection, auth bypass) that static analysis catches.
@@ -224,7 +207,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 1. **🔴 Add non-root USER to production Dockerfiles** — [backend/src/Seed.Api/Dockerfile](backend/src/Seed.Api/Dockerfile) and [frontend/web/Dockerfile](frontend/web/Dockerfile). Immediate risk reduction, ~5 lines of code each.
 
-2. **🔴 Add dependency vulnerability scanning to CI** — `dotnet list package --vulnerable` and `npm audit` in [ci.yml](.github/workflows/ci.yml). ~10 lines, catches real CVEs before they ship.
+2. **✅ ~~Add dependency vulnerability scanning to CI~~** — FIXED. Added to [ci.yml](.github/workflows/ci.yml).
 
 3. **🟠 Add container image scanning** — Trivy in [docker-publish.yml](.github/workflows/docker-publish.yml). Catches base image vulnerabilities.
 
