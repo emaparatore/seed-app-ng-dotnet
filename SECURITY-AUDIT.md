@@ -62,7 +62,7 @@ CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `ma
 |---|---------|----------|
 | 3.1 | No dependency vulnerability scanning | ✅ FIXED |
 | 3.2 | No SAST / static security analysis | ✅ FIXED |
-| 3.3 | No container image scanning | 🟠 HIGH |
+| 3.3 | No container image scanning | ✅ FIXED |
 | 3.4 | No secret scanning (Gitleaks / GitHub) | 🟡 MEDIUM |
 | 3.5 | No Dependabot configuration | 🟡 MEDIUM |
 | 3.6 | Dependencies are pinned via lockfile | ✅ PASS |
@@ -76,17 +76,8 @@ Added `dotnet list package --vulnerable --include-transitive` (NuGet) and `npm a
 **3.2 — SAST / static security analysis** ✅ FIXED
 Added Semgrep SAST scanning to [semgrep.yml](/.github/workflows/semgrep.yml). Runs on PRs and pushes to `master`/`dev`, covering both C# and TypeScript/JavaScript. Uses `--config auto` (community rules including OWASP top 10). Results are uploaded as SARIF for GitHub Security tab integration. Chosen over CodeQL because Semgrep is free for both public and private repos, avoiding vendor lock-in if the repo becomes private.
 
-**3.3 — No container image scanning** 🟠 HIGH
-Docker images are built and pushed to GHCR in [docker-publish.yml](.github/workflows/docker-publish.yml) without any vulnerability scan. A base image with known CVEs goes straight to production.
-**Fix:** Add Trivy scanning after each image build:
-```yaml
-- name: Scan image for vulnerabilities
-  uses: aquasecurity/trivy-action@master
-  with:
-    image-ref: ghcr.io/${{ github.repository }}/api:${{ steps.meta.outputs.version }}
-    exit-code: 1
-    severity: CRITICAL,HIGH
-```
+**3.3 — Container image scanning** ✅ FIXED
+Added Trivy container image scanning to [docker-publish.yml](.github/workflows/docker-publish.yml). Both API and Web images are scanned after build+push. CI fails if any CRITICAL or HIGH vulnerability is found in the image (OS packages or application dependencies).
 
 **3.4 — No secret scanning** 🟡 MEDIUM
 No Gitleaks config (`.gitleaks.toml`) or similar tool in CI. If GitHub Advanced Security is not enabled on this repo, accidentally committed secrets will not be detected.
@@ -186,7 +177,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 2. **✅ ~~Add dependency vulnerability scanning to CI~~** — FIXED. Added to [ci.yml](.github/workflows/ci.yml).
 
-3. **🟠 Add container image scanning** — Trivy in [docker-publish.yml](.github/workflows/docker-publish.yml). Catches base image vulnerabilities.
+3. **✅ ~~Add container image scanning~~** — FIXED. Added Trivy to [docker-publish.yml](.github/workflows/docker-publish.yml).
 
 4. **✅ ~~Enable SAST scanning~~** — FIXED. Added Semgrep to [semgrep.yml](.github/workflows/semgrep.yml).
 
