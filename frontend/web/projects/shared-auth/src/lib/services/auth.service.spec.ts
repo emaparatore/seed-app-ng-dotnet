@@ -15,7 +15,7 @@ describe('AuthService', () => {
     accessToken: 'test-access-token',
     refreshToken: 'test-refresh-token',
     expiresAt: '2026-12-31T00:00:00Z',
-    user: { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe', roles: [] },
+    user: { id: '1', email: 'test@example.com', firstName: 'John', lastName: 'Doe', roles: [], permissions: [] },
     permissions: [],
     mustChangePassword: false,
   };
@@ -125,12 +125,13 @@ describe('AuthService', () => {
   });
 
   describe('getProfile', () => {
-    it('should update currentUser signal', () => {
-      const user = { id: '1', email: 'me@example.com', firstName: 'Jane', lastName: 'Doe' };
+    it('should update currentUser and permissions signals', () => {
+      const user = { id: '1', email: 'me@example.com', firstName: 'Jane', lastName: 'Doe', roles: [], permissions: ['users.read'] };
 
       service.getProfile().subscribe((res) => {
         expect(res.email).toBe('me@example.com');
         expect(service.currentUser()?.email).toBe('me@example.com');
+        expect(service.permissions()).toContain('users.read');
       });
 
       const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/me');

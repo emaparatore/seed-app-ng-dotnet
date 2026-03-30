@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 using Seed.Application.Auth.Queries.GetCurrentUser;
+using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
 
 namespace Seed.UnitTests.Auth.Queries;
@@ -9,6 +10,7 @@ namespace Seed.UnitTests.Auth.Queries;
 public class GetCurrentUserQueryHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPermissionService _permissionService;
     private readonly GetCurrentUserQueryHandler _handler;
 
     public GetCurrentUserQueryHandlerTests()
@@ -16,7 +18,8 @@ public class GetCurrentUserQueryHandlerTests
         var store = Substitute.For<IUserStore<ApplicationUser>>();
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
-        _handler = new GetCurrentUserQueryHandler(_userManager);
+        _permissionService = Substitute.For<IPermissionService>();
+        _handler = new GetCurrentUserQueryHandler(_userManager, _permissionService);
     }
 
     [Fact]
@@ -46,7 +49,7 @@ public class GetCurrentUserQueryHandlerTests
     }
 
     [Fact]
-    public async Task Should_Return_UserDto_When_User_Exists_And_Active()
+    public async Task Should_Return_MeResponse_When_User_Exists_And_Active()
     {
         var userId = Guid.NewGuid();
         var query = new GetCurrentUserQuery(userId);
@@ -58,7 +61,9 @@ public class GetCurrentUserQueryHandlerTests
             LastName = "Doe",
             IsActive = true
         };
+        var permissions = new HashSet<string> { "users.read" };
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
+        _permissionService.GetPermissionsAsync(userId).Returns(permissions);
 
         var result = await _handler.Handle(query, CancellationToken.None);
 
@@ -67,5 +72,6 @@ public class GetCurrentUserQueryHandlerTests
         result.Data.Email.Should().Be("user@test.com");
         result.Data.FirstName.Should().Be("John");
         result.Data.LastName.Should().Be("Doe");
+        result.Data.Permissions.Should().Contain("users.read");
     }
 }
