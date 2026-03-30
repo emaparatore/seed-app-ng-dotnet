@@ -258,13 +258,13 @@ NGINX_HTTPS_PORT=8443
 SEQ_PORT=8082
 
 # --- PostgreSQL ---
-POSTGRES_DB=seeddb
-POSTGRES_USER=seed
+POSTGRES_DB=seeddb_staging
+POSTGRES_USER=seed_staging
 POSTGRES_PASSWORD=AltroPasswordForte456!
 
 # --- ASP.NET Core API ---
 ASPNETCORE_ENVIRONMENT=Staging
-ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=AltroPasswordForte456!
+ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb_staging;Username=seed_staging;Password=AltroPasswordForte456!
 JwtSettings__Secret=AltraSecretKeyRandomDiAlmeno32CaratteriAbc456
 AllowedHosts=*
 
@@ -294,6 +294,7 @@ CLIENT_BASE_URL=https://staging.tuodominio.com
 Per generare una password sicura:
 
 ```bash
+# OpenSSL (Linux/macOS/WSL)
 openssl rand -base64 32
 ```
 
@@ -324,9 +325,9 @@ Nel pannello Cloudflare > **DNS** > **Records**, crea:
 
 Il container nginx staging ascolta sulla porta 8443, ma Cloudflare riceve il traffico sulla porta 443. Devi configurare una **Origin Rule** per reindirizzare il traffico di `staging.tuodominio.com` alla porta corretta sul VPS.
 
-Nel pannello Cloudflare > **Rules** > **Origin Rules**:
+Nel pannello Cloudflare > **Rules** > **Overview** (le Origin Rules non hanno una voce separata nel menu — si creano dall'Overview):
 
-1. Clicca **Create rule**
+1. Clicca **Create rule** e seleziona **Origin Rule**
 2. **Rule name**: `Staging port redirect`
 3. **When incoming requests match**: usa "Custom filter expression":
    ```
@@ -409,8 +410,8 @@ Lo staging non deve essere pubblicamente accessibile. Cloudflare Access (piano F
 4. Scegli **Self-hosted**
 5. Configura:
    - **Application name**: `Staging`
-   - **Application domain**: `staging.tuodominio.com`
-   - **Path**: lascia vuoto (protegge tutto)
+   - **Session Duration**: lascia il default (24 hours)
+   - Clicca **+ Add public hostname** e inserisci `staging.tuodominio.com` (Path lascia vuoto — protegge tutto)
 6. Nella sezione **Policies**, aggiungi una policy:
    - **Policy name**: `Team`
    - **Action**: Allow
