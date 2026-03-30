@@ -258,13 +258,13 @@ NGINX_HTTPS_PORT=8443
 SEQ_PORT=8082
 
 # --- PostgreSQL ---
-POSTGRES_DB=seeddb
-POSTGRES_USER=seed
+POSTGRES_DB=seeddb_staging
+POSTGRES_USER=seed_staging
 POSTGRES_PASSWORD=AltroPasswordForte456!
 
 # --- ASP.NET Core API ---
 ASPNETCORE_ENVIRONMENT=Staging
-ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb;Username=seed;Password=AltroPasswordForte456!
+ConnectionStrings__DefaultConnection=Host=postgres;Database=seeddb_staging;Username=seed_staging;Password=AltroPasswordForte456!
 JwtSettings__Secret=AltraSecretKeyRandomDiAlmeno32CaratteriAbc456
 AllowedHosts=*
 
@@ -294,6 +294,7 @@ CLIENT_BASE_URL=https://staging.tuodominio.com
 Per generare una password sicura:
 
 ```bash
+# OpenSSL (Linux/macOS/WSL)
 openssl rand -base64 32
 ```
 
