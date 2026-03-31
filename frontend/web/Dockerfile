@@ -15,6 +15,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-auth && \
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
+RUN apk upgrade --no-cache zlib
 COPY --from=build --chown=node:node /app/dist ./dist
 
 USER node
