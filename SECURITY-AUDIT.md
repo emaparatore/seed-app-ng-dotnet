@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **1 medium** finding remains open — Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. All medium findings have been **fixed** or **accepted**.
 
 ---
 
@@ -101,7 +101,7 @@ Added [`.github/dependabot.yml`](.github/dependabot.yml) with weekly update chec
 |---|---------|----------|
 | 4.1 | Production API container runs as root | ✅ FIXED |
 | 4.2 | Production web container runs as root | ✅ FIXED |
-| 4.3 | Seq has no authentication in production | 🟡 MEDIUM |
+| 4.3 | Seq has no authentication in production | ✅ FIXED |
 | 4.4 | Health checks configured | ✅ PASS |
 | 4.5 | Structured logging with Serilog + Seq | ✅ PASS |
 | 4.6 | Environment separation (dev/staging/prod) | ✅ PASS |
@@ -113,9 +113,8 @@ Added `adduser` and `USER appuser` to the runtime stage of [Dockerfile](backend/
 **4.2 — Production web container runs as root** ✅ FIXED
 Added `USER node` to the runtime stage of [Dockerfile](frontend/web/Dockerfile). The Node process now runs as a non-root user. Port changed from 80 to 3000 (non-privileged), and the Nginx reverse proxy template updated to `proxy_pass http://web:3000/`.
 
-**4.3 — Seq has no authentication in production** 🟡 MEDIUM
-In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq runs with `SEQ_FIRSTRUN_NOAUTHENTICATION=true`. While Seq is only exposed on `127.0.0.1`, anyone with SSH access to the VPS can read all application logs, which may contain PII, request details, or error traces with sensitive data.
-**Fix:** After initial setup, configure Seq authentication and remove the `NOAUTHENTICATION` flag. Alternatively, set an API key for ingestion.
+**4.3 — Seq has no authentication in production** ✅ FIXED
+Added Seq API key support to [docker-compose.deploy.yml](docker/docker-compose.deploy.yml) via `SEQ_API_KEY` environment variable and documented the full authentication setup procedure in [vps-setup-guide.md](docs/vps-setup-guide.md) (section "Abilitare l'autenticazione su Seq"). The `SEQ_FIRSTRUN_NOAUTHENTICATION` flag remains in the compose file for initial setup only — the guide instructs to remove it after creating an admin user. The API key placeholder has been added to [.env.prod.example](docker/.env.prod.example).
 
 ---
 
@@ -156,7 +155,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 9. **✅ ~~Protect CI config from sandbox agent~~** — FIXED. Added read-only mounts for protected paths in sandbox container + `🔒 INTERACTIVE ONLY` task markers in requirements-workflow skill.
 
-10. **🟡 Configure Seq authentication** — Remove `SEQ_FIRSTRUN_NOAUTHENTICATION` after initial setup in production.
+10. **✅ ~~Configure Seq authentication~~** — FIXED. Added API key support to [docker-compose.deploy.yml](docker/docker-compose.deploy.yml) and setup guide in [vps-setup-guide.md](docs/vps-setup-guide.md).
 
 ---
 

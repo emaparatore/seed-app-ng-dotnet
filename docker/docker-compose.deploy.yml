@@ -22,7 +22,7 @@ services:
     image: datalust/seq:latest
     environment:
       - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=${SEQ_NOAUTH:-true}
     ports:
       - "127.0.0.1:${SEQ_PORT:-8081}:80"
     volumes:
@@ -48,6 +48,7 @@ services:
       - Client__BaseUrl=${CLIENT_BASE_URL}
       - Serilog__WriteTo__1__Name=Seq
       - Serilog__WriteTo__1__Args__serverUrl=http://seq:5341
+      - Serilog__WriteTo__1__Args__apiKey=${SEQ_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

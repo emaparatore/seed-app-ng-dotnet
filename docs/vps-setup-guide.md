@@ -669,6 +669,41 @@ ssh -L 8082:localhost:8082 deploy@TUO_IP_VPS
 
 Poi apri nel browser: http://localhost:8081 (o 8082 per staging)
 
+#### Abilitare l'autenticazione su Seq (post-setup)
+
+Per default Seq parte con `SEQ_FIRSTRUN_NOAUTHENTICATION=true` per permettere il primo accesso. Una volta che il sistema e operativo, abilita l'autenticazione:
+
+**1. Crea un utente admin nella UI di Seq**
+
+Apri Seq via SSH tunnel, poi vai in **Settings > Users > Add User**. Crea un utente admin con una password robusta.
+
+**2. Crea una API key per l'ingestione dei log**
+
+In Seq vai in **Settings > API Keys > Add API Key**. Assegna un titolo (es. `api-ingestion`) e copia la chiave generata. Questa API key verra usata dall'API per inviare i log a Seq.
+
+**3. Aggiorna il file `.env` di produzione**
+
+Non serve toccare `docker-compose.deploy.yml` — tutto e gia parametrizzato. Modifica solo il `.env` sul VPS:
+
+```bash
+# Disabilita l'accesso anonimo a Seq
+SEQ_NOAUTH=false
+
+# API key generata al passo 2
+SEQ_API_KEY=la-tua-api-key-generata
+```
+
+**4. Riavvia lo stack**
+
+```bash
+docker compose -f docker-compose.deploy.yml up -d seq api
+```
+
+**5. Verifica**
+
+- Apri Seq via SSH tunnel e verifica che richieda il login
+- Controlla che i log dell'API continuino ad arrivare: `docker compose -f docker-compose.deploy.yml logs --tail 10 api`
+
 ### Statistiche dei container
 
 ```bash
