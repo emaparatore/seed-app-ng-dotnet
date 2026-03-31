@@ -69,6 +69,8 @@ export interface CreateUserDialogData {
   `,
 })
 export class CreateUserDialog {
+  private static readonly generatedPasswordLength = 16;
+
   private readonly fb = inject(FormBuilder);
   private readonly usersService = inject(AdminUsersService);
   private readonly dialogRef = inject(MatDialogRef<CreateUserDialog>);
@@ -93,11 +95,22 @@ export class CreateUserDialog {
   protected generatePassword(): void {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
     let password = '';
-    for (let i = 0; i < 16; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < CreateUserDialog.generatedPasswordLength; i++) {
+      password += chars[this.getSecureRandomIndex(chars.length)];
     }
     this.form.controls.password.setValue(password);
     this.showPassword.set(true);
+  }
+
+  private getSecureRandomIndex(maxExclusive: number): number {
+    const upperBound = Math.floor(256 / maxExclusive) * maxExclusive;
+    const randomByte = new Uint8Array(1);
+
+    do {
+      globalThis.crypto.getRandomValues(randomByte);
+    } while (randomByte[0] >= upperBound);
+
+    return randomByte[0] % maxExclusive;
   }
 
   protected onSubmit(): void {
