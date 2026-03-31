@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **5 medium** findings remain open — primarily around secret scanning, Dependabot, branch protection, sandbox network isolation, and Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **4 medium** findings remain open — primarily around secret scanning, Dependabot, branch protection, sandbox network isolation, and Seq authentication.
 
 ---
 
@@ -17,7 +17,7 @@ The project has a solid foundation: CI runs tests before merge, Docker images us
 | # | Finding | Severity |
 |---|---------|----------|
 | 1.1 | Sandbox container has passwordless sudo | ✅ ACCEPTED |
-| 1.2 | Sandbox mounts entire project directory read-write | 🟡 MEDIUM |
+| 1.2 | Sandbox mounts entire project directory read-write | ✅ FIXED |
 | 1.3 | Sandbox has unrestricted network access | 🟡 MEDIUM |
 | 1.4 | Claude Code permissions are scoped | ✅ PASS |
 | 1.5 | No Docker socket mount | ✅ PASS |
@@ -26,9 +26,8 @@ The project has a solid foundation: CI runs tests before merge, Docker images us
 **1.1 — Sandbox container has passwordless sudo** ✅ ACCEPTED
 In [Dockerfile.sandbox:21](docker/Dockerfile.sandbox#L21), the `claude` user is granted `NOPASSWD:ALL` sudo. The agent runs with `--dangerously-skip-permissions`, so sudo doesn't materially expand the attack surface. The blast radius is limited: all code is under git (worst case = a burned branch), and the only non-recoverable data is the mounted `.claude/` config directory, which is considered an acceptable loss.
 
-**1.2 — Sandbox mounts entire project directory read-write** 🟡 MEDIUM
-In [docker-compose.yml:124](docker/docker-compose.yml#L124), the sandbox mounts `..:/project` with read-write access. The agent can modify any file in the repo, including `.github/workflows/`, `Dockerfile`, and `docker-compose.yml`. A malicious or buggy agent could alter CI pipelines to disable checks.
-**Fix:** Consider mounting CI/CD configs as read-only via a secondary mount: `- ../.github:/project/.github:ro`. This allows the agent to write code but not modify pipeline definitions.
+**1.2 — Sandbox mounts entire project directory read-write** ✅ FIXED
+Added read-only overlay mounts in [docker-compose.yml:125-126](docker/docker-compose.yml#L125-L126) for protected paths: `.github/` and `docker/`. The base `..:/project` mount remains read-write for application code, but Docker resolves the more specific `:ro` mounts first, preventing the agent from modifying CI pipelines, container configs, or its own instructions. Additionally, the requirements-workflow skill now flags tasks that touch protected paths as `🔒 INTERACTIVE ONLY` during planning (see [plan-guide.md](.claude/skills/requirements-workflow/references/plan-guide.md) § "Protected Paths"), so infrastructure changes are separated from autonomous execution at the process level too.
 
 **1.3 — Sandbox has unrestricted network access** 🟡 MEDIUM
 The sandbox container has no network restrictions. The agent can make arbitrary outbound requests (exfiltrate code, download arbitrary packages, access internal services on the Docker network including the database).
@@ -168,7 +167,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 8. **🟡 Verify branch protection rules** — In GitHub Settings, ensure `master` and `dev` require PR reviews + passing CI.
 
-9. **🟡 Protect CI config from sandbox agent** — Mount `.github/` as read-only in the sandbox container.
+9. **✅ ~~Protect CI config from sandbox agent~~** — FIXED. Added read-only mounts for protected paths in sandbox container + `🔒 INTERACTIVE ONLY` task markers in requirements-workflow skill.
 
 10. **🟡 Configure Seq authentication** — Remove `SEQ_FIRSTRUN_NOAUTHENTICATION` after initial setup in production.
 
