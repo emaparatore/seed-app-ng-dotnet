@@ -88,6 +88,7 @@ fi
 echo "[3/5] Applying migrations..."
 docker compose -f "$COMPOSE_FILE" run --rm \
   -e ConnectionStrings__DefaultConnection="$ConnectionStrings__DefaultConnection" \
+  -e DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/.net \
   --entrypoint /app/efbundle \
   api \
   --connection "$ConnectionStrings__DefaultConnection"

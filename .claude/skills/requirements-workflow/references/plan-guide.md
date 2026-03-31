@@ -201,6 +201,53 @@ When this happens:
 3. **If a task becomes unnecessary**, mark it as `[-] Skipped` with a
    reason, rather than deleting it.
 
+## Protected Paths
+
+Some files in the repository are infrastructure-critical: CI/CD pipelines,
+Docker configurations, agent instructions, and security settings. Changes
+to these files can have outsized blast radius — a bad edit to a workflow
+file can disable all CI checks, and a change to agent instructions can
+alter behavior across all future sessions.
+
+These paths are **protected**:
+
+```
+.github/              — CI/CD workflows, Dependabot, PR templates
+docker/docker-compose*.yml — Container orchestration
+docker/Dockerfile.*   — Container image definitions
+docker/nginx/         — Reverse proxy configuration
+```
+
+Note: `.claude/` and `CLAUDE.md` are **not** protected — the workflow
+itself needs to update plans, skills, and project instructions. They
+remain read-write in both interactive and autonomous mode.
+
+When a task requires modifying any protected path, mark it with
+`🔒 INTERACTIVE ONLY`:
+
+```markdown
+## T-07: Add Gitleaks secret scanning to CI
+
+**Stories:** US-012
+**Size:** Small
+**Status:** [ ] Not Started
+🔒 **INTERACTIVE ONLY** — modifies `.github/workflows/`
+
+**What to do:**
+Add a Gitleaks scanning step to the CI pipeline...
+```
+
+This marker means the task must **not** be executed in autonomous/sandbox
+mode. It should be done interactively with Claude Code, where the human
+can review each change before it's applied.
+
+During Phase 2 (planning), actively scan each task's scope for protected
+path modifications. If a task mixes application code with protected path
+changes, split it: keep the code change as a normal task and extract the
+infrastructure change into a separate `🔒 INTERACTIVE ONLY` task. This
+makes it clear which parts of the plan can run autonomously and which
+require human presence.
+
 ## Quality Checklist
 
 Before presenting the plan to the human, verify:
@@ -211,3 +258,5 @@ Before presenting the plan to the human, verify:
 - Decision gates are clearly marked with options and trade-offs
 - Each task has a verifiable definition of done
 - The story coverage table is complete and consistent
+- Tasks that modify protected paths are marked `🔒 INTERACTIVE ONLY`
+- No task mixes protected-path changes with application code changes

@@ -13,10 +13,14 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-auth && \
     NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-ui && \
     NODE_OPTIONS=--max-old-space-size=4096 npm run build -- --configuration=${ANGULAR_BUILD_CONFIGURATION}
 
-FROM node:22-slim AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
-COPY --from=build /app/dist ./dist
+RUN apk upgrade --no-cache zlib && \
+    npm cache clean --force && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+COPY --from=build --chown=node:node /app/dist ./dist
 
-ENV PORT=80
-EXPOSE 80
+USER node
+ENV PORT=3000
+EXPOSE 3000
 CMD ["node", "dist/app/server/server.mjs"]

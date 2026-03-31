@@ -1,0 +1,15 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Known development-only values"
+
+  # Dev-only appsettings contain intentional placeholder secrets (JWT key, DB password, admin password).
+  # Production values are injected via environment variables and never committed.
+  paths = [
+    '''backend/src/Seed\.Api/appsettings\.json''',
+    '''backend/src/Seed\.Api/appsettings\.Development\.json''',
+  ]
