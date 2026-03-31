@@ -6,8 +6,9 @@ on:
     types: [completed]
     branches: [master, dev]
     # NOTE: `workflow_run` executes the workflow definition from the repository
-    # default branch. Keep that branch aligned with deploy fixes, otherwise runs
-    # triggered from `dev` can still execute an older deploy.yml.
+    # default branch, but the checkout step uses the triggering branch ref so
+    # that deploy scripts, compose files and nginx config match the branch
+    # being deployed. Changes to this workflow file itself still require master.
 
 concurrency:
   group: deploy-${{ github.event.workflow_run.head_branch }}
@@ -54,6 +55,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Check which images were built
         id: check
