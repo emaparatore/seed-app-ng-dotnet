@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. However, there are **2 critical**, **2 high**, and **5 medium** findings — primarily around missing container hardening in production and absence of automated security scanning in CI. The top priority is adding a non-root `USER` directive to the production API and web Dockerfiles.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **5 medium** findings remain open — primarily around secret scanning, Dependabot, branch protection, sandbox network isolation, and Seq authentication.
 
 ---
 
@@ -114,7 +114,7 @@ updates:
 | # | Finding | Severity |
 |---|---------|----------|
 | 4.1 | Production API container runs as root | ✅ FIXED |
-| 4.2 | Production web container runs as root | 🟠 HIGH (same class) |
+| 4.2 | Production web container runs as root | ✅ FIXED |
 | 4.3 | Seq has no authentication in production | 🟡 MEDIUM |
 | 4.4 | Health checks configured | ✅ PASS |
 | 4.5 | Structured logging with Serilog + Seq | ✅ PASS |
@@ -124,19 +124,8 @@ updates:
 **4.1 — Production API container runs as root** ✅ FIXED
 Added `adduser` and `USER appuser` to the runtime stage of [Dockerfile](backend/src/Seed.Api/Dockerfile). The API process now runs as a non-root user. Port 8080 is >1024 so no root is needed for binding.
 
-**4.2 — Production web container runs as root** 🟠 HIGH
-The web [Dockerfile](frontend/web/Dockerfile) also has no `USER` directive. Same issue as 4.1.
-**Fix:** Add `USER node` before the `CMD` — the `node:22-slim` image already includes a `node` user:
-```dockerfile
-FROM node:22-slim AS runtime
-WORKDIR /app
-COPY --from=build /app/dist ./dist
-USER node
-ENV PORT=80
-EXPOSE 80
-CMD ["node", "dist/app/server/server.mjs"]
-```
-Note: Port 80 inside the container requires a change — either use port 3000 or use a capability. Recommend changing `ENV PORT=3000` and updating the compose file accordingly.
+**4.2 — Production web container runs as root** ✅ FIXED
+Added `USER node` to the runtime stage of [Dockerfile](frontend/web/Dockerfile). The Node process now runs as a non-root user. Port changed from 80 to 3000 (non-privileged), and the Nginx reverse proxy template updated to `proxy_pass http://web:3000/`.
 
 **4.3 — Seq has no authentication in production** 🟡 MEDIUM
 In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq runs with `SEQ_FIRSTRUN_NOAUTHENTICATION=true`. While Seq is only exposed on `127.0.0.1`, anyone with SSH access to the VPS can read all application logs, which may contain PII, request details, or error traces with sensitive data.
@@ -165,7 +154,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 ## Priority Actions
 
-1. **🔴 Add non-root USER to production Dockerfiles** — [backend/src/Seed.Api/Dockerfile](backend/src/Seed.Api/Dockerfile) and [frontend/web/Dockerfile](frontend/web/Dockerfile). Immediate risk reduction, ~5 lines of code each.
+1. **✅ ~~Add non-root USER to production Dockerfiles~~** — FIXED. Added `USER appuser` to [backend/src/Seed.Api/Dockerfile](backend/src/Seed.Api/Dockerfile) and `USER node` to [frontend/web/Dockerfile](frontend/web/Dockerfile).
 
 2. **✅ ~~Add dependency vulnerability scanning to CI~~** — FIXED. Added to [ci.yml](.github/workflows/ci.yml).
 
