@@ -240,6 +240,8 @@ jobs:
 
             echo "Ensuring infrastructure services are running..."
             docker compose -f "$COMPOSE_FILE" up -d nginx
+            echo "Reloading nginx to pick up new container IPs..."
+            docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload
 
             docker image prune -f
 
