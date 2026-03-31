@@ -113,7 +113,7 @@ updates:
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 4.1 | Production API container runs as root | 🔴 CRITICAL |
+| 4.1 | Production API container runs as root | ✅ FIXED |
 | 4.2 | Production web container runs as root | 🟠 HIGH (same class) |
 | 4.3 | Seq has no authentication in production | 🟡 MEDIUM |
 | 4.4 | Health checks configured | ✅ PASS |
@@ -121,16 +121,8 @@ updates:
 | 4.6 | Environment separation (dev/staging/prod) | ✅ PASS |
 | 4.7 | Production config uses empty placeholders, not hardcoded creds | ✅ PASS |
 
-**4.1 — Production API container runs as root** 🔴 CRITICAL
-The API [Dockerfile](backend/src/Seed.Api/Dockerfile) has no `USER` directive in the runtime stage. The `aspnet:10.0` base image defaults to root. If an attacker achieves RCE through a vulnerability, they have root inside the container, making container escapes easier and lateral movement more impactful.
-**Fix:** Add a non-root user to the runtime stage:
-```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
-RUN adduser --disabled-password --gecos "" appuser
-# ... existing COPY steps ...
-USER appuser
-```
-Note: The `EXPOSE 8080` port is >1024 so no root is needed for binding.
+**4.1 — Production API container runs as root** ✅ FIXED
+Added `adduser` and `USER appuser` to the runtime stage of [Dockerfile](backend/src/Seed.Api/Dockerfile). The API process now runs as a non-root user. Port 8080 is >1024 so no root is needed for binding.
 
 **4.2 — Production web container runs as root** 🟠 HIGH
 The web [Dockerfile](frontend/web/Dockerfile) also has no `USER` directive. Same issue as 4.1.
