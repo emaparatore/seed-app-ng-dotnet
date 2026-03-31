@@ -13,7 +13,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-auth && \
     NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-ui && \
     NODE_OPTIONS=--max-old-space-size=4096 npm run build -- --configuration=${ANGULAR_BUILD_CONFIGURATION}
 
-FROM node:22-slim AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 COPY --from=build --chown=node:node /app/dist ./dist
 
