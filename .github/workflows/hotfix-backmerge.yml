@@ -23,8 +23,9 @@ jobs:
       - name: Create back-merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOTFIX_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          HOTFIX_BRANCH="${{ github.event.pull_request.head.ref }}"
           PR_TITLE="chore: back-merge master into dev after ${HOTFIX_BRANCH}"
 
           # Check if a back-merge PR already exists
@@ -40,7 +41,7 @@ jobs:
             --title "${PR_TITLE}" \
             --body "## Automatic back-merge
 
-          The hotfix branch \`${HOTFIX_BRANCH}\` was merged into \`master\` via PR #${{ github.event.pull_request.number }}.
+          The hotfix branch \`${HOTFIX_BRANCH}\` was merged into \`master\` via PR #${PR_NUMBER}.
 
           This PR merges those changes back into \`dev\` to keep the branches in sync.
 
