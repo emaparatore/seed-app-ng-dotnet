@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **3 medium** findings remain open — secret scanning, Dependabot, and Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **2 medium** findings remain open — Dependabot and Seq authentication.
 
 ---
 
@@ -71,7 +71,7 @@ See [docs/adding-collaborators.md](docs/adding-collaborators.md) for the checkli
 | 3.1 | No dependency vulnerability scanning | ✅ FIXED |
 | 3.2 | No SAST / static security analysis | ✅ FIXED |
 | 3.3 | No container image scanning | ✅ FIXED |
-| 3.4 | No secret scanning (Gitleaks / GitHub) | 🟡 MEDIUM |
+| 3.4 | No secret scanning (Gitleaks / GitHub) | ✅ FIXED |
 | 3.5 | No Dependabot configuration | 🟡 MEDIUM |
 | 3.6 | Dependencies are pinned via lockfile | ✅ PASS |
 | 3.7 | Deploy requires Docker Publish success | ✅ PASS |
@@ -87,9 +87,8 @@ Added Semgrep SAST scanning to [semgrep.yml](/.github/workflows/semgrep.yml). Ru
 **3.3 — Container image scanning** ✅ FIXED
 Added Trivy container image scanning to [docker-publish.yml](.github/workflows/docker-publish.yml). Both API and Web images are scanned after build+push. CI fails if any CRITICAL or HIGH vulnerability is found in the image (OS packages or application dependencies).
 
-**3.4 — No secret scanning** 🟡 MEDIUM
-No Gitleaks config (`.gitleaks.toml`) or similar tool in CI. If GitHub Advanced Security is not enabled on this repo, accidentally committed secrets will not be detected.
-**Fix:** Add Gitleaks to CI or enable GitHub secret scanning in repo Settings > Code security.
+**3.4 — Secret scanning** ✅ FIXED
+Added [gitleaks.yml](.github/workflows/gitleaks.yml) using `gitleaks/gitleaks-action@v2`. Runs on PRs and pushes to `master`/`dev` with full git history (`fetch-depth: 0`). The action automatically detects `.gitleaks.toml` in the repo root, which allowlists `appsettings.json` and `appsettings.Development.json` (these contain intentional dev-only placeholder secrets; production values are injected via environment variables).
 
 **3.5 — No Dependabot configuration** 🟡 MEDIUM
 No `.github/dependabot.yml` exists. Dependencies are not automatically monitored for updates or security patches.
@@ -172,7 +171,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 5. **🟡 Configure Dependabot** — Create `.github/dependabot.yml` for automated dependency update PRs.
 
-7. **🟡 Enable secret scanning** — Gitleaks in CI or GitHub native secret scanning.
+7. **✅ ~~Enable secret scanning~~** — FIXED. Added Gitleaks to [gitleaks.yml](.github/workflows/gitleaks.yml) with [.gitleaks.toml](.gitleaks.toml) allowlist for dev-only appsettings.
 
 8. **✅ ~~Verify branch protection rules~~** — VERIFIED. Both `master` and `dev` have required CI checks, no force push, no deletions, enforce admins. Adequate for solo developer. See [docs/adding-collaborators.md](docs/adding-collaborators.md) for multi-developer hardening.
 
