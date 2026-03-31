@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **3 medium** findings remain open — secret scanning, Dependabot, branch protection, and Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **3 medium** findings remain open — secret scanning, Dependabot, and Seq authentication.
 
 ---
 
@@ -39,7 +39,7 @@ The sandbox container has no network restrictions. However, the sandbox runs exc
 | # | Finding | Severity |
 |---|---------|----------|
 | 2.1 | No PR template | 🟢 LOW |
-| 2.2 | Branch protection enforcement — verify externally | 🟡 MEDIUM |
+| 2.2 | Branch protection enforcement — verify externally | ✅ VERIFIED |
 | 2.3 | PR-based workflow is established | ✅ PASS |
 | 2.4 | CI runs on all PRs to dev and master | ✅ PASS |
 | 2.5 | Conventional commits with scopes | ✅ PASS |
@@ -48,9 +48,20 @@ The sandbox container has no network restrictions. However, the sandbox runs exc
 No `.github/pull_request_template.md` exists. A template ensures every PR (human or AI-generated) includes a consistent description, test plan, and security considerations section.
 **Fix:** Create `.github/pull_request_template.md` with sections for Summary, Key decisions, How to test, and a Security checklist (e.g., "Does this change handle user input? Does it modify auth logic?").
 
-**2.2 — Branch protection — verify externally** 🟡 MEDIUM
-CLAUDE.md documents a PR-based workflow, and the CI runs on PRs to `dev` and `master`. However, branch protection rules (required reviews, no force pushes, required status checks) must be configured in GitHub repo Settings. This cannot be verified from the repo alone.
-**Fix:** Verify in GitHub Settings > Branches that `master` and `dev` have: (1) Require pull request reviews, (2) Require status checks to pass (CI), (3) Do not allow force pushes, (4) Do not allow deletions.
+**2.2 — Branch protection — verify externally** ✅ VERIFIED (2026-03-31)
+Verified via GitHub API. Both `master` and `dev` have:
+- ✅ Required status checks: `ci-success` with `strict: true` (branch must be up-to-date)
+- ✅ Force pushes blocked
+- ✅ Branch deletions blocked
+- ✅ Enforce admins enabled (rules apply to repo owners too)
+- ✅ Required conversation resolution on `master`
+
+**Not enabled (acceptable for solo developer):**
+- Required approving reviews: set to 0 (no reviewers needed)
+- Dismiss stale reviews: off (no effect with 0 required reviews)
+- Required conversation resolution on `dev`: off (staging branch, more flexibility)
+
+See [docs/adding-collaborators.md](docs/adding-collaborators.md) for the checklist of settings to tighten before adding team members.
 
 ---
 
@@ -164,7 +175,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 7. **🟡 Enable secret scanning** — Gitleaks in CI or GitHub native secret scanning.
 
-8. **🟡 Verify branch protection rules** — In GitHub Settings, ensure `master` and `dev` require PR reviews + passing CI.
+8. **✅ ~~Verify branch protection rules~~** — VERIFIED. Both `master` and `dev` have required CI checks, no force push, no deletions, enforce admins. Adequate for solo developer. See [docs/adding-collaborators.md](docs/adding-collaborators.md) for multi-developer hardening.
 
 9. **✅ ~~Protect CI config from sandbox agent~~** — FIXED. Added read-only mounts for protected paths in sandbox container + `🔒 INTERACTIVE ONLY` task markers in requirements-workflow skill.
 
