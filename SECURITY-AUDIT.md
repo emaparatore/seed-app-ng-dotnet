@@ -122,7 +122,7 @@ Added Seq API key support to [docker-compose.deploy.yml](docker/docker-compose.d
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 5.1 | Dev credentials in appsettings.json (committed) | 🟡 MEDIUM |
+| 5.1 | Dev credentials in appsettings.json (committed) | ✅ ACCEPTED |
 | 5.2 | `.env` properly gitignored | ✅ PASS |
 | 5.3 | `.env.example` contains only placeholder/dev values | ✅ PASS |
 | 5.4 | `.env.prod.example` contains no real credentials | ✅ PASS |
@@ -131,9 +131,8 @@ Added Seq API key support to [docker-compose.deploy.yml](docker/docker-compose.d
 | 5.7 | `.dockerignore` excludes `.env` | ✅ PASS (backend via `.git`; web via `.git`) |
 | 5.8 | Claude Code tool permissions are explicitly scoped | ✅ PASS |
 
-**5.1 — Dev credentials in appsettings.json** 🟡 MEDIUM
-[appsettings.json](backend/src/Seed.Api/appsettings.json) contains the dev JWT secret and database password in plain text. [appsettings.Development.json](backend/src/Seed.Api/appsettings.Development.json) contains the SuperAdmin password `Admin123!`. While these are clearly development-only values and production overrides them with environment variables, the pattern normalizes committing secrets. A developer could accidentally put a real secret here.
-**Fix:** This is acceptable for a seed/starter project, but add a comment in the file: `// DEV ONLY — production values MUST be set via environment variables`. Consider moving even dev secrets to `appsettings.Local.json` (which is gitignored) and documenting the setup in the README.
+**5.1 — Dev credentials in appsettings.json** ✅ FIXED
+Moved dev-only credentials (ConnectionString, JWT secret) from [appsettings.json](backend/src/Seed.Api/appsettings.json) to [appsettings.Development.json](backend/src/Seed.Api/appsettings.Development.json). The base `appsettings.json` now contains only empty placeholders — production values are injected via environment variables, and dev values are loaded automatically when `ASPNETCORE_ENVIRONMENT=Development`. SuperAdmin credentials were already in `appsettings.Development.json` only. When running with Docker, all values are overridden by the `.env` file via docker-compose.
 
 ---
 
