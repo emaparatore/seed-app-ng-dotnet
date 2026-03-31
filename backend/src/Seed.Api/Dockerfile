@@ -40,7 +40,7 @@ RUN dotnet ef migrations bundle \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-RUN adduser --disabled-password --gecos "" appuser
+RUN useradd --no-create-home --shell /bin/false appuser
 WORKDIR /app
 COPY --from=build /app/publish .
 COPY --from=build /app/bootstrap ./bootstrap
