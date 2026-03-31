@@ -38,15 +38,14 @@ The sandbox container has no network restrictions. However, the sandbox runs exc
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 2.1 | No PR template | 🟢 LOW |
+| 2.1 | No PR template | ✅ FIXED |
 | 2.2 | Branch protection enforcement — verify externally | ✅ VERIFIED |
 | 2.3 | PR-based workflow is established | ✅ PASS |
 | 2.4 | CI runs on all PRs to dev and master | ✅ PASS |
 | 2.5 | Conventional commits with scopes | ✅ PASS |
 
-**2.1 — No PR template** 🟢 LOW
-No `.github/pull_request_template.md` exists. A template ensures every PR (human or AI-generated) includes a consistent description, test plan, and security considerations section.
-**Fix:** Create `.github/pull_request_template.md` with sections for Summary, Key decisions, How to test, and a Security checklist (e.g., "Does this change handle user input? Does it modify auth logic?").
+**2.1 — No PR template** ✅ FIXED
+Added [`.github/pull_request_template.md`](.github/pull_request_template.md) with Summary, Key decisions, and How to test sections — aligned with the PR structure already in CLAUDE.md. The template pre-populates when opening PRs via GitHub UI; ignored when `--body` is passed explicitly (e.g., by Claude Code).
 
 **2.2 — Branch protection — verify externally** ✅ VERIFIED (2026-03-31)
 Verified via GitHub API. Both `master` and `dev` have:
