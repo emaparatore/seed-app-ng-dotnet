@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **4 medium** findings remain open — primarily around secret scanning, Dependabot, branch protection, sandbox network isolation, and Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). **3 medium** findings remain open — secret scanning, Dependabot, branch protection, and Seq authentication.
 
 ---
 
@@ -18,7 +18,7 @@ The project has a solid foundation: CI runs tests before merge, Docker images us
 |---|---------|----------|
 | 1.1 | Sandbox container has passwordless sudo | ✅ ACCEPTED |
 | 1.2 | Sandbox mounts entire project directory read-write | ✅ FIXED |
-| 1.3 | Sandbox has unrestricted network access | 🟡 MEDIUM |
+| 1.3 | Sandbox has unrestricted network access | ✅ ACCEPTED |
 | 1.4 | Claude Code permissions are scoped | ✅ PASS |
 | 1.5 | No Docker socket mount | ✅ PASS |
 | 1.6 | No `--privileged` or dangerous capabilities | ✅ PASS |
@@ -29,9 +29,8 @@ In [Dockerfile.sandbox:21](docker/Dockerfile.sandbox#L21), the `claude` user is 
 **1.2 — Sandbox mounts entire project directory read-write** ✅ FIXED
 Added read-only overlay mounts in [docker-compose.yml:125-126](docker/docker-compose.yml#L125-L126) for protected paths: `.github/` and `docker/`. The base `..:/project` mount remains read-write for application code, but Docker resolves the more specific `:ro` mounts first, preventing the agent from modifying CI pipelines, container configs, or its own instructions. Additionally, the requirements-workflow skill now flags tasks that touch protected paths as `🔒 INTERACTIVE ONLY` during planning (see [plan-guide.md](.claude/skills/requirements-workflow/references/plan-guide.md) § "Protected Paths"), so infrastructure changes are separated from autonomous execution at the process level too.
 
-**1.3 — Sandbox has unrestricted network access** 🟡 MEDIUM
-The sandbox container has no network restrictions. The agent can make arbitrary outbound requests (exfiltrate code, download arbitrary packages, access internal services on the Docker network including the database).
-**Fix:** For code-generation-only tasks, consider `network_mode: none`. If network access is needed (e.g., `npm install`), restrict egress to specific domains via a proxy or firewall rule. At minimum, put the sandbox on a separate Docker network from the database.
+**1.3 — Sandbox has unrestricted network access** ✅ ACCEPTED
+The sandbox container has no network restrictions. However, the sandbox runs exclusively on the developer's local machine (activated manually via `--profile sandbox`), is not present in `docker-compose.deploy.yml`, and its image is never published to GHCR. The blast radius is limited to the local dev environment — all code is under git (worst case = a burned branch). Accepted risk for a local-only development tool.
 
 ---
 
