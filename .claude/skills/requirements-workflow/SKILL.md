@@ -195,6 +195,14 @@ For each task:
    flag, do not proceed. Present the decision to the human with your
    analysis and recommendation, then wait.
 
+6. **Respect protected paths.** If the next task is marked
+   `🔒 INTERACTIVE ONLY`, do not execute it in autonomous/sandbox mode.
+   Skip it, log that it was skipped (with reason: "requires interactive
+   execution"), and move to the next non-protected task. Protected tasks
+   must be executed interactively with Claude Code, where the human
+   reviews each change. See `references/plan-guide.md` § "Protected
+   Paths" for the full list of protected paths and rationale.
+
 **Important behaviors during execution:**
 
 - **One task at a time.** Don't batch multiple tasks. Complete one, update

@@ -40,9 +40,11 @@ RUN dotnet ef migrations bundle \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN adduser --disabled-password --gecos "" appuser
 WORKDIR /app
 COPY --from=build /app/publish .
 COPY --from=build /app/bootstrap ./bootstrap
 COPY --from=build /app/efbundle ./efbundle
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Seed.Api.dll"]

@@ -15,8 +15,9 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npx ng build shared-auth && \
 
 FROM node:22-slim AS runtime
 WORKDIR /app
-COPY --from=build /app/dist ./dist
+COPY --from=build --chown=node:node /app/dist ./dist
 
-ENV PORT=80
-EXPOSE 80
+USER node
+ENV PORT=3000
+EXPOSE 3000
 CMD ["node", "dist/app/server/server.mjs"]

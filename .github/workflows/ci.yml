@@ -53,6 +53,15 @@ jobs:
         working-directory: backend
         run: dotnet build Seed.slnx --no-restore -c Release
 
+      - name: Check for vulnerable NuGet packages
+        working-directory: backend
+        run: |
+          dotnet list Seed.slnx package --vulnerable --include-transitive 2>&1 | tee /tmp/nuget-audit.txt
+          if grep -qi "has the following vulnerable packages" /tmp/nuget-audit.txt; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+
       - name: Unit Tests
         working-directory: backend
         run: dotnet test tests/Seed.UnitTests --no-build -c Release --logger "trx;LogFileName=unit-results.trx"
@@ -127,6 +136,10 @@ jobs:
       - name: Install dependencies
         working-directory: frontend/web
         run: npm ci
+
+      - name: Check for vulnerable npm packages
+        working-directory: frontend/web
+        run: npm audit --audit-level=high
 
       - name: Build shared libraries
         working-directory: frontend/web
