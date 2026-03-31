@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **2 medium** findings remain open — Dependabot and Seq authentication.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. **1 medium** finding remains open — Seq authentication.
 
 ---
 
@@ -72,7 +72,7 @@ See [docs/adding-collaborators.md](docs/adding-collaborators.md) for the checkli
 | 3.2 | No SAST / static security analysis | ✅ FIXED |
 | 3.3 | No container image scanning | ✅ FIXED |
 | 3.4 | No secret scanning (Gitleaks / GitHub) | ✅ FIXED |
-| 3.5 | No Dependabot configuration | 🟡 MEDIUM |
+| 3.5 | No Dependabot configuration | ✅ FIXED |
 | 3.6 | Dependencies are pinned via lockfile | ✅ PASS |
 | 3.7 | Deploy requires Docker Publish success | ✅ PASS |
 | 3.8 | Production deploy uses GitHub Environments | ✅ PASS |
@@ -90,29 +90,8 @@ Added Trivy container image scanning to [docker-publish.yml](.github/workflows/d
 **3.4 — Secret scanning** ✅ FIXED
 Added [gitleaks.yml](.github/workflows/gitleaks.yml) using `gitleaks/gitleaks-action@v2`. Runs on PRs and pushes to `master`/`dev` with full git history (`fetch-depth: 0`). The action automatically detects `.gitleaks.toml` in the repo root, which allowlists `appsettings.json` and `appsettings.Development.json` (these contain intentional dev-only placeholder secrets; production values are injected via environment variables).
 
-**3.5 — No Dependabot configuration** 🟡 MEDIUM
-No `.github/dependabot.yml` exists. Dependencies are not automatically monitored for updates or security patches.
-**Fix:** Create `.github/dependabot.yml`:
-```yaml
-version: 2
-updates:
-  - package-ecosystem: nuget
-    directory: /backend
-    schedule:
-      interval: weekly
-  - package-ecosystem: npm
-    directory: /frontend/web
-    schedule:
-      interval: weekly
-  - package-ecosystem: docker
-    directory: /backend/src/Seed.Api
-    schedule:
-      interval: weekly
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-```
+**3.5 — No Dependabot configuration** ✅ FIXED
+Added [`.github/dependabot.yml`](.github/dependabot.yml) with weekly update checks for all four ecosystems: NuGet (`/backend`), npm (`/frontend/web`), Docker (`/backend/src/Seed.Api`), and GitHub Actions (`/`). Dependabot will now automatically open PRs when dependency updates or security patches are available.
 
 ---
 
@@ -169,7 +148,7 @@ In [docker-compose.deploy.yml:23](docker/docker-compose.deploy.yml#L23), Seq run
 
 4. **✅ ~~Enable SAST scanning~~** — FIXED. Added Semgrep to [semgrep.yml](.github/workflows/semgrep.yml).
 
-5. **🟡 Configure Dependabot** — Create `.github/dependabot.yml` for automated dependency update PRs.
+5. **✅ ~~Configure Dependabot~~** — FIXED. Added [`.github/dependabot.yml`](.github/dependabot.yml) with weekly checks for NuGet, npm, Docker, and GitHub Actions.
 
 7. **✅ ~~Enable secret scanning~~** — FIXED. Added Gitleaks to [gitleaks.yml](.github/workflows/gitleaks.yml) with [.gitleaks.toml](.gitleaks.toml) allowlist for dev-only appsettings.
 
