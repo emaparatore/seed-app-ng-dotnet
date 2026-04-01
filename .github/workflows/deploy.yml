@@ -238,8 +238,8 @@ jobs:
               docker compose -f "$COMPOSE_FILE" up -d --no-deps web
             fi
 
-            echo "Ensuring infrastructure services are running..."
-            docker compose -f "$COMPOSE_FILE" up -d nginx
+            echo "Restarting nginx to pick up new templates and container IPs..."
+            docker compose -f "$COMPOSE_FILE" up -d --force-recreate nginx
 
             docker image prune -f
 
