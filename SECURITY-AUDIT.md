@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. All medium findings have been **fixed** or **accepted**.
+The project has a solid foundation: CI runs tests before merge, Docker images use multi-stage builds, production secrets are environment-variable driven, and `.gitignore` properly excludes sensitive files. The initial audit found **2 critical**, **2 high**, and **5 medium** findings. All critical and high findings have been **fixed** (non-root containers, dependency scanning, SAST, container image scanning). Branch protection has been **verified** as adequate for a solo developer. All medium findings have been **fixed** — including sandbox sudo removal (1.1), previously accepted, now resolved via `gosu` privilege drop.
 
 ---
 
@@ -16,15 +16,15 @@ The project has a solid foundation: CI runs tests before merge, Docker images us
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 1.1 | Sandbox container has passwordless sudo | ✅ ACCEPTED |
+| 1.1 | Sandbox container has passwordless sudo | ✅ FIXED |
 | 1.2 | Sandbox mounts entire project directory read-write | ✅ FIXED |
 | 1.3 | Sandbox has unrestricted network access | ✅ ACCEPTED |
 | 1.4 | Claude Code permissions are scoped | ✅ PASS |
 | 1.5 | No Docker socket mount | ✅ PASS |
 | 1.6 | No `--privileged` or dangerous capabilities | ✅ PASS |
 
-**1.1 — Sandbox container has passwordless sudo** ✅ ACCEPTED
-In [Dockerfile.sandbox:21](docker/Dockerfile.sandbox#L21), the `claude` user is granted `NOPASSWD:ALL` sudo. The agent runs with `--dangerously-skip-permissions`, so sudo doesn't materially expand the attack surface. The blast radius is limited: all code is under git (worst case = a burned branch), and the only non-recoverable data is the mounted `.claude/` config directory, which is considered an acceptable loss.
+**1.1 — Sandbox container has passwordless sudo** ✅ FIXED
+Removed `sudo` and `NOPASSWD:ALL` from [Dockerfile.sandbox](docker/Dockerfile.sandbox). The entrypoint now runs as root only to fix bind-mount permissions (`chown` on `/project` and `/home/claude/.claude`), then immediately drops privileges to the `claude` user via `gosu`. The `claude` user has no way to re-escalate to root. This is a strict improvement over the previous setup where `claude` could run any command as root at any time.
 
 **1.2 — Sandbox mounts entire project directory read-write** ✅ FIXED
 Added read-only overlay mounts in [docker-compose.yml:125-126](docker/docker-compose.yml#L125-L126) for protected paths: `.github/` and `docker/`. The base `..:/project` mount remains read-write for application code, but Docker resolves the more specific `:ro` mounts first, preventing the agent from modifying CI pipelines, container configs, or its own instructions. Additionally, the requirements-workflow skill now flags tasks that touch protected paths as `🔒 INTERACTIVE ONLY` during planning (see [plan-guide.md](.claude/skills/requirements-workflow/references/plan-guide.md) § "Protected Paths"), so infrastructure changes are separated from autonomous execution at the process level too.
@@ -168,5 +168,5 @@ Moved dev-only credentials (ConnectionString, JWT secret) from [appsettings.json
 - **Production deploy uses GitHub Environments.** The deploy workflow references environment-specific settings, enabling required reviewers and wait timers for production.
 - **Health checks in production.** The API has a health check endpoint, and the deploy script verifies it before completing.
 - **Structured logging.** Serilog with Seq provides a full audit trail for production issues.
-- **Sandbox runs as non-root user.** The Dockerfile.sandbox creates and switches to a `claude` user (though the sudo access undermines this — see finding 1.1).
+- **Sandbox runs as non-root user.** The Dockerfile.sandbox creates a `claude` user. The entrypoint fixes bind-mount permissions as root, then drops privileges irrevocably via `gosu`.
 - **Hotfix back-merge automation.** The hotfix-backmerge workflow ensures `dev` stays in sync with `master` after hotfixes.

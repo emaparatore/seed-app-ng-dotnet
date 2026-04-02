@@ -4,9 +4,9 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs
 
-# Dev tools
+# Dev tools + gosu for privilege drop
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl bash htop less vim sudo jq \
+    git curl bash htop less vim jq gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # dotnet-ef for migrations (install globally first as root)
@@ -16,25 +16,23 @@ RUN dotnet tool install --global dotnet-ef --version 10.0.*
 RUN npm install -g @anthropic-ai/claude-code
 
 # Create non-root user (--dangerously-skip-permissions refuses root)
-RUN useradd -m -s /bin/bash claude \
-    && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m -s /bin/bash claude
 
 # Copy dotnet tools to claude user
 RUN cp -r /root/.dotnet /home/claude/.dotnet \
     && chown -R claude:claude /home/claude/.dotnet
 
-USER claude
-
-# Git config for commits inside sandbox
-RUN git config --global --add safe.directory /project \
-    && git config --global user.name "Emanuele Claudio Paratore-(sandbox)" \
-    && git config --global user.email "emaparatore@gmail.com" \
-    && git config --global core.autocrlf input
+# Git config for claude user (run as root, write to claude's home)
+RUN su - claude -c '\
+    git config --global --add safe.directory /project && \
+    git config --global user.name "Emanuele Claudio Paratore-(sandbox)" && \
+    git config --global user.email "emaparatore@gmail.com" && \
+    git config --global core.autocrlf input'
 ENV PATH="$PATH:/home/claude/.dotnet/tools"
 ENV DOTNET_CLI_HOME="/home/claude/.dotnet"
 
 COPY docker/sandbox-entrypoint.sh /usr/local/bin/sandbox-entrypoint.sh
-RUN sudo chmod +x /usr/local/bin/sandbox-entrypoint.sh
+RUN chmod +x /usr/local/bin/sandbox-entrypoint.sh
 
 WORKDIR /project
 ENTRYPOINT ["sandbox-entrypoint.sh"]
