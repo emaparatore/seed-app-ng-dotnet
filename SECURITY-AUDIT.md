@@ -24,7 +24,7 @@ The project has a solid foundation: CI runs tests before merge, Docker images us
 | 1.6 | No `--privileged` or dangerous capabilities | ✅ PASS |
 
 **1.1 — Sandbox container has passwordless sudo** ✅ FIXED
-Removed `sudo` and `NOPASSWD:ALL` from [Dockerfile.sandbox](docker/Dockerfile.sandbox). The entrypoint now runs as root only to fix bind-mount permissions (`chown` on `/project` and `/home/claude/.claude`), then immediately drops privileges to the `claude` user via `gosu`. The `claude` user has no way to re-escalate to root. This is a strict improvement over the previous setup where `claude` could run any command as root at any time.
+Replaced `NOPASSWD:ALL` with limited sudo in [Dockerfile.sandbox](docker/Dockerfile.sandbox). The `claude` user can now only `sudo chown` and `sudo chmod` — the two commands needed by the entrypoint to fix Windows NTFS bind-mount permissions. No other command can be run as root. This eliminates the ability to `sudo bash`, `sudo rm`, or any other root escalation while keeping the permission-fix workflow functional.
 
 **1.2 — Sandbox mounts entire project directory read-write** ✅ FIXED
 Added read-only overlay mounts in [docker-compose.yml:125-126](docker/docker-compose.yml#L125-L126) for protected paths: `.github/` and `docker/`. The base `..:/project` mount remains read-write for application code, but Docker resolves the more specific `:ro` mounts first, preventing the agent from modifying CI pipelines, container configs, or its own instructions. Additionally, the requirements-workflow skill now flags tasks that touch protected paths as `🔒 INTERACTIVE ONLY` during planning (see [plan-guide.md](.claude/skills/requirements-workflow/references/plan-guide.md) § "Protected Paths"), so infrastructure changes are separated from autonomous execution at the process level too.
@@ -168,5 +168,5 @@ Moved dev-only credentials (ConnectionString, JWT secret) from [appsettings.json
 - **Production deploy uses GitHub Environments.** The deploy workflow references environment-specific settings, enabling required reviewers and wait timers for production.
 - **Health checks in production.** The API has a health check endpoint, and the deploy script verifies it before completing.
 - **Structured logging.** Serilog with Seq provides a full audit trail for production issues.
-- **Sandbox runs as non-root user.** The Dockerfile.sandbox creates a `claude` user. The entrypoint fixes bind-mount permissions as root, then drops privileges irrevocably via `gosu`.
+- **Sandbox runs as non-root user.** The Dockerfile.sandbox creates a `claude` user with limited sudo (only `chown`/`chmod` for bind-mount fixes). No root shell or arbitrary command escalation is possible.
 - **Hotfix back-merge automation.** The hotfix-backmerge workflow ensures `dev` stays in sync with `master` after hotfixes.
