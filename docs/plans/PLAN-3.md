@@ -65,7 +65,7 @@ Totale container: 504MB
 
 ## Task 2: Aggiungere Portainer CE
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 Portainer è un'istanza unica a livello di server — vede tutti i container (production + staging) perché ha accesso al Docker socket. Non va nel compose di un singolo ambiente ma gira standalone.
 
@@ -77,6 +77,22 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - `mem_limit: 128m`
    - Restart: `always`
 2. Aggiungere variabili al `.env.prod.example`
+
+**Definition of Done:**
+- [x] `docker/docker-compose.portainer.yml` creato con servizio Portainer CE (`portainer/portainer-ce:latest`)
+- [x] Docker socket montato read-only (`/var/run/docker.sock:/var/run/docker.sock:ro`)
+- [x] Volume named `portainer_data` per persistenza dati
+- [x] Porta 9443 esposta solo su localhost (`127.0.0.1:9443:9443`)
+- [x] `mem_limit: 128m` e `restart: always` configurati
+- [x] `.env.prod.example` aggiornato con variabile `PORTAINER_PORT=9443`
+- [x] File YAML sintatticamente corretto (verifica visuale — Docker non disponibile in sandbox)
+
+**Implementation Notes:**
+- Porta resa configurabile via `${PORTAINER_PORT:-9443}` nel compose con default a 9443, coerente con la variabile in `.env.prod.example`
+- Aggiunto header con istruzioni di usage e accesso via SSH tunnel per facilitare l'onboarding
+- `restart: always` (non `unless-stopped`) come da piano — Portainer è standalone e deve partire anche dopo `docker compose down`
+- Nessuna network custom definita — Portainer accede al Docker socket, non alla rete applicativa
+- Nessuna deviazione dal piano
 
 **File coinvolti:**
 - `docker/docker-compose.portainer.yml` (nuovo)
