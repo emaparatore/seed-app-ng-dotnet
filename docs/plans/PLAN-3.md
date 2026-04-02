@@ -182,7 +182,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
 
 ## Task 5: Aggiungere cAdvisor e Node Exporter
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 **Cosa fare:**
 1. Aggiungere il servizio `cadvisor` al compose di deploy (production)
@@ -201,6 +201,22 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Non esporre porte — solo rete interna
    - Network: `app-network`
 3. Aggiornare `prometheus.yml` per fare scrape di cAdvisor (`:8080/metrics`) e Node Exporter (`:9100/metrics`)
+
+**Definition of Done:**
+- [x] Servizio `cadvisor` presente in `docker-compose.deploy.yml` con immagine `gcr.io/cadvisor/cadvisor:latest`, volumi ro (`/`, `/var/run`, `/sys`, `/var/lib/docker`), `mem_limit: 128m`, `restart: unless-stopped`, network `app-network`, nessuna porta esposta
+- [x] Servizio `node-exporter` presente in `docker-compose.deploy.yml` con immagine `prom/node-exporter:latest`, volumi ro (`/proc`, `/sys`, `/`), flag `--path.rootfs=/rootfs`, `mem_limit: 64m`, `restart: unless-stopped`, network `app-network`, nessuna porta esposta
+- [x] `prometheus.yml` aggiornato con scrape target per `cadvisor:8080` e `node-exporter:9100`
+- [x] Nessun volume named aggiuntivo necessario (solo bind mount)
+- [x] Nessuna porta pubblica o localhost esposta per i due nuovi servizi
+- [x] File YAML sintatticamente corretti (verifica visuale — Docker non disponibile in sandbox)
+- [x] Nessun file non previsto dal piano viene modificato
+
+**Implementation Notes:**
+- Servizi posizionati dopo `grafana` e prima di `volumes:`, coerente con l'ordine logico (prima servizi core, poi monitoring)
+- cAdvisor: 4 volumi bind-mount read-only (`/`, `/var/run`, `/sys`, `/var/lib/docker`) per accesso completo alle metriche container; nessuna porta esposta, accessibile da Prometheus via `cadvisor:8080`
+- Node Exporter: 3 volumi bind-mount read-only con flag `--path.procfs`, `--path.sysfs`, `--path.rootfs` per mappare i path host; aggiunto `--collector.filesystem.mount-points-exclude` per evitare metriche duplicate da mount di sistema
+- Nessun `depends_on` necessario — entrambi raccolgono metriche dall'host/Docker, non dipendono da altri servizi del compose
+- Nessuna deviazione dal piano
 
 **File coinvolti:**
 - `docker/docker-compose.deploy.yml`
