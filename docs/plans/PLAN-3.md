@@ -47,6 +47,7 @@ Totale container: 504MB
 
 **Definition of Done:**
 - [x] Tutti e 5 i servizi in `docker-compose.deploy.yml` hanno `mem_limit` configurato con i valori specificati
+- [x] Tutti e 5 i servizi hanno `restart: unless-stopped`
 - [x] Il file compose è sintatticamente valido (verificato visualmente — Docker non disponibile in sandbox, validazione completa da fare sul server di deploy)
 - [x] Nessun altro campo è stato modificato
 
@@ -54,6 +55,7 @@ Totale container: 504MB
 - `mem_limit` posizionato come proprietà top-level di ogni servizio, prima di `healthcheck`, `networks` o `depends_on`, seguendo lo stile esistente del file
 - Valori applicati esattamente come da tabella: postgres=1536m, api=768m, seq=512m, web=384m, nginx=64m
 - Somma totale limiti: 3264MB, rientra nei ~3.2GB disponibili per production
+- `restart: unless-stopped` aggiunto a tutti i servizi: si riavviano automaticamente dopo crash/OOM-kill o reboot del server, ma non se fermati manualmente con `docker compose stop`
 - Validazione `docker compose config` non eseguita (Docker non disponibile in sandbox) — correttezza YAML verificata visualmente, validazione completa da fare al deploy
 
 **File coinvolti:**
@@ -109,6 +111,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Volume per configurazione (`prometheus.yml`) e dati
    - Porta: `127.0.0.1:9090:9090` (solo localhost)
    - `mem_limit: 384m`
+   - `restart: unless-stopped`
    - Flag: `--storage.tsdb.retention.time=7d`
    - Network: `app-network`
 2. Aggiungere il servizio `grafana` al compose di deploy (production)
@@ -116,6 +119,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Volume per dati persistenti
    - Porta: `127.0.0.1:3001:3000` (la 3000 è usata da Angular SSR)
    - `mem_limit: 192m`
+   - `restart: unless-stopped`
    - Variabili env: `GF_SECURITY_ADMIN_PASSWORD` dal `.env`
    - Network: `app-network`
 3. Creare `docker/monitoring/prometheus.yml` con scrape targets:
@@ -139,6 +143,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Immagine: `gcr.io/cadvisor/cadvisor:latest`
    - Volumi read-only: `/`, `/var/run`, `/sys`, `/var/lib/docker`
    - `mem_limit: 128m`
+   - `restart: unless-stopped`
    - Non esporre porte — solo rete interna
    - Network: `app-network`
 2. Aggiungere il servizio `node-exporter` al compose di deploy (production)
@@ -146,6 +151,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Volumi read-only: `/proc`, `/sys`, `/`
    - Flag: `--path.rootfs=/host`
    - `mem_limit: 64m`
+   - `restart: unless-stopped`
    - Non esporre porte — solo rete interna
    - Network: `app-network`
 3. Aggiornare `prometheus.yml` per fare scrape di cAdvisor (`:8080/metrics`) e Node Exporter (`:9100/metrics`)
@@ -250,6 +256,7 @@ Task 8 (Documentazione)
 - **Portainer:** Istanza unica a livello server (compose separato), vede tutti i container di tutti gli ambienti.
 - **Sicurezza:** Tutti i servizi esposti solo su `127.0.0.1` — accesso via SSH tunnel (come Seq). Nessuna porta pubblica.
 - **Persistenza:** Volumi Docker per dati Portainer, Prometheus, Grafana. Sopravvivono a restart e OOM-kill.
+- **Restart policy:** Tutti i servizi production usano `restart: unless-stopped` — si riavviano dopo crash/OOM-kill o reboot del server, ma non se fermati manualmente. Portainer usa `restart: always` perché è standalone e deve partire anche dopo un `docker compose down`.
 - **Rete:** Servizi monitoring sulla `app-network` di production per comunicazione interna.
 - **Prometheus retention:** 7 giorni (`--storage.tsdb.retention.time=7d`) per limitare uso disco e RAM.
 
