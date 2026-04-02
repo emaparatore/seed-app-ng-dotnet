@@ -122,8 +122,8 @@ services:
     tty: true
     volumes:
       - ..:/project
-      - ../.github:/project/.github:ro
-      - ../docker:/project/docker:ro
+      - ../.github:/project/.github  # writable: branch protection + PR review enforces safety; add :ro here to restrict if needed
+      - ../docker:/project/docker    # writable: same rationale as .github above
       - ${CLAUDE_CONFIG_DIR:-${HOME}}/.claude/.credentials.json:/tmp/claude-credentials.json:ro
     environment:
       - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
