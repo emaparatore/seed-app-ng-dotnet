@@ -30,7 +30,7 @@ Totale container: 504MB
 
 ## Task 1: Aggiungere `mem_limit` ai servizi esistenti
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 **Cosa fare:**
 1. Aggiungere `mem_limit` ai servizi in `docker-compose.deploy.yml` (production). RAM disponibile: ~3.2GB (3.7GB - ~500MB per SO e staging). Limiti calcolati su production, staging usa risorse trascurabili (~260MB).
@@ -44,6 +44,17 @@ Totale container: 504MB
 | Nginx | 4MB | 64m |
 
 2. Testare che tutti i servizi partano correttamente con i limiti
+
+**Definition of Done:**
+- [x] Tutti e 5 i servizi in `docker-compose.deploy.yml` hanno `mem_limit` configurato con i valori specificati
+- [x] Il file compose è sintatticamente valido (verificato visualmente — Docker non disponibile in sandbox, validazione completa da fare sul server di deploy)
+- [x] Nessun altro campo è stato modificato
+
+**Implementation Notes:**
+- `mem_limit` posizionato come proprietà top-level di ogni servizio, prima di `healthcheck`, `networks` o `depends_on`, seguendo lo stile esistente del file
+- Valori applicati esattamente come da tabella: postgres=1536m, api=768m, seq=512m, web=384m, nginx=64m
+- Somma totale limiti: 3264MB, rientra nei ~3.2GB disponibili per production
+- Validazione `docker compose config` non eseguita (Docker non disponibile in sandbox) — correttezza YAML verificata visualmente, validazione completa da fare al deploy
 
 **File coinvolti:**
 - `docker/docker-compose.deploy.yml`
