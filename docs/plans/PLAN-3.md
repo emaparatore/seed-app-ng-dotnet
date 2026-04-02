@@ -102,7 +102,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
 
 ## Task 3: Integrare prometheus-net nell'API .NET
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 **Cosa fare:**
 1. Aggiungere il pacchetto NuGet `prometheus-net.AspNetCore` a `Seed.Api.csproj`
@@ -110,6 +110,20 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Aggiungere `app.UseHttpMetrics()` per metriche HTTP automatiche (request duration, count, status code)
    - Aggiungere endpoint `/metrics` con `app.MapMetrics()` per esporre metriche in formato Prometheus
 3. Verificare che le metriche siano visibili su `http://localhost:8080/metrics`
+
+**Definition of Done:**
+- [x] Pacchetto `prometheus-net.AspNetCore` aggiunto a `Seed.Api.csproj`
+- [x] `app.UseHttpMetrics()` configurato in `Program.cs` nel punto corretto della pipeline
+- [x] `app.MapMetrics()` configurato in `Program.cs` per esporre `/metrics`
+- [x] Il progetto compila senza errori (`dotnet build Seed.slnx`)
+- [x] Tutti i test passano (`dotnet test Seed.slnx`)
+- [x] Nessuna modifica a file non elencati nel piano
+
+**Implementation Notes:**
+- Versione 8.2.1 di `prometheus-net.AspNetCore` installata tramite `dotnet add package` (ultima stabile compatibile con .NET 10)
+- `UseHttpMetrics()` posizionato dopo `UseAuthorization()` e `MustChangePasswordMiddleware` ma prima di `MapControllers()` per catturare metriche HTTP complete (status code, method, endpoint)
+- `MapMetrics()` posizionato alla fine, dopo tutti gli health checks, coerente con il pattern di raggruppamento degli endpoint mapped
+- Nessuna deviazione dal piano
 
 **File coinvolti:**
 - `backend/src/Seed.Api/Seed.Api.csproj`
