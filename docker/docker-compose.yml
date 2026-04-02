@@ -124,7 +124,7 @@ services:
       - ..:/project
       - ../.github:/project/.github:ro
       - ../docker:/project/docker:ro
-      - ${CLAUDE_CONFIG_DIR:-${HOME}}/.claude:/home/claude/.claude
+      - ${CLAUDE_CONFIG_DIR:-${HOME}}/.claude/.credentials.json:/tmp/claude-credentials.json:ro
     environment:
       - ConnectionStrings__DefaultConnection=Host=seed-postgres-dev;Database=seeddb;Username=seed;Password=seed_password
       - TEST_CONNECTION_STRING=Host=seed-postgres-dev;Database=seeddb_test;Username=seed;Password=seed_password

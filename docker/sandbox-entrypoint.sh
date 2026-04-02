@@ -2,10 +2,11 @@
 # Fix permissions on bind-mounted directories.
 # Uses limited sudo (only chown/chmod allowed).
 
-# Fix .claude directory (Windows NTFS bind mounts may have wrong ownership)
-if [ -d "/home/claude/.claude" ]; then
+# Bootstrap isolated .claude config from host credentials (mounted read-only)
+if [ -f "/tmp/claude-credentials.json" ]; then
+  mkdir -p /home/claude/.claude
+  cp /tmp/claude-credentials.json /home/claude/.claude/.credentials.json
   sudo chown -R claude:claude /home/claude/.claude 2>/dev/null
-  sudo chmod -R u+rwX /home/claude/.claude 2>/dev/null
 fi
 
 # Fix project directory ownership so claude can read/write all files and commit
