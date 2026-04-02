@@ -133,7 +133,7 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
 
 ## Task 4: Aggiungere Prometheus e Grafana
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 **Cosa fare:**
 1. Aggiungere il servizio `prometheus` al compose di deploy (production)
@@ -156,6 +156,22 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
    - Prometheus stesso
    - API .NET (`api:8080/metrics`)
 4. Aggiungere variabili al `.env.prod.example` (`GRAFANA_ADMIN_PASSWORD`, porte)
+
+**Definition of Done:**
+- [x] `docker/monitoring/prometheus.yml` creato con scrape config per prometheus e api
+- [x] Servizio `prometheus` aggiunto a `docker-compose.deploy.yml` con immagine `prom/prometheus:latest`, porta localhost-only, `mem_limit: 384m`, retention 7d, volume dati, network `app-network`
+- [x] Servizio `grafana` aggiunto a `docker-compose.deploy.yml` con immagine `grafana/grafana:latest`, porta `3001->3000` localhost-only, `mem_limit: 192m`, volume dati, password da env, network `app-network`
+- [x] Volumi `prometheus_data` e `grafana_data` dichiarati nella sezione volumes
+- [x] `.env.prod.example` aggiornato con `PROMETHEUS_PORT`, `GRAFANA_PORT`, `GRAFANA_ADMIN_PASSWORD`
+- [x] Tutti i file YAML sono sintatticamente corretti (verifica visuale — Docker non disponibile in sandbox)
+- [x] Nessun file non previsto dal piano viene modificato
+
+**Implementation Notes:**
+- Servizio `prometheus` posizionato dopo `nginx`, `grafana` dopo `prometheus` — ordine logico di dipendenza
+- `depends_on: api (service_healthy)` per prometheus: garantisce che l'endpoint `/metrics` sia disponibile prima dello scraping
+- `depends_on: prometheus (service_started)` per grafana: sufficiente perché Grafana non ha bisogno che Prometheus sia healthy, solo raggiungibile
+- `command` in formato lista YAML (non stringa singola) per leggibilità e coerenza con le best practice Docker Compose
+- Porte configurabili via variabili d'ambiente con default sensati (`9090`, `3001`) coerente con lo stile degli altri servizi nel compose
 
 **File coinvolti:**
 - `docker/docker-compose.deploy.yml`
