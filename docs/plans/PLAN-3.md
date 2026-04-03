@@ -272,13 +272,30 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
 
 ## Task 7: Aggiungere monitoring al docker-compose.yml di sviluppo
 
-**Stato:** [ ] Da fare
+**Stato:** [x] Done
 
 **Cosa fare:**
 1. Aggiungere i servizi di monitoring al compose di sviluppo con **profile** `monitoring`
    - `docker compose --profile monitoring up` per attivare lo stack
 2. Riutilizzare le stesse configurazioni di Prometheus/Grafana
 3. Testare in locale
+
+**Definition of Done:**
+- [x] 4 servizi aggiunti a `docker/docker-compose.yml`: prometheus, grafana, cadvisor, node-exporter
+- [x] Tutti e 4 hanno `profiles: [monitoring]`
+- [x] Prometheus riutilizza `./monitoring/prometheus.yml` e ha volume `prometheus_data`
+- [x] Grafana riutilizza provisioning e dashboards dal deploy, ha volume `grafana_data`, porta `3001:3000`
+- [x] cAdvisor e node-exporter hanno gli stessi volumi e flag del deploy
+- [x] Volumi `prometheus_data` e `grafana_data` dichiarati nella sezione `volumes:`
+- [x] Nessun servizio esistente è stato modificato
+- [x] Il YAML è sintatticamente corretto (verifica visuale)
+
+**Implementation Notes:**
+- `container_name` con suffisso `-dev` per tutti e 4 i servizi (`seed-prometheus-dev`, `seed-grafana-dev`, `seed-cadvisor-dev`, `seed-node-exporter-dev`) per coerenza con gli altri servizi del compose di sviluppo
+- `depends_on: api (service_started)` per prometheus — in dev l'api non ha healthcheck, diversamente dal deploy che usa `service_healthy`
+- Porta Grafana `3001:3000` per evitare conflitto con eventuali processi su porta 3000, coerente con il deploy
+- Nessun `mem_limit`, `restart`, network custom — in dev non servono, usa la default bridge di compose
+- Stessi volumi e command del deploy per cadvisor e node-exporter, garantendo parità di metriche raccolte tra dev e production
 
 **File coinvolti:**
 - `docker/docker-compose.yml`
