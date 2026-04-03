@@ -704,6 +704,51 @@ docker compose -f docker-compose.deploy.yml up -d seq api
 - Apri Seq via SSH tunnel e verifica che richieda il login
 - Controlla che i log dell'API continuino ad arrivare: `docker compose -f docker-compose.deploy.yml logs --tail 10 api`
 
+### Monitoring Stack
+
+Lo stack di monitoring (Prometheus, Grafana, cAdvisor, Node Exporter) parte automaticamente con `docker compose -f docker-compose.deploy.yml up -d`. I servizi sono accessibili solo da localhost via SSH tunnel.
+
+**Accesso via SSH tunnel (dal tuo PC locale):**
+
+```bash
+# Grafana (dashboard e alerting)
+ssh -L 3001:127.0.0.1:3001 deploy@TUO_IP_VPS
+# Apri: http://localhost:3001
+
+# Prometheus (query e target status)
+ssh -L 9090:127.0.0.1:9090 deploy@TUO_IP_VPS
+# Apri: http://localhost:9090
+
+# Combinati
+ssh -L 3001:127.0.0.1:3001 -L 9090:127.0.0.1:9090 deploy@TUO_IP_VPS
+```
+
+**Primo accesso Grafana:**
+1. Apri `http://localhost:3001` via SSH tunnel
+2. Login con `admin` / password impostata in `GRAFANA_ADMIN_PASSWORD` nel `.env`
+3. Le dashboard sono gia provisionate (ASP.NET Core, Docker/cAdvisor, Node Exporter)
+4. Verifica che tutti i target Prometheus siano "UP" in Status > Targets
+
+**Portainer (gestione container):**
+
+Portainer e un servizio standalone che vede tutti i container del server. Va avviato separatamente:
+
+```bash
+cd /opt/docker
+docker compose -f docker-compose.portainer.yml up -d
+```
+
+Accesso via SSH tunnel:
+
+```bash
+ssh -L 9443:127.0.0.1:9443 deploy@TUO_IP_VPS
+# Apri: https://localhost:9443
+```
+
+> **Importante:** al primo avvio di Portainer hai 5 minuti per creare l'utente admin. Se il timeout scade, riavvia il container: `docker compose -f docker-compose.portainer.yml restart`
+
+Per la documentazione completa dello stack di monitoring (metriche custom, dashboard, alerting, troubleshooting) vedi [docs/monitoring.md](monitoring.md).
+
 ### Statistiche dei container
 
 ```bash
