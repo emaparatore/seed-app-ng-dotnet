@@ -32,7 +32,7 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
-    "@angular/build": "^21.2.5",
+    "@angular/build": "^21.2.6",
     "@angular/cli": "^21.2.0",
     "@angular/compiler-cli": "^21.2.6",
     "@types/express": "^5.0.1",
