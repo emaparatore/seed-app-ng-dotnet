@@ -107,7 +107,7 @@ jobs:
           DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
 
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates /opt/seed-app/backups/production /opt/seed-app/backups/staging"
+            "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates ${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources ${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards ${DEPLOY_DIR}/monitoring/grafana/dashboards /opt/seed-app/backups/production /opt/seed-app/backups/staging"
 
           echo "Syncing docker-compose.deploy.yml..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
@@ -118,6 +118,22 @@ jobs:
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/scripts/
+
+          echo "Syncing monitoring config..."
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/monitoring/prometheus.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/prometheus.yml
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/monitoring/grafana/provisioning/datasources/prometheus.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources/prometheus.yml
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/monitoring/grafana/provisioning/dashboards/dashboards.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards/dashboards.yml
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/monitoring/grafana/dashboards/aspnet-core.json \
+            docker/monitoring/grafana/dashboards/docker-cadvisor.json \
+            docker/monitoring/grafana/dashboards/node-exporter.json \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/dashboards/
 
           echo "Syncing nginx config..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
@@ -134,6 +150,7 @@ jobs:
              && test -f ${DEPLOY_DIR}/scripts/migrate.sh \
              && test -f ${DEPLOY_DIR}/scripts/seed.sh \
              && test -f ${DEPLOY_DIR}/scripts/restore.sh \
+             && test -f ${DEPLOY_DIR}/monitoring/prometheus.yml \
              && echo 'OK: deploy files synced'" \
             || { echo 'ERROR: deploy files missing after copy'; exit 1; }
           rm -f /tmp/deploy_key
