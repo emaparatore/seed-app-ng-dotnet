@@ -706,6 +706,7 @@ ISTRUZIONI:
    c. Aggiungi una sezione **Implementation Notes:** dopo la Definition of Done con un riassunto conciso (3-5 bullet) delle scelte implementative prese dal Risultato nel mini-plan
    d. Aggiorna la tabella Story Coverage se le storie coperte da questo task cambiano stato (es. se il backend e' done ma il frontend e' pending, metti 'In Progress (backend done)')
 4. Salva il file modificato
+5. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
 
 Quando hai finito rispondi: UPDATED" "Task $task_i - Update")
   echo "$OUTPUT" >> "$LOG_FILE"
@@ -722,10 +723,15 @@ Quando hai finito rispondi: UPDATED" "Task $task_i - Update")
     log "ATTENZIONE: aggiornamento piano potrebbe non essere riuscito (output: $(echo "$OUTPUT" | head -c 100))"
   fi
 
+  COMMIT_MSG=""
+
   if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
     log "Nessuna modifica da committare"
   else
     log "=== Task $task_i - Commit ==="
+
+    # Annulla eventuali commit fatti da Claude durante l'esecuzione
+    # confrontando con il punto di partenza del task
     git add -A
 
     local TASK_TITLE
@@ -733,8 +739,11 @@ Quando hai finito rispondi: UPDATED" "Task $task_i - Update")
     local CHANGED_FILES
     CHANGED_FILES=$(git diff --cached --name-only | head -20)
 
-    local commit_temp=$(mktemp)
-    claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
+    if [ -z "$CHANGED_FILES" ]; then
+      log "Nessun file staged dopo git add -A, skip commit"
+    else
+      local commit_temp=$(mktemp)
+      claude -p "Genera SOLO un commit message in formato Conventional Commits per queste modifiche.
 Contesto task: $TASK_TITLE
 File modificati:
 $CHANGED_FILES
@@ -745,30 +754,35 @@ Regole:
 - Scopes: api, app, auth, infra, ui, core, docker
 - Max 72 caratteri, lowercase, no punto finale, imperative mood
 - Rispondi SOLO con il commit message, niente altro" \
-      --verbose --model claude-haiku-4-5-20251001 --effort low --output-format stream-json > "$commit_temp" 2>> "$LOG_FILE"
-    cat "$commit_temp" >> "$CLAUDE_LOG_JSONL"
-    summarize_claude_phase "$commit_temp" "Task $task_i - Commit msg"
-    COMMIT_MSG=$(extract_claude_result "$commit_temp")
+        --verbose --model claude-haiku-4-5-20251001 --effort low --output-format stream-json > "$commit_temp" 2>> "$LOG_FILE"
+      cat "$commit_temp" >> "$CLAUDE_LOG_JSONL"
+      summarize_claude_phase "$commit_temp" "Task $task_i - Commit msg"
+      COMMIT_MSG=$(extract_claude_result "$commit_temp")
 
-    # Rate limit check sul commit message (il bug originale!)
-    if check_rate_limit "$commit_temp" "$COMMIT_MSG"; then
-      log "RATE LIMIT rilevato durante generazione commit message. Uso fallback."
-      rm -f "$commit_temp"
-      COMMIT_MSG=""  # forza il fallback
-    else
-      rm -f "$commit_temp"
-    fi
+      # Rate limit check sul commit message
+      if check_rate_limit "$commit_temp" "$COMMIT_MSG"; then
+        log "RATE LIMIT rilevato durante generazione commit message. Uso fallback."
+        rm -f "$commit_temp"
+        COMMIT_MSG=""  # forza il fallback
+      else
+        rm -f "$commit_temp"
+      fi
 
-    if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
-      COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
-    fi
+      # Pulisci il commit message: rimuovi backtick, newline, spazi extra
+      COMMIT_MSG=$(echo "$COMMIT_MSG" | tr -d '`' | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-    if git commit -m "$COMMIT_MSG"; then
-      log "Commit: $COMMIT_MSG"
-    else
-      log "ERRORE: git commit fallito (exit code $?). Possibili cause: permessi .git/ (chown), git config user.name/email mancante."
-      git reset HEAD -- . >/dev/null 2>&1
-      log "Staging area ripristinata (git reset)."
+      if [ -z "$COMMIT_MSG" ] || [ ${#COMMIT_MSG} -gt 100 ]; then
+        COMMIT_MSG="feat: complete task $task_i - $(echo "$TASK_TITLE" | head -c 50)"
+        log "Commit message generato vuoto o troppo lungo, uso fallback: $COMMIT_MSG"
+      fi
+
+      if git commit -m "$COMMIT_MSG"; then
+        log "Commit: $COMMIT_MSG"
+      else
+        log "ERRORE: git commit fallito (exit code $?). Possibili cause: permessi .git/ (chown), git config user.name/email mancante."
+        git reset HEAD -- . >/dev/null 2>&1
+        log "Staging area ripristinata (git reset)."
+      fi
     fi
   fi
 }
@@ -925,6 +939,9 @@ for ((i=1; i<=MAX_TASKS; i++)); do
 
   log "=== Task $i - Execution ($TASK_FILE) ==="
 
+  # Salva HEAD prima dell'esecuzione per rilevare commit non autorizzati di Claude
+  PRE_TASK_HEAD=$(git rev-parse HEAD 2>/dev/null)
+
   RETRY=0
   TASK_PASSED=false
 
@@ -936,12 +953,13 @@ for ((i=1; i<=MAX_TASKS; i++)); do
 2. Leggi il piano principale in $PLAN per contesto generale
 3. Esegui esattamente quello descritto nel mini-plan
 4. NON aggiornare lo stato del task nel piano (lo fara' lo script dopo la verifica)
-5. Aggiungi in fondo al mini-plan una sezione:
+5. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
+6. Aggiungi in fondo al mini-plan una sezione:
    ## Risultato
    - File modificati/creati
    - Scelte implementative e motivazioni
    - Eventuali deviazioni dal piano e perche'
-6. Rispondi SOLO: DONE" "Task $i - Exec")
+7. Rispondi SOLO: DONE" "Task $i - Exec")
     else
       # --- Retry: fix degli errori ---
       log "=== Task $i - Fix attempt $RETRY/$MAX_RETRIES ==="
@@ -958,7 +976,8 @@ Istruzioni:
 1. Analizza gli errori sopra
 2. Correggi il codice per far passare build e test
 3. NON aggiornare lo stato del task nel piano
-4. Rispondi SOLO: DONE" "Task $i - Fix $RETRY/$MAX_RETRIES")
+4. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
+5. Rispondi SOLO: DONE" "Task $i - Fix $RETRY/$MAX_RETRIES")
     fi
 
     echo "$OUTPUT" >> "$LOG_FILE"
@@ -988,6 +1007,17 @@ Istruzioni:
 
   # --- Post-verifica ---
   if [ "$TASK_PASSED" = "true" ]; then
+    # Se Claude ha committato durante l'esecuzione (nonostante le istruzioni),
+    # annulla i commit per consolidare tutto in un unico commit dello script
+    local CURRENT_HEAD
+    CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null)
+    if [ "$CURRENT_HEAD" != "$PRE_TASK_HEAD" ]; then
+      local EXTRA_COMMITS
+      EXTRA_COMMITS=$(git rev-list --count "$PRE_TASK_HEAD..HEAD" 2>/dev/null || echo 0)
+      log "ATTENZIONE: Claude ha creato $EXTRA_COMMITS commit durante l'esecuzione. Annullo con soft reset per consolidare."
+      git reset --soft "$PRE_TASK_HEAD" 2>/dev/null
+    fi
+
     run_post_success "$i" "$TASK_FILE"
 
     # --- Review gate: conferma prima del prossimo task ---

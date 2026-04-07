@@ -18,6 +18,7 @@ using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -184,6 +185,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<MustChangePasswordMiddleware>();
+app.UseHttpMetrics();
 
 app.MapControllers();
 
@@ -217,6 +219,8 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 {
     Predicate = _ => false
 });
+
+app.MapMetrics();
 
 app.Run();
 

@@ -6,7 +6,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 # Dev tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl bash htop less vim sudo jq \
+    git curl bash htop less vim jq sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # dotnet-ef for migrations (install globally first as root)
@@ -15,9 +15,9 @@ RUN dotnet tool install --global dotnet-ef --version 10.0.*
 # Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code
 
-# Create non-root user (--dangerously-skip-permissions refuses root)
+# Create non-root user with limited sudo (only chown/chmod for bind-mount fixes)
 RUN useradd -m -s /bin/bash claude \
-    && echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    && echo "claude ALL=(ALL) NOPASSWD: /bin/chown, /bin/chmod" >> /etc/sudoers
 
 # Copy dotnet tools to claude user
 RUN cp -r /root/.dotnet /home/claude/.dotnet \
