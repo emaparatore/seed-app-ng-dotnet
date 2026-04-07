@@ -1,0 +1,26 @@
+# =============================================================================
+# Portainer CE — standalone compose (server-wide, not tied to any environment)
+# Manages all Docker containers on the host via the Docker socket.
+#
+# Usage:
+#   docker compose -f docker-compose.portainer.yml up -d
+#
+# Access (via SSH tunnel):
+#   ssh -L 9443:127.0.0.1:9443 user@server
+#   Then open https://localhost:9443
+# =============================================================================
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    mem_limit: 128m
+    ports:
+      - "127.0.0.1:${PORTAINER_PORT:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+
+volumes:
+  portainer_data:

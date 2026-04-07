@@ -274,4 +274,5 @@ Existing docs:
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
 - `docs/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
 - `docs/adding-collaborators.md` — Checklist for hardening repo settings before adding team members: branch protection, reviews, CODEOWNERS, secret scanning. Read when onboarding collaborators.
+- `docs/monitoring.md` — Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, metriche custom, alerting. Read when touching monitoring config, dashboards, or metrics.
 - `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.
