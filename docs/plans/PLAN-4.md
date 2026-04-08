@@ -18,8 +18,8 @@
 
 | Story | Descrizione | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Pagina Privacy Policy | T-01, T-02 | ⏳ Not Started |
-| US-002 | Pagina Terms of Service | T-01, T-02 | ⏳ Not Started |
+| US-001 | Pagina Privacy Policy | T-01, T-02 | 🔄 In Progress (T-01 done, T-02 pending) |
+| US-002 | Pagina Terms of Service | T-01, T-02 | 🔄 In Progress (T-01 done, T-02 pending) |
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ⏳ Not Started |
 | US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
@@ -34,18 +34,25 @@
 
 **Stories:** US-001, US-002
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Creare due componenti Angular standalone per le pagine Privacy Policy e Terms of Service. Aggiungere le route `/privacy-policy` e `/terms-of-service` in `app.routes.ts` (accessibili senza guard). Il contenuto sarà placeholder testuale che il titolare del trattamento personalizzerà.
 
 **Definition of Done:**
-- [ ] Componente `PrivacyPolicy` in `projects/app/src/app/pages/privacy-policy/`
-- [ ] Componente `TermsOfService` in `projects/app/src/app/pages/terms-of-service/`
-- [ ] Route `/privacy-policy` e `/terms-of-service` registrate in `app.routes.ts` senza guard
-- [ ] Contenuto placeholder leggibile e ben formattato con Angular Material (`mat-card`)
-- [ ] Test unitari per entrambi i componenti (rendering del contenuto)
-- [ ] All tests pass
+- [x] Componente `PrivacyPolicy` in `projects/app/src/app/pages/privacy-policy/`
+- [x] Componente `TermsOfService` in `projects/app/src/app/pages/terms-of-service/`
+- [x] Route `/privacy-policy` e `/terms-of-service` registrate in `app.routes.ts` senza guard (lazy-loaded)
+- [x] Contenuto placeholder leggibile e ben formattato con Angular Material (`mat-card`)
+- [x] Test unitari per entrambi i componenti (3 test ciascuno: creazione, titolo, sezioni)
+- [x] All tests pass (`ng test app` e `ng build` OK)
+
+**Implementation Notes:**
+- Componenti standalone con `templateUrl` e `styleUrl`, lazy-loaded via `loadComponent` nelle route
+- Stile `.legal-container` / `.legal-card` separato dallo stile `.auth-container` / `.auth-card` delle pagine auth (max-width 800px vs 420px, nessun centramento verticale)
+- Contenuto placeholder in italiano con segnaposto `[bracketed]` per i dati da personalizzare dal titolare del trattamento
+- SCSS identico per entrambe le pagine legali per coerenza visiva
+- Nessuna deviazione dal piano originale
 
 ---
 
