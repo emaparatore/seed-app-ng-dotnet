@@ -271,6 +271,7 @@ Existing docs:
 - `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
 - `docs/admin-dashboard.md` — Admin area: RBAC permissions, SuperAdmin seeding, user/role management, audit log, system settings, system health, navigation guards. Read when touching admin features, permissions, or audit logging.
 - `docs/rollback.md` — Production rollback: image rollback via .env, git revert, DB restore from backup. Three scenarios from least to most impactful. Read when a deploy goes wrong.
+- `docs/env-backup.md` — Automated daily .env backup via cron, cleanup of old backups, restore procedure. Read when setting up or troubleshooting production .env backups.
 - `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
 - `docs/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
 - `docs/adding-collaborators.md` — Checklist for hardening repo settings before adding team members: branch protection, reviews, CODEOWNERS, secret scanning. Read when onboarding collaborators.
