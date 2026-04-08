@@ -114,6 +114,11 @@ jobs:
             docker/docker-compose.deploy.yml \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/docker-compose.deploy.yml
 
+          echo "Syncing docker-compose.portainer.yml (server-wide, lives outside deploy dir)..."
+          scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
+            docker/docker-compose.portainer.yml \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/docker-compose.portainer.yml
+
           echo "Syncing deploy scripts..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \

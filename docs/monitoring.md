@@ -263,6 +263,27 @@ Accesso in locale (senza SSH tunnel):
 
 I servizi di monitoring in dev usano le stesse configurazioni e dashboard della production (`docker/monitoring/`).
 
+### Portainer in produzione (VPS)
+
+Portainer è un servizio standalone server-wide — **non fa parte del compose principale** (`docker-compose.deploy.yml`) e va avviato manualmente una volta sola sul VPS.
+
+Il file `docker-compose.portainer.yml` viene copiato automaticamente dalla CI in `/opt/seed-app/` ad ogni deploy.
+
+```bash
+# Sul VPS (prima volta, o dopo un reset)
+cd /opt/seed-app
+docker compose -f docker-compose.portainer.yml up -d
+```
+
+Grazie a `restart: always`, si riavvia automaticamente dopo ogni reboot del server — non serve rieseguire il comando ai deploy successivi.
+
+Per accedere dal tuo PC locale via SSH tunnel:
+
+```bash
+ssh -L 9443:127.0.0.1:9443 deploy@TUO_IP_VPS
+# Poi apri: https://localhost:9443
+```
+
 ### Portainer in locale
 
 Portainer non e incluso nel compose di sviluppo (e un servizio standalone server-wide). Se serve in locale:
