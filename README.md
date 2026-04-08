@@ -222,6 +222,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
 | [Admin Dashboard](docs/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
 | [Monitoring](docs/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
+| [.env Backup](docs/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
 
 ## Tech stack
