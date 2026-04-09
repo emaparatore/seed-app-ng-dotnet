@@ -24,5 +24,13 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
         RuleFor(x => x.LastName)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(x => x.AcceptPrivacyPolicy)
+            .Equal(true)
+            .WithMessage("You must accept the Privacy Policy.");
+
+        RuleFor(x => x.AcceptTermsOfService)
+            .Equal(true)
+            .WithMessage("You must accept the Terms of Service.");
     }
 }

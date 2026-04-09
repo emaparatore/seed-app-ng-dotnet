@@ -26,7 +26,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     {
         var regResponse = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
-            email, password, firstName, lastName
+            email, password, firstName, lastName, acceptPrivacyPolicy = true, acceptTermsOfService = true
         });
         regResponse.EnsureSuccessStatusCode();
 
@@ -53,7 +53,9 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
             email = "register-ok@example.com",
             password = "Password1",
             firstName = "John",
-            lastName = "Doe"
+            lastName = "Doe",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -81,7 +83,9 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
             email = "confirm-bad@example.com",
             password = "Password1",
             firstName = "John",
-            lastName = "Doe"
+            lastName = "Doe",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/confirm-email", new
@@ -98,7 +102,7 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
     {
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
-            email = "", password = "", firstName = "", lastName = ""
+            email = "", password = "", firstName = "", lastName = "", acceptPrivacyPolicy = false, acceptTermsOfService = false
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
@@ -114,7 +118,9 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
             email = "duplicate@example.com",
             password = "Password1",
             firstName = "Jane",
-            lastName = "Doe"
+            lastName = "Doe",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -128,7 +134,9 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
             email = "unverified@example.com",
             password = "Password1",
             firstName = "John",
-            lastName = "Doe"
+            lastName = "Doe",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         var response = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new

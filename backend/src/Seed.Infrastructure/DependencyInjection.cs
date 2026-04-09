@@ -34,6 +34,7 @@ public static class DependencyInjection
 
         services.Configure<ClientSettings>(configuration.GetSection(ClientSettings.SectionName));
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.Configure<PrivacySettings>(configuration.GetSection(PrivacySettings.SectionName));
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();

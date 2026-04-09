@@ -22,7 +22,7 @@ public class ChangePasswordTests(CustomWebApplicationFactory factory)
     {
         var regResponse = await _client.PostAsJsonAsync("/api/v1.0/auth/register", new
         {
-            email, password, firstName, lastName
+            email, password, firstName, lastName, acceptPrivacyPolicy = true, acceptTermsOfService = true
         });
         regResponse.EnsureSuccessStatusCode();
 

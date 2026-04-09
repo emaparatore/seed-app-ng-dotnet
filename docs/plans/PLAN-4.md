@@ -20,7 +20,7 @@
 |-------|-------------|-------|--------|
 | US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
-| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | 🔧 In Progress (backend model done) |
+| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | 🔧 In Progress (backend done) |
 | US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
@@ -111,21 +111,29 @@ Aggiungere i campi di consenso all'entità `ApplicationUser`: `PrivacyPolicyAcce
 
 **Stories:** US-003
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03
 
 **What to do:**
 Modificare `RegisterCommand` per includere `AcceptPrivacyPolicy` (bool) e `AcceptTermsOfService` (bool). Aggiungere validazione in `RegisterCommandValidator` (entrambi devono essere `true`). Aggiornare `RegisterCommandHandler` per salvare i timestamp di consenso e la `ConsentVersion` corrente sull'utente creato. Definire la versione corrente del consenso come configurazione in `appsettings.json` (es. `Privacy:ConsentVersion`). Aggiungere audit log per l'evento di consenso.
 
 **Definition of Done:**
-- [ ] `RegisterCommand` include `AcceptPrivacyPolicy` e `AcceptTermsOfService`
-- [ ] Validazione FluentValidation rifiuta registrazione senza consenso
-- [ ] `RegisterCommandHandler` salva `PrivacyPolicyAcceptedAt`, `TermsAcceptedAt`, `ConsentVersion`
-- [ ] Sezione `Privacy` aggiunta in `appsettings.json` con `ConsentVersion` (default "1.0")
-- [ ] Audit log registra evento di consenso
-- [ ] Unit test: registrazione rifiutata senza consenso
-- [ ] Unit test: registrazione con consenso salva timestamp e versione
-- [ ] All tests pass
+- [x] `RegisterCommand` include `AcceptPrivacyPolicy` e `AcceptTermsOfService`
+- [x] Validazione FluentValidation rifiuta registrazione senza consenso
+- [x] `RegisterCommandHandler` salva `PrivacyPolicyAcceptedAt`, `TermsAcceptedAt`, `ConsentVersion`
+- [x] Sezione `Privacy` aggiunta in `appsettings.json` con `ConsentVersion` (default "1.0")
+- [x] `PrivacySettings` in `Seed.Shared/Configuration/` registrata in DI
+- [x] Audit log registra evento di consenso (`AuditActions.ConsentGiven`)
+- [x] Unit test: registrazione rifiutata senza consenso (Theory con 3 combinazioni InlineData)
+- [x] Unit test: registrazione con consenso salva timestamp e versione
+- [x] All tests pass (184 unit + 97 integration = 281 totali)
+
+**Implementation Notes:**
+- I timestamp di consenso vengono impostati sull'oggetto `ApplicationUser` prima di `CreateAsync`, salvati atomicamente con la creazione utente
+- L'audit log `ConsentGiven` è un evento separato da `UserCreated` per distinguere chiaramente le due azioni ai fini GDPR
+- Creata classe `PrivacySettings` in `Seed.Shared/Configuration/` con pattern identico a `ClientSettings`, registrata in DI via `services.Configure<PrivacySettings>()`
+- Il test di validazione usa `[Theory]` con `[InlineData]` per coprire tutte e 3 le combinazioni di rifiuto (solo privacy, solo terms, entrambi)
+- Aggiornati anche tutti i test di integrazione (9 file) che usavano il payload di registrazione senza i campi consenso
 
 ---
 
