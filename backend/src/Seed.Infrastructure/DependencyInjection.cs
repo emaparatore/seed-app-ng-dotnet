@@ -7,6 +7,7 @@ using Seed.Domain.Entities;
 using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Seed.Infrastructure.Services;
+using Seed.Infrastructure.Services.Payments;
 using Seed.Shared.Configuration;
 using Seed.Shared.Extensions;
 
@@ -56,6 +57,16 @@ public static class DependencyInjection
         if (configuration.IsPaymentsModuleEnabled())
         {
             services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
+
+            var stripeSection = configuration.GetSection(StripeSettings.SectionName);
+            var provider = configuration.GetValue<string>("Modules:Payments:Provider");
+            var secretKey = stripeSection[nameof(StripeSettings.SecretKey)];
+
+            if (!string.Equals(provider, "Stripe", StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrWhiteSpace(secretKey))
+            {
+                services.AddScoped<IPaymentGateway, MockPaymentGateway>();
+            }
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

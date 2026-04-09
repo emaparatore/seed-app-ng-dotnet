@@ -127,7 +127,7 @@ Create the domain entities in `Seed.Domain/Entities/`:
 
 **Stories:** Trasversale (DA-2)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
@@ -147,12 +147,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Register `MockPaymentGateway` conditionally in DI: when `Modules:Payments:Enabled = true` but no real provider is configured or for testing.
 
 **Definition of Done:**
-- [ ] `IPaymentGateway` interface defined with all methods
-- [ ] Gateway DTOs created
-- [ ] `MockPaymentGateway` implemented with fake data
-- [ ] Conditional DI registration working
-- [ ] Unit tests for MockPaymentGateway
-- [ ] Solution builds successfully
+- [x] `IPaymentGateway` interface defined in `Seed.Application/Common/Interfaces/` with all 6 methods
+- [x] 4 gateway DTOs created as sealed records in `Seed.Application/Common/Models/` (CreateCheckoutRequest, SubscriptionDetails, SyncPlanRequest, ProductSyncResult)
+- [x] `MockPaymentGateway` implemented in `Seed.Infrastructure/Services/Payments/` with deterministic fake data and logging
+- [x] Conditional DI registration in `DependencyInjection.cs`: MockPaymentGateway when module enabled and provider is not Stripe or SecretKey is empty
+- [x] 6 unit tests for MockPaymentGateway (one per interface method), all passing
+- [x] Solution builds and all tests pass (`dotnet build` + `dotnet test`)
+
+**Implementation Notes:**
+- `MockPaymentGateway` follows the same pattern as `ConsoleEmailService`: primary constructor with `ILogger`, `LogWarning` to signal mock usage
+- `SyncPlanToProviderAsync` preserves existing IDs if provided (`ExistingMonthlyPriceId`, `ExistingYearlyPriceId`, `ProductId`), generating mock IDs only when null — more realistic for testing
+- DI registration uses `StringComparison.OrdinalIgnoreCase` for provider comparison, consistent with .NET configuration conventions
+- All DTOs use `sealed record` for immutability and value semantics
+- No deviations from the plan
 
 ---
 
