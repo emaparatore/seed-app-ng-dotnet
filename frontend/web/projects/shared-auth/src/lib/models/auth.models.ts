@@ -17,6 +17,8 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  acceptPrivacyPolicy: boolean;
+  acceptTermsOfService: boolean;
 }
 
 export interface AuthResponse {

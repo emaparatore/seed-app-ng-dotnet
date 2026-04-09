@@ -20,7 +20,7 @@
 |-------|-------------|-------|--------|
 | US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
-| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | 🔧 In Progress (backend done) |
+| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
 | US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
@@ -141,19 +141,26 @@ Modificare `RegisterCommand` per includere `AcceptPrivacyPolicy` (bool) e `Accep
 
 **Stories:** US-003
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-04
 
 **What to do:**
 Aggiungere checkbox di consenso al form di registrazione (`register.ts` / `register.html`). La checkbox include link alla Privacy Policy e ai Terms of Service. Il form non è inviabile senza la checkbox selezionata. Aggiornare la chiamata API per includere i campi di consenso.
 
 **Definition of Done:**
-- [ ] Checkbox con testo "Ho letto e accetto la [Privacy Policy](/privacy-policy) e i [Terms of Service](/terms-of-service)" aggiunta al form
-- [ ] Form control `acceptPrivacy` aggiunto con `Validators.requiredTrue`
-- [ ] Messaggio di errore mostrato se checkbox non selezionata al submit
-- [ ] Payload API di registrazione include `acceptPrivacyPolicy` e `acceptTermsOfService`
-- [ ] Test unitario: form invalido senza checkbox
-- [ ] All tests pass
+- [x] Checkbox con link a Privacy Policy e Terms of Service aggiunta al form di registrazione
+- [x] Form control `acceptPrivacy` aggiunto con `Validators.requiredTrue`
+- [x] Messaggio di errore mostrato se checkbox non selezionata al submit
+- [x] Payload API di registrazione include `acceptPrivacyPolicy` e `acceptTermsOfService`
+- [x] Test unitario: form invalido senza checkbox (`acceptPrivacy: false`)
+- [x] All tests pass (`ng test app` e `ng build` OK)
+
+**Implementation Notes:**
+- Una sola checkbox copre entrambi i consensi (privacy + terms) — il testo include link a entrambi i documenti per semplificare la UX
+- Il payload mappa `acceptPrivacy` → `acceptPrivacyPolicy` + `acceptTermsOfService` via destructuring in `onSubmit()`
+- Aggiunto `MatCheckboxModule` agli imports del componente, stili `.consent-checkbox` e `.consent-error` in SCSS
+- `RegisterRequest` in `shared-auth` aggiornato con i due campi boolean `acceptPrivacyPolicy` e `acceptTermsOfService`
+- Test usa `expect.objectContaining` per verificare i campi di consenso nel payload senza duplicare l'intero oggetto
 
 ---
 
