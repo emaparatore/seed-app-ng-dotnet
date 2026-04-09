@@ -31,7 +31,11 @@ import { RouterLink } from '@angular/router';
     }
 
     mat-dialog-actions {
-      padding: 1rem 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0.5rem 1.5rem 1rem;
+      gap: 8px;
     }
   `,
 })
