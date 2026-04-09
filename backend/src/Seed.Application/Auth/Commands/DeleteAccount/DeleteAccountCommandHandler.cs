@@ -9,7 +9,7 @@ namespace Seed.Application.Auth.Commands.DeleteAccount;
 
 public sealed class DeleteAccountCommandHandler(
     UserManager<ApplicationUser> userManager,
-    ITokenService tokenService,
+    IUserPurgeService userPurgeService,
     IAuditService auditService) : IRequestHandler<DeleteAccountCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(DeleteAccountCommand request, CancellationToken cancellationToken)
@@ -22,12 +22,11 @@ public sealed class DeleteAccountCommandHandler(
         if (!validPassword)
             return Result<bool>.Failure("Invalid password.");
 
-        user.IsActive = false;
-        user.UpdatedAt = DateTime.UtcNow;
-        await userManager.UpdateAsync(user);
-
-        await tokenService.RevokeAllUserTokensAsync(user.Id);
+        // Write audit log before purge (while user data is still available)
         await auditService.LogAsync(AuditActions.AccountDeleted, "User", user.Id.ToString(), $"Email: {user.Email}", user.Id, cancellationToken: cancellationToken);
+
+        // Hard delete: anonymize audit log, delete tokens, delete user
+        await userPurgeService.PurgeUserAsync(user.Id, cancellationToken);
 
         return Result<bool>.Success(true);
     }

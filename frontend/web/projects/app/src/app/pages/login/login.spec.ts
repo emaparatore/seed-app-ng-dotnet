@@ -3,13 +3,24 @@ import { provideRouter } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { Login } from './login';
 import { AuthService } from 'shared-auth';
 
 describe('Login', () => {
   let component: Login;
   let fixture: ComponentFixture<Login>;
-  let authService: { login: ReturnType<typeof vi.fn>; isAuthenticated: any; currentUser: any; accessToken: any; mustChangePassword: any };
+  let authService: {
+    login: ReturnType<typeof vi.fn>;
+    isAuthenticated: any;
+    currentUser: any;
+    accessToken: any;
+    mustChangePassword: any;
+    consentUpdateRequired: any;
+    acceptUpdatedConsent: ReturnType<typeof vi.fn>;
+    logout: ReturnType<typeof vi.fn>;
+  };
+  let dialog: { open: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     authService = {
@@ -18,7 +29,11 @@ describe('Login', () => {
       currentUser: signal(null),
       accessToken: signal(null),
       mustChangePassword: signal(false),
+      consentUpdateRequired: signal(false),
+      acceptUpdatedConsent: vi.fn(),
+      logout: vi.fn(),
     };
+    dialog = { open: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [Login],
@@ -26,6 +41,7 @@ describe('Login', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: AuthService, useValue: authService },
+        { provide: MatDialog, useValue: dialog },
       ],
     }).compileComponents();
 
@@ -75,5 +91,18 @@ describe('Login', () => {
 
     expect(component['error']()).toBe('Invalid credentials');
     expect(component['loading']()).toBe(false);
+  });
+
+  it('should open consent dialog when consentUpdateRequired is true', () => {
+    const consentSignal = signal(true);
+    authService.consentUpdateRequired = consentSignal;
+    authService.login.mockReturnValue(of({ accessToken: 'token' }));
+    dialog.open.mockReturnValue({ afterClosed: () => of(true) });
+    authService.acceptUpdatedConsent.mockReturnValue(of(undefined));
+
+    component['form'].setValue({ email: 'test@example.com', password: 'Password1' });
+    component.onSubmit();
+
+    expect(dialog.open).toHaveBeenCalled();
   });
 });

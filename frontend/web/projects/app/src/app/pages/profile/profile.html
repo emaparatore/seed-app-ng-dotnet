@@ -34,6 +34,13 @@
       <a mat-button routerLink="/">Back to Home</a>
       <button
         mat-button
+        (click)="exportMyData()"
+        [disabled]="exporting()"
+      >
+        {{ exporting() ? 'Exporting...' : 'Export My Data' }}
+      </button>
+      <button
+        mat-button
         color="warn"
         (click)="deleteAccount()"
         [disabled]="deleting()"

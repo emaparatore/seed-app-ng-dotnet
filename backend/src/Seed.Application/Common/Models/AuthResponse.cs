@@ -6,4 +6,6 @@ public sealed record AuthResponse(
     DateTime ExpiresAt,
     UserDto User,
     IReadOnlyList<string> Permissions,
-    bool MustChangePassword);
+    bool MustChangePassword,
+    bool ConsentUpdateRequired = false,
+    string? CurrentConsentVersion = null);

@@ -8,7 +8,7 @@ public class RegisterCommandValidatorTests
     private readonly RegisterCommandValidator _validator = new();
 
     private static RegisterCommand ValidCommand => new(
-        "test@example.com", "Password1", "John", "Doe");
+        "test@example.com", "Password1", "John", "Doe", true, true);
 
     [Fact]
     public async Task Should_Pass_When_All_Fields_Are_Valid()

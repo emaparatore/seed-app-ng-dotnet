@@ -5,7 +5,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from 'shared-auth';
+import { ConsentUpdateDialog } from './consent-update-dialog';
 
 @Component({
   selector: 'app-login',
@@ -17,6 +19,7 @@ export class Login {
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
@@ -37,6 +40,8 @@ export class Login {
       next: () => {
         if (this.authService.mustChangePassword()) {
           this.router.navigate(['/change-password']);
+        } else if (this.authService.consentUpdateRequired()) {
+          this.openConsentDialog();
         } else {
           this.router.navigate(['/']);
         }
@@ -48,6 +53,23 @@ export class Login {
         this.resendStatus.set('idle');
         this.loading.set(false);
       },
+    });
+  }
+
+  private openConsentDialog(): void {
+    const dialogRef = this.dialog.open(ConsentUpdateDialog, { disableClose: true });
+    dialogRef.afterClosed().subscribe((accepted) => {
+      if (accepted) {
+        this.authService.acceptUpdatedConsent().subscribe({
+          next: () => this.router.navigate(['/']),
+          error: () => {
+            this.error.set('Failed to update consent. Please try again.');
+            this.loading.set(false);
+          },
+        });
+      } else {
+        this.authService.logout();
+      }
     });
   }
 

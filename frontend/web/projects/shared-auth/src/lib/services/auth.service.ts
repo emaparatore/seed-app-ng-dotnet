@@ -24,6 +24,7 @@ export class AuthService {
   private readonly _currentUser = signal<User | null>(null);
   private readonly _accessToken = signal<string | null>(null);
   private readonly _mustChangePassword = signal(false);
+  private readonly _consentUpdateRequired = signal(false);
   private readonly _permissions = signal<string[]>([]);
   private _refreshInProgress: Observable<AuthResponse> | null = null;
 
@@ -31,6 +32,7 @@ export class AuthService {
   readonly accessToken = this._accessToken.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
   readonly mustChangePassword = this._mustChangePassword.asReadonly();
+  readonly consentUpdateRequired = this._consentUpdateRequired.asReadonly();
   readonly permissions = this._permissions.asReadonly();
 
   login(request: LoginRequest): Observable<AuthResponse> {
@@ -122,6 +124,16 @@ export class AuthService {
     );
   }
 
+  exportMyData(): Observable<object> {
+    return this.http.get<object>(`${this.apiUrl}/export-my-data`);
+  }
+
+  acceptUpdatedConsent(): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/accept-updated-consent`, {}).pipe(
+      tap(() => this._consentUpdateRequired.set(false)),
+    );
+  }
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap((user) => {
@@ -135,6 +147,7 @@ export class AuthService {
     this._accessToken.set(response.accessToken);
     this._currentUser.set(response.user);
     this._mustChangePassword.set(response.mustChangePassword);
+    this._consentUpdateRequired.set(response.consentUpdateRequired ?? false);
     this._permissions.set(response.permissions ?? []);
     if (typeof window !== 'undefined') {
       localStorage.setItem('accessToken', response.accessToken);
@@ -151,6 +164,7 @@ export class AuthService {
     this._accessToken.set(null);
     this._currentUser.set(null);
     this._mustChangePassword.set(false);
+    this._consentUpdateRequired.set(false);
     this._permissions.set([]);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');

@@ -5,10 +5,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService, PermissionService } from 'shared-auth';
 import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
+import { AppFooter } from './footer/footer';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, PwaInstallPrompt],
+  imports: [RouterOutlet, RouterLink, MatToolbarModule, MatButtonModule, MatIconModule, PwaInstallPrompt, AppFooter],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
