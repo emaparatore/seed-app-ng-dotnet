@@ -23,9 +23,9 @@
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
 | US-004 | Export dati personali | T-08, T-09 | ✅ Done |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
-| US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
-| US-007 | Cleanup refresh token scaduti | T-10, T-11 | ⏳ Not Started |
-| US-008 | Retention e cleanup audit log | T-10, T-11 | ⏳ Not Started |
+| US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ In Progress (backend service done) |
+| US-007 | Cleanup refresh token scaduti | T-10, T-11 | ⏳ In Progress (backend service done) |
+| US-008 | Retention e cleanup audit log | T-10, T-11 | ⏳ In Progress (backend service done) |
 | — | Checklist GDPR post-implementazione | T-13 | ⏳ Not Started |
 
 ---
@@ -262,26 +262,29 @@ Aggiungere pulsante "Esporta i miei dati" nella pagina profilo. Al click, chiama
 
 **Stories:** US-006, US-007, US-008
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-06 (riutilizza `IUserPurgeService`)
 
 **What to do:**
 Creare la sezione di configurazione `DataRetention` in `appsettings.json` con i periodi di retention e gli intervalli di esecuzione. Creare un servizio `IDataCleanupService` con metodi per: purge utenti soft-deleted, cleanup refresh token, cleanup audit log. Implementazione in Infrastructure che usa `ApplicationDbContext` direttamente per le query bulk delete.
 
 **Definition of Done:**
-- [ ] Sezione `DataRetention` in `appsettings.json`:
-  - `SoftDeletedUserRetentionDays` (default: 30)
-  - `RefreshTokenRetentionDays` (default: 7)
-  - `AuditLogRetentionDays` (default: 365)
-  - `CleanupIntervalHours` (default: 24)
-- [ ] Classe `DataRetentionSettings` in `Shared/Configuration/`
-- [ ] Interfaccia `IDataCleanupService` in `Application/Common/Interfaces/`
-- [ ] Implementazione `DataCleanupService` in `Infrastructure/Services/`
-- [ ] Metodo purge utenti soft-deleted riutilizza logica di `IUserPurgeService`
-- [ ] Metodo cleanup refresh token elimina token scaduti/revocati oltre il periodo
-- [ ] Metodo cleanup audit log elimina entry oltre il periodo di retention
-- [ ] Unit test per ogni metodo di cleanup
-- [ ] All tests pass
+- [x] Sezione `DataRetention` in `appsettings.json` con i 4 valori configurabili (`SoftDeletedUserRetentionDays`: 30, `RefreshTokenRetentionDays`: 7, `AuditLogRetentionDays`: 365, `CleanupIntervalHours`: 24)
+- [x] Classe `DataRetentionSettings` in `Shared/Configuration/` con 4 proprietà e valori default
+- [x] Interfaccia `IDataCleanupService` in `Application/Common/Interfaces/` con 3 metodi `Task<int>`
+- [x] Implementazione `DataCleanupService` in `Infrastructure/Services/` che usa `ApplicationDbContext` e `ExecuteDeleteAsync` per bulk delete
+- [x] Metodo purge utenti soft-deleted riutilizza `IUserPurgeService.PurgeUserAsync` per ogni utente trovato
+- [x] Metodo cleanup refresh token elimina token scaduti/revocati oltre il periodo
+- [x] Metodo cleanup audit log elimina entry oltre il periodo di retention
+- [x] Integration test con 6 test cases (2 per ciascun metodo di cleanup)
+- [x] All tests pass
+
+**Implementation Notes:**
+- Usato `Select(u => u.Id).ToListAsync()` per caricare solo gli ID degli utenti da purgare, poi loop con `PurgeUserAsync` — evita di tenere in memoria le entità e riutilizza la logica di T-06
+- Integration test (non unit test) perché il servizio lavora direttamente con `ApplicationDbContext` e `ExecuteDeleteAsync`, coerente con il pattern di `UserPurgeServiceTests`
+- Servizio registrato come `Scoped` in DI (verrà usato dentro uno scope dal background service in T-11)
+- `DataRetentionSettings` segue il pattern standard delle altre settings (`SectionName` costante, registrata via `services.Configure<T>()`)
+- Nessuna deviazione dal piano
 
 ---
 
