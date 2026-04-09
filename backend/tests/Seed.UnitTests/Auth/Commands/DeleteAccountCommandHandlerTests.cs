@@ -10,7 +10,8 @@ namespace Seed.UnitTests.Auth.Commands;
 public class DeleteAccountCommandHandlerTests
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ITokenService _tokenService;
+    private readonly IUserPurgeService _userPurgeService;
+    private readonly IAuditService _auditService;
     private readonly DeleteAccountCommandHandler _handler;
 
     public DeleteAccountCommandHandlerTests()
@@ -18,13 +19,13 @@ public class DeleteAccountCommandHandlerTests
         var store = Substitute.For<IUserStore<ApplicationUser>>();
         _userManager = Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
-        _tokenService = Substitute.For<ITokenService>();
-        var auditService = Substitute.For<IAuditService>();
-        _handler = new DeleteAccountCommandHandler(_userManager, _tokenService, auditService);
+        _userPurgeService = Substitute.For<IUserPurgeService>();
+        _auditService = Substitute.For<IAuditService>();
+        _handler = new DeleteAccountCommandHandler(_userManager, _userPurgeService, _auditService);
     }
 
     [Fact]
-    public async Task Should_Deactivate_User_And_Revoke_All_Tokens()
+    public async Task Should_Purge_User_When_Password_Is_Valid()
     {
         var userId = Guid.NewGuid();
         var user = new ApplicationUser
@@ -39,14 +40,40 @@ public class DeleteAccountCommandHandlerTests
 
         _userManager.FindByIdAsync(userId.ToString()).Returns(user);
         _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
-        _userManager.UpdateAsync(user).Returns(IdentityResult.Success);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Succeeded.Should().BeTrue();
-        user.IsActive.Should().BeFalse();
-        await _userManager.Received(1).UpdateAsync(user);
-        await _tokenService.Received(1).RevokeAllUserTokensAsync(userId);
+        await _userPurgeService.Received(1).PurgeUserAsync(userId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_Write_Audit_Log_Before_Purge()
+    {
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            Email = "user@test.com",
+            FirstName = "John",
+            LastName = "Doe",
+            IsActive = true
+        };
+        var command = new DeleteAccountCommand(userId, "Password1");
+
+        _userManager.FindByIdAsync(userId.ToString()).Returns(user);
+        _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        Received.InOrder(() =>
+        {
+            _auditService.LogAsync(
+                "AccountDeleted", "User", userId.ToString(),
+                Arg.Any<string>(), userId,
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+            _userPurgeService.PurgeUserAsync(userId, Arg.Any<CancellationToken>());
+        });
     }
 
     [Fact]
@@ -59,6 +86,7 @@ public class DeleteAccountCommandHandlerTests
 
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain("Account not found.");
+        await _userPurgeService.DidNotReceive().PurgeUserAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -79,6 +107,7 @@ public class DeleteAccountCommandHandlerTests
 
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain("Account not found.");
+        await _userPurgeService.DidNotReceive().PurgeUserAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -100,5 +129,6 @@ public class DeleteAccountCommandHandlerTests
 
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain("Invalid password.");
+        await _userPurgeService.DidNotReceive().PurgeUserAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 }

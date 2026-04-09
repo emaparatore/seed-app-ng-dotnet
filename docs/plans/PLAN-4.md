@@ -21,7 +21,7 @@
 | US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
-| US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
+| US-004 | Export dati personali | T-08, T-09 | ⏳ In Progress (backend done) |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
 | US-007 | Cleanup refresh token scaduti | T-10, T-11 | ⏳ Not Started |
@@ -207,20 +207,27 @@ Aggiornare il dialog di conferma cancellazione nella pagina profilo per informar
 
 **Stories:** US-004
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Creare query MediatR `ExportMyDataQuery` che raccoglie tutti i dati dell'utente autenticato: profilo (nome, cognome, email, date, consensi, ruoli), audit log relativo all'utente. Endpoint `GET /api/v1/auth/export-my-data` protetto da `[Authorize]`. La risposta è JSON. L'audit log registra la richiesta di export.
 
 **Definition of Done:**
-- [ ] `ExportMyDataQuery` e `ExportMyDataQueryHandler` in `Application/Auth/Queries/ExportMyData/`
-- [ ] DTO `UserDataExportDto` con tutte le sezioni (profilo, consensi, ruoli, audit log)
-- [ ] Endpoint `GET /api/v1/auth/export-my-data` in `AuthController`
-- [ ] Endpoint protetto da `[Authorize]`, restituisce solo dati dell'utente autenticato
-- [ ] Audit log registra evento di export
-- [ ] Unit test: query restituisce dati corretti
-- [ ] Integration test: endpoint restituisce 401 senza auth, 200 con dati corretti con auth
-- [ ] All tests pass
+- [x] `ExportMyDataQuery` e `ExportMyDataQueryHandler` in `Application/Auth/Queries/ExportMyData/`
+- [x] DTO `UserDataExportDto` con tutte le sezioni (profilo, consensi, ruoli, audit log) — 4 record: `UserDataExportDto`, `UserProfileExportDto`, `UserConsentExportDto`, `AuditLogExportDto`
+- [x] Endpoint `GET /api/v1/auth/export-my-data` in `AuthController`
+- [x] Endpoint protetto da `[Authorize]`, restituisce solo dati dell'utente autenticato
+- [x] Audit log registra evento di export (`AuditActions.DataExported`)
+- [x] Unit test: 4 test cases (dati corretti, utente non trovato, audit log scritto, audit log vuoto)
+- [x] Integration test: endpoint restituisce 401 senza auth, 200 con dati corretti con auth
+- [x] All tests pass
+
+**Implementation Notes:**
+- Usato `.ToList()` sincronamente per la query audit log perché il layer Application non referenzia `Microsoft.EntityFrameworkCore` (Clean Architecture), coerente con gli altri handler (`GetAuditLogEntriesQueryHandler`, `ExportAuditLogQueryHandler`)
+- L'audit log `DataExported` viene scritto dopo la raccolta dati, così l'evento non appare nella stessa risposta di export
+- DTO strutturato in 4 record separati (`UserDataExportDto`, `UserProfileExportDto`, `UserConsentExportDto`, `AuditLogExportDto`) per chiarezza e separazione delle sezioni
+- Fix collaterale in `UserPurgeServiceTests.cs` (T-06): corretto metodo FluentAssertions `HaveCountGreaterOrEqualTo` → `HaveCountGreaterThanOrEqualTo` per far passare la build
+- Aggiunto `AuditActions.DataExported` costante nel Domain layer
 
 ---
 

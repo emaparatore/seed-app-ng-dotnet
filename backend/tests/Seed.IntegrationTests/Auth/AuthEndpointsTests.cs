@@ -3,8 +3,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Seed.Domain.Entities;
+using Seed.Infrastructure.Persistence;
 using Seed.IntegrationTests.Infrastructure;
 
 namespace Seed.IntegrationTests.Auth;
@@ -254,7 +256,112 @@ public class AuthEndpointsTests(CustomWebApplicationFactory factory)
         body.FirstName.Should().Be("John");
     }
 
+    [Fact]
+    public async Task DeleteAccount_WithValidPassword_RemovesUserFromDatabase()
+    {
+        var auth = await RegisterAndConfirmUserAsync("delete-ok@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/api/v1.0/auth/account")
+        {
+            Content = JsonContent.Create(new { password = "Password1" })
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify user cannot log in anymore
+        _client.DefaultRequestHeaders.Authorization = null;
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1.0/auth/login", new
+        {
+            email = "delete-ok@example.com",
+            password = "Password1"
+        });
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        // Verify user is actually deleted from the database
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var deletedUser = await userManager.FindByEmailAsync("delete-ok@example.com");
+        deletedUser.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithInvalidPassword_ReturnsBadRequest()
+    {
+        var auth = await RegisterAndConfirmUserAsync("delete-bad@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/api/v1.0/auth/account")
+        {
+            Content = JsonContent.Create(new { password = "WrongPassword1" })
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_AnonimizesAuditLogEntries()
+    {
+        var auth = await RegisterAndConfirmUserAsync("delete-audit@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/api/v1.0/auth/account")
+        {
+            Content = JsonContent.Create(new { password = "Password1" })
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify audit log entries are anonymized
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var entries = await dbContext.AuditLogEntries
+            .Where(a => a.UserId == auth.User.Id)
+            .ToListAsync();
+        entries.Should().BeEmpty("all audit entries should have UserId set to null after purge");
+    }
+
+    [Fact]
+    public async Task ExportMyData_WithoutAuth_Returns401()
+    {
+        var response = await _client.GetAsync("/api/v1.0/auth/export-my-data");
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ExportMyData_WithAuth_ReturnsUserData()
+    {
+        var auth = await RegisterAndConfirmUserAsync("export-ok@example.com");
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var response = await _client.GetAsync("/api/v1.0/auth/export-my-data");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<UserDataExportResponseDto>();
+        body.Should().NotBeNull();
+        body!.Profile.Email.Should().Be("export-ok@example.com");
+        body.Profile.FirstName.Should().Be("John");
+        body.Profile.LastName.Should().Be("Doe");
+        body.Profile.IsActive.Should().BeTrue();
+        body.Consent.Should().NotBeNull();
+        body.Roles.Should().NotBeNull();
+        body.AuditLog.Should().NotBeEmpty("registration and confirmation generate audit entries");
+    }
+
     private record AuthResponseDto(string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User, List<string>? Permissions = null, bool MustChangePassword = false);
     private record UserResponseDto(Guid Id, string Email, string FirstName, string LastName, List<string>? Roles = null);
     private record MessageResponseDto(string Message);
+
+    private record UserDataExportResponseDto(
+        ProfileExportDto Profile,
+        ConsentExportDto Consent,
+        List<string> Roles,
+        List<AuditLogEntryExportDto> AuditLog);
+    private record ProfileExportDto(Guid Id, string Email, string FirstName, string LastName, DateTime CreatedAt, DateTime UpdatedAt, bool IsActive);
+    private record ConsentExportDto(DateTime? PrivacyPolicyAcceptedAt, DateTime? TermsAcceptedAt, string? ConsentVersion);
+    private record AuditLogEntryExportDto(DateTime Timestamp, string Action, string EntityType, string? EntityId, string? Details, string? IpAddress);
 }
