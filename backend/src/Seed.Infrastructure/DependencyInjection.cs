@@ -34,10 +34,15 @@ public static class DependencyInjection
 
         services.Configure<ClientSettings>(configuration.GetSection(ClientSettings.SectionName));
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.Configure<PrivacySettings>(configuration.GetSection(PrivacySettings.SectionName));
+        services.Configure<DataRetentionSettings>(configuration.GetSection(DataRetentionSettings.SectionName));
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IUserPurgeService, UserPurgeService>();
+        services.AddScoped<IDataCleanupService, DataCleanupService>();
+        services.AddHostedService<DataRetentionBackgroundService>();
         services.AddScoped<IAuditLogReader, AuditLogReader>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.Configure<SuperAdminSettings>(configuration.GetSection(SuperAdminSettings.SectionName));

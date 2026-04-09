@@ -7,4 +7,6 @@ public sealed record RegisterCommand(
     string Email,
     string Password,
     string FirstName,
-    string LastName) : IRequest<Result<string>>;
+    string LastName,
+    bool AcceptPrivacyPolicy,
+    bool AcceptTermsOfService) : IRequest<Result<string>>;

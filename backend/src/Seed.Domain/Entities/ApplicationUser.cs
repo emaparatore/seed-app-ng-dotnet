@@ -13,5 +13,9 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 
+    public DateTime? PrivacyPolicyAcceptedAt { get; set; }
+    public DateTime? TermsAcceptedAt { get; set; }
+    public string? ConsentVersion { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

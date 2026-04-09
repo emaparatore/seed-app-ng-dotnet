@@ -25,7 +25,9 @@ public class AdminSettingsEndpointsTests(CustomWebApplicationFactory factory)
             email,
             password,
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();

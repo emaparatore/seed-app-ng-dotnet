@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { AuthService } from 'shared-auth';
 
@@ -29,7 +30,7 @@ class ConfirmPasswordErrorMatcher implements ErrorStateMatcher {
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, RouterLink],
+  imports: [ReactiveFormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatCheckboxModule, RouterLink],
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
@@ -49,6 +50,7 @@ export class Register {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
+      acceptPrivacy: [false, [Validators.requiredTrue]],
     },
     { validators: passwordMatchValidator },
   );
@@ -61,7 +63,8 @@ export class Register {
     this.loading.set(true);
     this.error.set(null);
 
-    const { confirmPassword, ...request } = this.form.getRawValue();
+    const { confirmPassword, acceptPrivacy, ...rest } = this.form.getRawValue();
+    const request = { ...rest, acceptPrivacyPolicy: acceptPrivacy, acceptTermsOfService: acceptPrivacy };
     this.authService.register(request).subscribe({
       next: () => {
         this.submitted.set(true);

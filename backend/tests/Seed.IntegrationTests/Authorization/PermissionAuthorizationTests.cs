@@ -26,7 +26,9 @@ public class PermissionAuthorizationTests(CustomWebApplicationFactory factory)
             email,
             password,
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         // Confirm email
@@ -96,7 +98,9 @@ public class PermissionAuthorizationTests(CustomWebApplicationFactory factory)
             email = "must-change@example.com",
             password = "Password1",
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();
@@ -169,7 +173,9 @@ public class PermissionAuthorizationTests(CustomWebApplicationFactory factory)
             email,
             password,
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();

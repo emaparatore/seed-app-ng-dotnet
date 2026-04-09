@@ -27,7 +27,9 @@ public class AdminAuditLogEndpointsTests(CustomWebApplicationFactory factory)
             email,
             password,
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();
@@ -72,7 +74,9 @@ public class AdminAuditLogEndpointsTests(CustomWebApplicationFactory factory)
             email = "noperm-audit@example.com",
             password = "Password1",
             firstName = "No",
-            lastName = "Perm"
+            lastName = "Perm",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();
@@ -164,7 +168,9 @@ public class AdminAuditLogEndpointsTests(CustomWebApplicationFactory factory)
             email = "noperm-export@example.com",
             password = "Password1",
             firstName = "No",
-            lastName = "Export"
+            lastName = "Export",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();

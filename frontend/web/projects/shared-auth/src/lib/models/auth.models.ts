@@ -17,6 +17,8 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  acceptPrivacyPolicy: boolean;
+  acceptTermsOfService: boolean;
 }
 
 export interface AuthResponse {
@@ -26,6 +28,8 @@ export interface AuthResponse {
   user: User;
   permissions: string[];
   mustChangePassword: boolean;
+  consentUpdateRequired?: boolean;
+  currentConsentVersion?: string;
 }
 
 export interface ChangePasswordRequest {

@@ -74,6 +74,20 @@ describe('Register', () => {
     expect(component['form'].controls.password.hasError('minlength')).toBe(true);
   });
 
+  it('should have invalid form when acceptPrivacy is false', () => {
+    const form = component['form'];
+    form.setValue({
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'test@example.com',
+      password: 'Password1',
+      confirmPassword: 'Password1',
+      acceptPrivacy: false,
+    });
+    expect(form.invalid).toBe(true);
+    expect(form.controls.acceptPrivacy.hasError('required')).toBe(true);
+  });
+
   it('should call AuthService.register on valid submit', () => {
     const mockResponse = {
       accessToken: 'token',
@@ -89,10 +103,16 @@ describe('Register', () => {
       email: 'test@example.com',
       password: 'Password1',
       confirmPassword: 'Password1',
+      acceptPrivacy: true,
     });
     component.onSubmit();
 
-    expect(authService.register).toHaveBeenCalled();
+    expect(authService.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptPrivacyPolicy: true,
+        acceptTermsOfService: true,
+      }),
+    );
   });
 
   it('should set error on registration failure', () => {
@@ -106,6 +126,7 @@ describe('Register', () => {
       email: 'test@example.com',
       password: 'Password1',
       confirmPassword: 'Password1',
+      acceptPrivacy: true,
     });
     component.onSubmit();
 

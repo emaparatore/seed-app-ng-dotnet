@@ -25,4 +25,6 @@ public static class AuditActions
     public const string AccountDeleted = "AccountDeleted";
     public const string EmailConfirmed = "EmailConfirmed";
     public const string ConfirmationEmailResent = "ConfirmationEmailResent";
+    public const string ConsentGiven = "ConsentGiven";
+    public const string DataExported = "DataExported";
 }

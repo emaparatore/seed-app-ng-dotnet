@@ -13,6 +13,7 @@ describe('Profile', () => {
   let authService: {
     getProfile: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
+    exportMyData: ReturnType<typeof vi.fn>;
     currentUser: any;
     isAuthenticated: any;
     accessToken: any;
@@ -24,6 +25,7 @@ describe('Profile', () => {
     authService = {
       getProfile: vi.fn().mockReturnValue(of(mockUser)),
       deleteAccount: vi.fn().mockReturnValue(of(void 0)),
+      exportMyData: vi.fn().mockReturnValue(of({ profile: mockUser })),
       currentUser: signal(mockUser),
       isAuthenticated: signal(true),
       accessToken: signal('test-token'),
@@ -86,6 +88,19 @@ describe('Profile', () => {
 
     expect(dialog.open).toHaveBeenCalled();
     expect(authService.deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('should call exportMyData on export button click', () => {
+    component.exportMyData();
+    expect(authService.exportMyData).toHaveBeenCalled();
+    expect(component['exporting']()).toBe(false);
+  });
+
+  it('should set error when exportMyData fails', () => {
+    authService.exportMyData.mockReturnValue(throwError(() => new Error('fail')));
+    component.exportMyData();
+    expect(component['error']()).toBe('Failed to export data.');
+    expect(component['exporting']()).toBe(false);
   });
 
   it('should set error when deleteAccount fails', () => {

@@ -49,5 +49,13 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
     canActivate: [authGuard, mustChangePasswordGuard],
   },
+  {
+    path: 'privacy-policy',
+    loadComponent: () => import('./pages/privacy-policy/privacy-policy').then((m) => m.PrivacyPolicy),
+  },
+  {
+    path: 'terms-of-service',
+    loadComponent: () => import('./pages/terms-of-service/terms-of-service').then((m) => m.TermsOfService),
+  },
   { path: '**', redirectTo: '' },
 ];

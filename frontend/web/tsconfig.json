@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "experimentalDecorators": true,
     "paths": {
-      "shared-auth": ["./dist/shared-auth"],
+      "shared-auth": ["./projects/shared-auth/src/public-api.ts", "./dist/shared-auth"],
       "shared-core": ["./dist/shared-core"],
       "shared-ui": ["./dist/shared-ui"]
     },

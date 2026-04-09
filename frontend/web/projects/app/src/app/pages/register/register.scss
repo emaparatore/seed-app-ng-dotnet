@@ -25,6 +25,28 @@ mat-form-field {
   text-align: center;
 }
 
+.consent-checkbox {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+
+  a {
+    color: var(--mat-sys-primary, #1976d2);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.consent-error {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: -0.75rem;
+  margin-bottom: 1rem;
+}
+
 .success-message {
   display: flex;
   flex-direction: column;

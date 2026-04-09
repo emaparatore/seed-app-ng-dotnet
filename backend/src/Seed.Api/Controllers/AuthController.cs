@@ -12,9 +12,11 @@ using Seed.Application.Auth.Commands.Logout;
 using Seed.Application.Auth.Commands.RefreshToken;
 using Seed.Application.Auth.Commands.Register;
 using Seed.Application.Auth.Commands.ResendConfirmationEmail;
+using Seed.Application.Auth.Commands.AcceptUpdatedConsent;
 using Seed.Application.Auth.Commands.ChangePassword;
 using Seed.Application.Auth.Commands.DeleteAccount;
 using Seed.Application.Auth.Commands.ResetPassword;
+using Seed.Application.Auth.Queries.ExportMyData;
 using Seed.Application.Auth.Queries.GetCurrentUser;
 
 namespace Seed.Api.Controllers;
@@ -123,6 +125,24 @@ public class AuthController(ISender sender) : ControllerBase
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await sender.Send(new GetCurrentUserQuery(userId));
+        return result.Succeeded ? Ok(result.Data) : NotFound(new { errors = result.Errors });
+    }
+
+    [Authorize]
+    [HttpPost("accept-updated-consent")]
+    public async Task<IActionResult> AcceptUpdatedConsent()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await sender.Send(new AcceptUpdatedConsentCommand(userId));
+        return result.Succeeded ? Ok() : BadRequest(new { errors = result.Errors });
+    }
+
+    [Authorize]
+    [HttpGet("export-my-data")]
+    public async Task<IActionResult> ExportMyData()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await sender.Send(new ExportMyDataQuery(userId));
         return result.Succeeded ? Ok(result.Data) : NotFound(new { errors = result.Errors });
     }
 }

@@ -25,7 +25,9 @@ public class AdminUsersEndpointsTests(CustomWebApplicationFactory factory)
             email,
             password,
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();
@@ -54,7 +56,9 @@ public class AdminUsersEndpointsTests(CustomWebApplicationFactory factory)
             email,
             password = "Password1",
             firstName = "Target",
-            lastName = "User"
+            lastName = "User",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();
@@ -87,7 +91,9 @@ public class AdminUsersEndpointsTests(CustomWebApplicationFactory factory)
             email = "noperm-list@example.com",
             password = "Password1",
             firstName = "No",
-            lastName = "Perm"
+            lastName = "Perm",
+            acceptPrivacyPolicy = true,
+            acceptTermsOfService = true
         });
 
         using var scope = factory.Services.CreateScope();

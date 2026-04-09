@@ -14,9 +14,11 @@ public sealed class RegisterCommandHandler(
     UserManager<ApplicationUser> userManager,
     IEmailService emailService,
     IOptions<ClientSettings> clientSettings,
+    IOptions<PrivacySettings> privacySettings,
     IAuditService auditService) : IRequestHandler<RegisterCommand, Result<string>>
 {
     private readonly ClientSettings _clientSettings = clientSettings.Value;
+    private readonly PrivacySettings _privacySettings = privacySettings.Value;
 
     public async Task<Result<string>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
@@ -29,7 +31,10 @@ public sealed class RegisterCommandHandler(
             Email = request.Email,
             UserName = request.Email,
             FirstName = request.FirstName,
-            LastName = request.LastName
+            LastName = request.LastName,
+            PrivacyPolicyAcceptedAt = DateTime.UtcNow,
+            TermsAcceptedAt = DateTime.UtcNow,
+            ConsentVersion = _privacySettings.ConsentVersion
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -37,6 +42,7 @@ public sealed class RegisterCommandHandler(
             return Result<string>.Failure(result.Errors.Select(e => e.Description).ToArray());
 
         await auditService.LogAsync(AuditActions.UserCreated, "User", user.Id.ToString(), $"Email: {request.Email}", user.Id, cancellationToken: cancellationToken);
+        await auditService.LogAsync(AuditActions.ConsentGiven, "User", user.Id.ToString(), $"ConsentVersion: {_privacySettings.ConsentVersion}", user.Id, cancellationToken: cancellationToken);
 
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebUtility.UrlEncode(token);
