@@ -72,7 +72,7 @@ public class DataCleanupServiceTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task CleanupExpiredRefreshTokensAsync_Deletes_Expired_Tokens_Past_Retention()
+    public async Task CleanupExpiredRefreshTokensAsync_Deletes_Expired_Tokens()
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -91,13 +91,13 @@ public class DataCleanupServiceTests(CustomWebApplicationFactory factory)
         };
         (await userManager.CreateAsync(user, "Password1!")).Succeeded.Should().BeTrue();
 
-        // Token expired 8 days ago (past 7-day retention)
+        // Token expired 2 hours ago — should be deleted immediately regardless of retention period
         var token = new RefreshToken
         {
             Token = Guid.NewGuid().ToString(),
             UserId = user.Id,
-            ExpiresAt = DateTime.UtcNow.AddDays(-8),
-            CreatedAt = DateTime.UtcNow.AddDays(-15)
+            ExpiresAt = DateTime.UtcNow.AddHours(-2),
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
         };
         dbContext.RefreshTokens.Add(token);
         await dbContext.SaveChangesAsync();
@@ -111,7 +111,7 @@ public class DataCleanupServiceTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task CleanupExpiredRefreshTokensAsync_Keeps_Recent_Expired_Tokens()
+    public async Task CleanupExpiredRefreshTokensAsync_Keeps_Active_Tokens()
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -129,13 +129,13 @@ public class DataCleanupServiceTests(CustomWebApplicationFactory factory)
         };
         (await userManager.CreateAsync(user, "Password1!")).Succeeded.Should().BeTrue();
 
-        // Token expired 2 days ago (within 7-day retention)
+        // Token still valid — should not be deleted
         var token = new RefreshToken
         {
             Token = Guid.NewGuid().ToString(),
             UserId = user.Id,
-            ExpiresAt = DateTime.UtcNow.AddDays(-2),
-            CreatedAt = DateTime.UtcNow.AddDays(-9)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
         };
         dbContext.RefreshTokens.Add(token);
         await dbContext.SaveChangesAsync();

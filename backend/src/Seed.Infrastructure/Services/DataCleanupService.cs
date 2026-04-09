@@ -37,7 +37,7 @@ public sealed class DataCleanupService(
         var cutoffDate = DateTime.UtcNow.AddDays(-settings.Value.RefreshTokenRetentionDays);
 
         var deleted = await dbContext.RefreshTokens
-            .Where(r => r.ExpiresAt < cutoffDate || (r.RevokedAt != null && r.RevokedAt < cutoffDate))
+            .Where(r => r.ExpiresAt < DateTime.UtcNow || (r.RevokedAt != null && r.RevokedAt < cutoffDate))
             .ExecuteDeleteAsync(cancellationToken);
 
         return deleted;
