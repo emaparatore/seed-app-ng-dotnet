@@ -73,10 +73,10 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** possa leggere come vengono trattati i miei dati prima di registrarmi.
 
 **Acceptance Criteria:**
-- [ ] Esiste una route `/privacy-policy` accessibile senza autenticazione
-- [ ] La pagina mostra il contenuto dell'informativa privacy in formato leggibile
-- [ ] Il footer dell'applicazione contiene un link alla Privacy Policy
-- [ ] Il form di registrazione contiene un link alla Privacy Policy
+- [x] Esiste una route `/privacy-policy` accessibile senza autenticazione
+- [x] La pagina mostra il contenuto dell'informativa privacy in formato leggibile
+- [x] Il footer dell'applicazione contiene un link alla Privacy Policy
+- [x] Il form di registrazione contiene un link alla Privacy Policy
 
 #### US-002: Visualizzare i Terms of Service
 
@@ -85,10 +85,10 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** possa leggere le condizioni d'uso prima di registrarmi.
 
 **Acceptance Criteria:**
-- [ ] Esiste una route `/terms-of-service` accessibile senza autenticazione
-- [ ] La pagina mostra il contenuto dei termini di servizio in formato leggibile
-- [ ] Il footer dell'applicazione contiene un link ai Terms of Service
-- [ ] Il form di registrazione contiene un link ai Terms of Service
+- [x] Esiste una route `/terms-of-service` accessibile senza autenticazione
+- [x] La pagina mostra il contenuto dei termini di servizio in formato leggibile
+- [x] Il footer dell'applicazione contiene un link ai Terms of Service
+- [x] Il form di registrazione contiene un link ai Terms of Service
 
 #### US-003: Accettare Privacy Policy e ToS alla registrazione
 
@@ -97,13 +97,13 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** il mio consenso sia tracciato e dimostrabile come richiesto dal GDPR.
 
 **Acceptance Criteria:**
-- [ ] Il form di registrazione include una checkbox "Ho letto e accetto la Privacy Policy e i Terms of Service" (con link ai documenti)
-- [ ] La checkbox è obbligatoria — il form non può essere inviato senza consenso
-- [ ] Il backend salva `PrivacyPolicyAcceptedAt` e `TermsAcceptedAt` (timestamp UTC) sull'entità utente
-- [ ] Il backend salva `ConsentVersion` (stringa, es. "1.0") per tracciare la versione accettata
-- [ ] Il `RegisterCommand` include i nuovi campi di consenso
-- [ ] La validazione backend rifiuta la registrazione se il consenso non è fornito
-- [ ] L'audit log registra l'evento di consenso
+- [x] Il form di registrazione include una checkbox "Ho letto e accetto la Privacy Policy e i Terms of Service" (con link ai documenti)
+- [X] La checkbox è obbligatoria — il form non può essere inviato senza consenso
+- [x] Il backend salva `PrivacyPolicyAcceptedAt` e `TermsAcceptedAt` (timestamp UTC) sull'entità utente
+- [x] Il backend salva `ConsentVersion` (stringa, es. "1.0") per tracciare la versione accettata
+- [x] Il `RegisterCommand` include i nuovi campi di consenso
+- [x] La validazione backend rifiuta la registrazione se il consenso non è fornito
+- [x] L'audit log registra l'evento di consenso
 
 #### US-004: Esportare i propri dati personali
 
@@ -112,12 +112,12 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** possa esercitare il mio diritto di accesso (Art. 15 GDPR) e portabilità (Art. 20).
 
 **Acceptance Criteria:**
-- [ ] Esiste un endpoint `GET /api/v1/auth/export-my-data` protetto da autenticazione
-- [ ] La risposta JSON include: profilo (nome, cognome, email, date), consensi, ruoli
-- [ ] La risposta JSON include lo storico audit log relativo all'utente
-- [ ] L'endpoint restituisce solo i dati dell'utente autenticato (non è possibile accedere ai dati altrui)
-- [ ] L'audit log registra la richiesta di export dati
-- [ ] Nel profilo utente (frontend) è presente un pulsante "Esporta i miei dati"
+- [x] Esiste un endpoint `GET /api/v1/auth/export-my-data` protetto da autenticazione
+- [x] La risposta JSON include: profilo (nome, cognome, email, date), consensi, ruoli
+- [x] La risposta JSON include lo storico audit log relativo all'utente
+- [x] L'endpoint restituisce solo i dati dell'utente autenticato (non è possibile accedere ai dati altrui)
+- [x] L'audit log registra la richiesta di export dati
+- [x] Nel profilo utente (frontend) è presente un pulsante "Esporta i miei dati"
 
 #### US-005: Cancellare definitivamente il proprio account
 
@@ -126,13 +126,13 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** possa esercitare il mio diritto all'oblio (Art. 17 GDPR).
 
 **Acceptance Criteria:**
-- [ ] L'endpoint `DELETE /api/v1/auth/account` esegue hard delete dei dati personali (non solo soft delete)
-- [ ] I dati eliminati includono: dati profilo, refresh token, consensi
-- [ ] Le entry nell'audit log vengono anonimizzate: `UserId` impostato a null, campi `Details` con PII ripuliti
-- [ ] L'utente deve confermare con la propria password prima della cancellazione
-- [ ] Dopo la cancellazione, tutti i token dell'utente vengono invalidati
-- [ ] L'audit log registra l'evento di cancellazione (con dati anonimizzati)
-- [ ] L'operazione è idempotente: richiedere la cancellazione di un account già cancellato restituisce un messaggio appropriato senza errori
+- [X] L'endpoint `DELETE /api/v1/auth/account` esegue hard delete dei dati personali (non solo soft delete)
+- [X] I dati eliminati includono: dati profilo, refresh token, consensi
+- [X] Le entry nell'audit log vengono anonimizzate: `UserId` impostato a null, campi `Details` con PII ripuliti
+- [X] L'utente deve confermare con la propria password prima della cancellazione
+- [X] Dopo la cancellazione, tutti i token dell'utente vengono invalidati
+- [X] L'audit log registra l'evento di cancellazione (con dati anonimizzati)
+- [X] L'operazione è idempotente: richiedere la cancellazione di un account già cancellato restituisce un messaggio appropriato senza errori
 
 #### US-006: Purge automatico utenti soft-deleted
 
@@ -141,11 +141,11 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** i dati personali non vengano conservati oltre il necessario (principio di limitazione della conservazione, Art. 5.1.e).
 
 **Acceptance Criteria:**
-- [ ] Esiste un background service che esegue periodicamente il purge degli utenti soft-deleted
-- [ ] Il periodo di retention è configurabile in `appsettings.json` (default: 30 giorni)
-- [ ] L'intervallo di esecuzione del job è configurabile (default: ogni 24 ore)
-- [ ] Il purge esegue hard delete come descritto in US-005 (inclusa anonimizzazione audit log)
-- [ ] Il job logga l'attività (numero di utenti purgati) tramite il logger dell'applicazione
+- [x] Esiste un background service che esegue periodicamente il purge degli utenti soft-deleted
+- [x] Il periodo di retention è configurabile in `appsettings.json` (default: 30 giorni)
+- [x] L'intervallo di esecuzione del job è configurabile (default: ogni 24 ore)
+- [x] Il purge esegue hard delete come descritto in US-005 (inclusa anonimizzazione audit log)
+- [x] Il job logga l'attività (numero di utenti purgati) tramite il logger dell'applicazione
 
 #### US-007: Cleanup refresh token scaduti
 
@@ -154,10 +154,10 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** il database non accumuli dati inutili e si rispetti il principio di minimizzazione.
 
 **Acceptance Criteria:**
-- [ ] Esiste un background service che elimina i refresh token scaduti o revocati
-- [ ] Il job viene eseguito periodicamente (configurabile, default: ogni 24 ore)
-- [ ] I token eliminati sono quelli dove `ExpiresAt < now` oppure `RevokedAt IS NOT NULL` e il token ha più di X giorni (configurabile, default: 7 giorni)
-- [ ] Il job logga il numero di token eliminati
+- [x] Esiste un background service che elimina i refresh token scaduti o revocati
+- [x] Il job viene eseguito periodicamente (configurabile, default: ogni 24 ore)
+- [x] I token eliminati sono quelli dove `ExpiresAt < now` oppure `RevokedAt IS NOT NULL` e il token ha più di X giorni (configurabile, default: 7 giorni)
+- [x] Il job logga il numero di token eliminati
 
 #### US-008: Retention e cleanup audit log
 
@@ -166,10 +166,10 @@ Il contenuto testuale della privacy policy e dei termini di servizio sarà forni
 **So that** il database non cresca indefinitamente e si rispettino le policy di conservazione.
 
 **Acceptance Criteria:**
-- [ ] Esiste un background service che elimina le entry dell'audit log più vecchie del periodo di retention
-- [ ] Il periodo è configurabile in `appsettings.json` (default: 365 giorni)
-- [ ] Il job viene eseguito periodicamente (configurabile, default: ogni 24 ore)
-- [ ] Il job logga il numero di entry eliminate
+- [x] Esiste un background service che elimina le entry dell'audit log più vecchie del periodo di retention
+- [x] Il periodo è configurabile in `appsettings.json` (default: 365 giorni)
+- [x] Il job viene eseguito periodicamente (configurabile, default: ogni 24 ore)
+- [x] Il job logga il numero di entry eliminate
 
 ## Dipendenze tra User Stories
 
