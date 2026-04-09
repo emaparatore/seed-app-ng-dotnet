@@ -321,23 +321,29 @@ Creare `DataRetentionBackgroundService` che estende `BackgroundService`. Esegue 
 
 **Stories:** US-003
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-04
 
 **What to do:**
 Modificare il `LoginCommandHandler` per verificare se la `ConsentVersion` dell'utente corrisponde alla versione corrente (da config). Se non corrisponde, la risposta di login include un flag `consentUpdateRequired: true` e la nuova versione. Creare un endpoint `POST /api/v1/auth/accept-updated-consent` che aggiorna i timestamp di consenso e la versione. Nel frontend, intercettare il flag dopo il login e mostrare un dialog che chiede di ri-accettare. Se l'utente rifiuta, eseguire il logout.
 
 **Definition of Done:**
-- [ ] `LoginResponse` include campo `consentUpdateRequired` (bool) e `currentConsentVersion` (string)
-- [ ] `LoginCommandHandler` confronta `user.ConsentVersion` con la versione da config
-- [ ] Endpoint `POST /api/v1/auth/accept-updated-consent` aggiorna consenso utente
-- [ ] Validazione: solo utenti autenticati possono aggiornare il proprio consenso
-- [ ] Frontend: dialog dopo login se `consentUpdateRequired === true`
-- [ ] Frontend: se utente rifiuta il dialog, logout automatico
-- [ ] Unit test backend: login con versione diversa restituisce flag
-- [ ] Unit test backend: endpoint aggiorna consenso correttamente
-- [ ] Test frontend: dialog appare quando flag è true
-- [ ] All tests pass
+- [x] `AuthResponse` include campo `ConsentUpdateRequired` (bool) e `CurrentConsentVersion` (string?) con default per retrocompatibilità
+- [x] `LoginCommandHandler` confronta `user.ConsentVersion` con la versione da config (`PrivacySettings.ConsentVersion`)
+- [x] Endpoint `POST /api/v1.0/auth/accept-updated-consent` con `[Authorize]` aggiorna consenso utente (timestamp + versione + audit log)
+- [x] Validazione: solo utenti autenticati possono aggiornare il proprio consenso
+- [x] Frontend: `ConsentUpdateDialog` standalone con `disableClose: true` — dialog dopo login se `consentUpdateRequired === true`
+- [x] Frontend: se utente rifiuta il dialog, logout automatico
+- [x] Unit test backend: 3 test login (versione diversa, uguale, null) + 3 test AcceptUpdatedConsent (aggiorna campi, utente non trovato, audit log)
+- [x] Unit test frontend: 3 test dialog (creazione, accept, decline) + test dialog appare nel login + test `acceptUpdatedConsent()` in AuthService
+- [x] All tests pass (`dotnet test Seed.slnx`, `ng test app`, `ng test shared-auth`, `ng build`)
+
+**Implementation Notes:**
+- `AuthResponse` usa parametri con default (`ConsentUpdateRequired = false`, `CurrentConsentVersion = null`) per retrocompatibilità con handler esistenti (RefreshToken, ConfirmEmail)
+- `CurrentConsentVersion` restituito solo quando `ConsentUpdateRequired = true` per evitare di esporre informazioni non necessarie
+- `ConsentUpdateDialog` usa `disableClose: true` per forzare una scelta esplicita (accept/decline)
+- Priorità nel login: prima `mustChangePassword`, poi `consentUpdateRequired` — il cambio password è più critico per la sicurezza
+- `AcceptUpdatedConsentCommandHandler` aggiorna atomicamente `PrivacyPolicyAcceptedAt`, `TermsAcceptedAt`, `ConsentVersion` e registra audit `ConsentGiven`
 
 ---
 

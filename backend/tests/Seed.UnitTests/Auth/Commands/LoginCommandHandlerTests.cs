@@ -1,11 +1,13 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Seed.Application.Auth.Commands.Login;
 using Seed.Application.Common.Interfaces;
 using Seed.Application.Common.Models;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
+using Seed.Shared.Configuration;
 
 namespace Seed.UnitTests.Auth.Commands;
 
@@ -29,7 +31,8 @@ public class LoginCommandHandlerTests
             .Returns(new HashSet<string>() as IReadOnlySet<string>);
         _userManager.GetRolesAsync(Arg.Any<ApplicationUser>())
             .Returns(new List<string>());
-        _handler = new LoginCommandHandler(_userManager, _tokenService, _permissionService, _auditService);
+        var privacySettings = Options.Create(new PrivacySettings { ConsentVersion = "1.0" });
+        _handler = new LoginCommandHandler(_userManager, _tokenService, _permissionService, _auditService, privacySettings);
     }
 
     [Fact]
@@ -203,5 +206,77 @@ public class LoginCommandHandlerTests
             AuditActions.LoginSuccess, "User",
             userId.ToString(), Arg.Any<string?>(), userId,
             Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_Return_ConsentUpdateRequired_True_When_Version_Differs()
+    {
+        var command = new LoginCommand("user@test.com", "Password1");
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = userId, Email = command.Email, FirstName = "John", LastName = "Doe",
+            IsActive = true, EmailConfirmed = true, ConsentVersion = "0.9"
+        };
+
+        _userManager.FindByEmailAsync(command.Email).Returns(user);
+        _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+        _userManager.GetRolesAsync(user).Returns(new List<string>());
+        var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        result.Data!.ConsentUpdateRequired.Should().BeTrue();
+        result.Data.CurrentConsentVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public async Task Should_Return_ConsentUpdateRequired_False_When_Version_Matches()
+    {
+        var command = new LoginCommand("user@test.com", "Password1");
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = userId, Email = command.Email, FirstName = "John", LastName = "Doe",
+            IsActive = true, EmailConfirmed = true, ConsentVersion = "1.0"
+        };
+
+        _userManager.FindByEmailAsync(command.Email).Returns(user);
+        _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+        _userManager.GetRolesAsync(user).Returns(new List<string>());
+        var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        result.Data!.ConsentUpdateRequired.Should().BeFalse();
+        result.Data.CurrentConsentVersion.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Should_Return_ConsentUpdateRequired_True_When_ConsentVersion_Is_Null()
+    {
+        var command = new LoginCommand("user@test.com", "Password1");
+        var userId = Guid.NewGuid();
+        var user = new ApplicationUser
+        {
+            Id = userId, Email = command.Email, FirstName = "John", LastName = "Doe",
+            IsActive = true, EmailConfirmed = true, ConsentVersion = null
+        };
+
+        _userManager.FindByEmailAsync(command.Email).Returns(user);
+        _userManager.CheckPasswordAsync(user, command.Password).Returns(true);
+        _userManager.GetRolesAsync(user).Returns(new List<string>());
+        var tokenResult = new TokenResult("access-token", "refresh-token", DateTime.UtcNow.AddMinutes(15), userId);
+        _tokenService.GenerateTokensAsync(user, Arg.Any<IList<string>>()).Returns(tokenResult);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        result.Data!.ConsentUpdateRequired.Should().BeTrue();
+        result.Data.CurrentConsentVersion.Should().Be("1.0");
     }
 }

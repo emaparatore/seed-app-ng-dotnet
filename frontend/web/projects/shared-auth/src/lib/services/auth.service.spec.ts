@@ -156,6 +156,25 @@ describe('AuthService', () => {
     });
   });
 
+  describe('acceptUpdatedConsent', () => {
+    it('should send POST request and reset consentUpdateRequired', () => {
+      // First login with consentUpdateRequired
+      const consentResponse = { ...mockAuthResponse, consentUpdateRequired: true, currentConsentVersion: '2.0' };
+      service.login({ email: 'test@example.com', password: 'Password1' }).subscribe();
+      httpMock.expectOne('http://localhost:5000/api/v1.0/auth/login').flush(consentResponse);
+
+      expect(service.consentUpdateRequired()).toBe(true);
+
+      service.acceptUpdatedConsent().subscribe(() => {
+        expect(service.consentUpdateRequired()).toBe(false);
+      });
+
+      const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/accept-updated-consent');
+      expect(req.request.method).toBe('POST');
+      req.flush(null);
+    });
+  });
+
   describe('refreshToken', () => {
     it('should update tokens on success', () => {
       localStorage.setItem('refreshToken', 'old-refresh');

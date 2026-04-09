@@ -28,6 +28,8 @@ export interface AuthResponse {
   user: User;
   permissions: string[];
   mustChangePassword: boolean;
+  consentUpdateRequired?: boolean;
+  currentConsentVersion?: string;
 }
 
 export interface ChangePasswordRequest {

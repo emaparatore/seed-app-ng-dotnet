@@ -1,10 +1,12 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
 using Seed.Application.Common.Models;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
+using Seed.Shared.Configuration;
 
 namespace Seed.Application.Auth.Commands.Login;
 
@@ -12,7 +14,8 @@ public sealed class LoginCommandHandler(
     UserManager<ApplicationUser> userManager,
     ITokenService tokenService,
     IPermissionService permissionService,
-    IAuditService auditService) : IRequestHandler<LoginCommand, Result<AuthResponse>>
+    IAuditService auditService,
+    IOptions<PrivacySettings> privacySettings) : IRequestHandler<LoginCommand, Result<AuthResponse>>
 {
     public async Task<Result<AuthResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
@@ -45,12 +48,17 @@ public sealed class LoginCommandHandler(
 
         await auditService.LogAsync(AuditActions.LoginSuccess, "User", user.Id.ToString(), $"Email: {request.Email}", user.Id, request.IpAddress, request.UserAgent, cancellationToken);
 
+        var currentConsentVersion = privacySettings.Value.ConsentVersion;
+        var consentUpdateRequired = user.ConsentVersion != currentConsentVersion;
+
         return Result<AuthResponse>.Success(new AuthResponse(
             tokens.AccessToken,
             tokens.RefreshToken,
             tokens.ExpiresAt,
             new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, roles.ToList().AsReadOnly()),
             permissions.ToList().AsReadOnly(),
-            user.MustChangePassword));
+            user.MustChangePassword,
+            consentUpdateRequired,
+            consentUpdateRequired ? currentConsentVersion : null));
     }
 }
