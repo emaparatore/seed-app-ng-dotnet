@@ -94,7 +94,7 @@ Create the domain entities in `Seed.Domain/Entities/`:
 
 **Stories:** Trasversale
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-02
 
 **What to do:**
@@ -108,11 +108,18 @@ Create the domain entities in `Seed.Domain/Entities/`:
 4. Verify migration compiles and applies correctly.
 
 **Definition of Done:**
-- [ ] All entity configurations created with proper constraints and indexes
-- [ ] DbSets added to ApplicationDbContext
-- [ ] Migration generated and verified
-- [ ] `dotnet ef database update` runs without errors
-- [ ] Solution builds successfully
+- [x] 4 entity configurations created with proper constraints, indexes, and FK relationships
+- [x] 4 DbSets added to ApplicationDbContext
+- [x] Migration `AddSubscriptionPayments` generated and verified
+- [x] Solution builds successfully (`dotnet build Seed.slnx`)
+- [x] All tests pass (`dotnet test Seed.slnx`)
+
+**Implementation Notes:**
+- Followed existing `RefreshTokenConfiguration` pattern for structure and style (sealed class, file-scoped namespace)
+- Enum properties converted to string in DB via `HasConversion<string>()` for readability
+- Unique index on `StripeSubscriptionId` uses `HasFilter("\"StripeSubscriptionId\" IS NOT NULL")` to handle nullable correctly in PostgreSQL
+- `DeleteBehavior.Restrict` on `SubscriptionPlan → UserSubscription` to prevent deletion of plans with active subscriptions
+- `DeleteBehavior.Cascade` on `User → UserSubscription` and `User → InvoiceRequest`, consistent with existing RefreshToken pattern
 
 ---
 
