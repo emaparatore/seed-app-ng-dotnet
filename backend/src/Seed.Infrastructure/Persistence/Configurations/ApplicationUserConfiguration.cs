@@ -16,5 +16,9 @@ public sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Appl
         builder.Property(u => u.MustChangePassword).HasDefaultValue(false);
         builder.Property(u => u.IsDeleted).HasDefaultValue(false);
         builder.HasQueryFilter(u => !u.IsDeleted);
+
+        builder.Property(u => u.PrivacyPolicyAcceptedAt).IsRequired(false);
+        builder.Property(u => u.TermsAcceptedAt).IsRequired(false);
+        builder.Property(u => u.ConsentVersion).HasMaxLength(20).IsRequired(false);
     }
 }

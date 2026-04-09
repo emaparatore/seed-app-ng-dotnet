@@ -20,7 +20,7 @@
 |-------|-------------|-------|--------|
 | US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
-| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ⏳ Not Started |
+| US-003 | Consenso alla registrazione | T-03, T-04, T-05 | 🔧 In Progress (backend model done) |
 | US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
@@ -86,17 +86,24 @@ Creare un componente footer (`AppFooter`) da inserire nel template principale (`
 
 **Stories:** US-003
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Aggiungere i campi di consenso all'entità `ApplicationUser`: `PrivacyPolicyAcceptedAt` (DateTime?), `TermsAcceptedAt` (DateTime?), `ConsentVersion` (string?). Aggiornare la configurazione EF (`ApplicationUserConfiguration`). Creare la migration EF Core.
 
 **Definition of Done:**
-- [ ] Campi `PrivacyPolicyAcceptedAt`, `TermsAcceptedAt`, `ConsentVersion` aggiunti a `ApplicationUser`
-- [ ] Configurazione EF aggiornata con tipi e vincoli appropriati
-- [ ] Migration EF Core creata (`AddConsentFieldsToUsers`)
-- [ ] Build OK (`dotnet build Seed.slnx`)
-- [ ] All tests pass
+- [x] Campi `PrivacyPolicyAcceptedAt`, `TermsAcceptedAt`, `ConsentVersion` aggiunti a `ApplicationUser`
+- [x] Configurazione EF aggiornata con tipi e vincoli appropriati (tutti nullable, MaxLength 20 per ConsentVersion)
+- [x] Migration EF Core creata (`20260409000413_AddConsentFieldsToUsers`)
+- [x] Build OK (`dotnet build Seed.slnx` — 0 errori, 0 warning)
+- [x] All tests pass (180 unit + 97 integration)
+
+**Implementation Notes:**
+- Campi posizionati prima di `RefreshTokens` in `ApplicationUser`, raggruppando i campi di consenso insieme
+- Tutti i campi nullable per compatibilità con utenti esistenti (nessun dato default necessario)
+- `ConsentVersion` con `MaxLength(20)` — sufficiente per versioning semantico (es. "1.0", "2.1.0")
+- Migration genera 3 colonne nullable su `AspNetUsers`: `timestamp with time zone` per le date, `character varying(20)` per la versione
+- Nessuna deviazione dal piano originale
 
 ---
 
