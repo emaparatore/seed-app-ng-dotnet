@@ -18,8 +18,8 @@
 
 | Story | Descrizione | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Pagina Privacy Policy | T-01, T-02 | 🔄 In Progress (T-01 done, T-02 pending) |
-| US-002 | Pagina Terms of Service | T-01, T-02 | 🔄 In Progress (T-01 done, T-02 pending) |
+| US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
+| US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ⏳ Not Started |
 | US-004 | Export dati personali | T-08, T-09 | ⏳ Not Started |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
@@ -60,18 +60,25 @@ Creare due componenti Angular standalone per le pagine Privacy Policy e Terms of
 
 **Stories:** US-001, US-002
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Creare un componente footer (`AppFooter`) da inserire nel template principale (`app.html`, dopo `<router-outlet />`). Il footer contiene link a Privacy Policy e Terms of Service. Stile minimale, coerente con il design Material.
 
 **Definition of Done:**
-- [ ] Componente `AppFooter` creato
-- [ ] Footer inserito in `app.html` dopo `<router-outlet />`
-- [ ] Link a `/privacy-policy` e `/terms-of-service` presenti e funzionanti
-- [ ] Footer visibile su tutte le pagine
-- [ ] Test unitario per il componente (verifica presenza link)
-- [ ] All tests pass
+- [x] Componente `AppFooter` creato in `projects/app/src/app/footer/`
+- [x] Footer inserito in `app.html` dopo `<router-outlet />` e prima di `<app-pwa-install-prompt />`
+- [x] Link a `/privacy-policy` e `/terms-of-service` presenti con `routerLink`
+- [x] Footer visibile su tutte le pagine (in flusso del documento, non sticky/fixed)
+- [x] Test unitari per il componente (3 test: creazione, link privacy-policy, link terms-of-service)
+- [x] All tests pass (`ng test app` e `ng build` OK)
+
+**Implementation Notes:**
+- Componente standalone con `templateUrl`/`styleUrl` separati, coerente con il pattern degli altri componenti dell'app
+- Separatore `·` tra i link Privacy Policy e Terms of Service
+- Footer centrato con flexbox, font 0.85rem, colore `rgba(0, 0, 0, 0.54)` (Material Design secondary text)
+- Importato `RouterLink` per la navigazione interna, componente aggiunto agli imports di `App`
+- Nessuna deviazione dal piano originale
 
 ---
 
