@@ -23,9 +23,9 @@
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
 | US-004 | Export dati personali | T-08, T-09 | ✅ Done |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
-| US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ In Progress (backend service done) |
-| US-007 | Cleanup refresh token scaduti | T-10, T-11 | ⏳ In Progress (backend service done) |
-| US-008 | Retention e cleanup audit log | T-10, T-11 | ⏳ In Progress (backend service done) |
+| US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ✅ Done |
+| US-007 | Cleanup refresh token scaduti | T-10, T-11 | ✅ Done |
+| US-008 | Retention e cleanup audit log | T-10, T-11 | ✅ Done |
 | — | Checklist GDPR post-implementazione | T-13 | ⏳ Not Started |
 
 ---
@@ -292,21 +292,28 @@ Creare la sezione di configurazione `DataRetention` in `appsettings.json` con i 
 
 **Stories:** US-006, US-007, US-008
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-10
 
 **What to do:**
 Creare `DataRetentionBackgroundService` che estende `BackgroundService`. Esegue periodicamente (intervallo da config) i tre metodi di cleanup via `IDataCleanupService`. Logga i risultati (numero di record eliminati per ogni tipo). Registrare il servizio in `Program.cs`.
 
 **Definition of Done:**
-- [ ] `DataRetentionBackgroundService` in `Infrastructure/Services/` estende `BackgroundService`
-- [ ] Esegue i tre cleanup (utenti, token, audit log) ad ogni ciclo
-- [ ] Intervallo configurabile da `DataRetentionSettings.CleanupIntervalHours`
-- [ ] Logga risultati via `ILogger` (es. "Purged 3 soft-deleted users, cleaned 150 expired tokens, removed 0 audit log entries")
-- [ ] Gestione errori: un fallimento in un cleanup non blocca gli altri
-- [ ] Registrazione in DI (`builder.Services.AddHostedService<DataRetentionBackgroundService>()`)
-- [ ] Unit test: verifica che il service chiami i metodi di cleanup
-- [ ] All tests pass
+- [x] `DataRetentionBackgroundService` in `Infrastructure/Services/` estende `BackgroundService`
+- [x] Esegue i tre cleanup (utenti, token, audit log) ad ogni ciclo
+- [x] Intervallo configurabile da `DataRetentionSettings.CleanupIntervalHours`
+- [x] Logga risultati via `ILogger` (es. "Purged 3 soft-deleted users, cleaned 150 expired tokens, removed 0 audit log entries")
+- [x] Gestione errori: un fallimento in un cleanup non blocca gli altri (try/catch isolato per ogni metodo)
+- [x] Registrazione in DI (`services.AddHostedService<DataRetentionBackgroundService>()` in `DependencyInjection.cs`)
+- [x] Unit test: 4 test cases — verifica chiamata ai 3 metodi di cleanup + 3 test di isolamento errori
+- [x] All tests pass
+
+**Implementation Notes:**
+- `RunCleanupCycleAsync` esposto come `internal` per test diretto senza attendere il timer; `InternalsVisibleTo` aggiunto a `Seed.Infrastructure.csproj`
+- `PeriodicTimer` usato al posto di `Task.Delay` per gestione corretta del drift
+- `catch (Exception ex) when (ex is not OperationCanceledException)` per non catturare cancellation durante shutdown graceful
+- Registrazione in `DependencyInjection.cs` (coerente con gli altri servizi) anziché in `Program.cs`
+- Nessuna deviazione dal piano
 
 ---
 

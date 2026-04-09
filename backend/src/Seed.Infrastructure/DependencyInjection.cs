@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IDataCleanupService, DataCleanupService>();
+        services.AddHostedService<DataRetentionBackgroundService>();
         services.AddScoped<IAuditLogReader, AuditLogReader>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.Configure<SuperAdminSettings>(configuration.GetSection(SuperAdminSettings.SectionName));
