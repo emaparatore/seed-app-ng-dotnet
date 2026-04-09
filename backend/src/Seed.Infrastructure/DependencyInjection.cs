@@ -67,6 +67,10 @@ public static class DependencyInjection
             {
                 services.AddScoped<IPaymentGateway, MockPaymentGateway>();
             }
+            else
+            {
+                services.AddScoped<IPaymentGateway, StripePaymentGateway>();
+            }
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

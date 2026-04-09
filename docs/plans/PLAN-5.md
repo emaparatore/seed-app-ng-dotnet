@@ -167,7 +167,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** Trasversale (DA-2, DA-4, DA-5)
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-01, T-04
 
 **What to do:**
@@ -183,11 +183,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Configure `StripeConfiguration.ApiKey` from settings.
 
 **Definition of Done:**
-- [ ] `Stripe.net` package added
-- [ ] `StripePaymentGateway` fully implemented
-- [ ] Conditional DI registration (Stripe vs Mock vs disabled)
-- [ ] Solution builds successfully
-- [ ] Integration test with MockPaymentGateway verifying DI wiring
+- [x] `Stripe.net` 47.4.0 package added to `Seed.Infrastructure.csproj`
+- [x] `StripePaymentGateway` fully implements all 6 `IPaymentGateway` methods using Stripe SDK
+- [x] Conditional DI registration (Stripe vs Mock vs disabled) in `DependencyInjection.cs`
+- [x] Solution builds successfully
+- [x] 4 integration tests verifying DI wiring (Stripe, Mock, disabled scenarios)
+
+**Implementation Notes:**
+- Used `StripeClient` instance via constructor instead of global `StripeConfiguration.ApiKey` for thread-safety and testability (recommended Stripe SDK pattern)
+- Graceful cancellation via `CancelAtPeriodEnd = true` instead of immediate delete
+- `SyncPlanToProviderAsync` compares existing prices before creating new ones (Stripe Prices are immutable)
+- DI wiring tests use `ServiceCollection` + `ConfigurationBuilder.AddInMemoryCollection` directly (no PostgreSQL/Testcontainers needed for pure wiring tests)
+- Pinned `Stripe.net` to exact version 47.4.0 for build determinism
 
 ---
 
