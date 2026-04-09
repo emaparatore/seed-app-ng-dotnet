@@ -8,6 +8,7 @@ using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Seed.Infrastructure.Services;
 using Seed.Shared.Configuration;
+using Seed.Shared.Extensions;
 
 namespace Seed.Infrastructure;
 
@@ -49,6 +50,13 @@ public static class DependencyInjection
         services.AddScoped<RolesAndPermissionsSeeder>();
         services.AddScoped<SuperAdminSeeder>();
         services.AddScoped<SystemSettingsSeeder>();
+
+        services.Configure<ModulesSettings>(configuration.GetSection(ModulesSettings.SectionName));
+
+        if (configuration.IsPaymentsModuleEnabled())
+        {
+            services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
+        }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
         if (smtpSection.Exists() && !string.IsNullOrWhiteSpace(smtpSection[nameof(SmtpSettings.Host)]))

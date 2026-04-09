@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-3 — Subscription Plans & Payments (Stripe)
 
 **Requirements:** `docs/requirements/FEAT-3.md`
-**Status:** Not Started
+**Status:** In Progress
 **Created:** 2026-04-09
 **Last Updated:** 2026-04-09
 
@@ -30,7 +30,7 @@
 
 **Stories:** Trasversale (DA-1, RNF-3)
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Create the module toggle and Stripe configuration infrastructure:
@@ -42,10 +42,19 @@ Create the module toggle and Stripe configuration infrastructure:
 5. Add a helper method or extension `IsPaymentsModuleEnabled(IConfiguration)` for conditional registration.
 
 **Definition of Done:**
-- [ ] `PaymentsModuleSettings` and `StripeSettings` POCOs exist with correct section names
-- [ ] `appsettings.json` contains `Modules:Payments` section (disabled) and `Stripe` section (empty keys)
-- [ ] Settings are registered in DI
-- [ ] Solution builds successfully
+- [x] `PaymentsModuleSettings`, `ModulesSettings`, and `StripeSettings` POCOs exist with correct section names
+- [x] `appsettings.json` contains `Modules:Payments` section (disabled) and `Stripe` section (empty keys)
+- [x] `appsettings.Development.json` contains `Stripe` section with test placeholder keys
+- [x] Settings registered in DI (`ModulesSettings` always, `StripeSettings` conditionally)
+- [x] Extension method `IsPaymentsModuleEnabled` implemented with 3 unit tests
+- [x] Solution builds and all tests pass
+
+**Implementation Notes:**
+- Added `Microsoft.Extensions.Configuration.Binder` (v10.0.3) to `Seed.Shared.csproj` to support `IConfiguration.GetValue<T>` in the extension method
+- `StripeSettings` registration follows the same conditional pattern as the existing SMTP block in `DependencyInjection.cs`
+- `ModulesSettings` is registered unconditionally to allow injection even when the payments module is disabled
+- Extension method `IsPaymentsModuleEnabled` lives in `Seed.Shared/Extensions/ConfigurationExtensions.cs`
+- 3 unit tests cover enabled, disabled, and missing-section scenarios
 
 ---
 
