@@ -122,6 +122,10 @@ export class AuthService {
     );
   }
 
+  exportMyData(): Observable<object> {
+    return this.http.get<object>(`${this.apiUrl}/export-my-data`);
+  }
+
   getProfile(): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/me`).pipe(
       tap((user) => {

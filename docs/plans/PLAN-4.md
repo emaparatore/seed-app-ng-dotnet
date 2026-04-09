@@ -21,7 +21,7 @@
 | US-001 | Pagina Privacy Policy | T-01, T-02 | ✅ Done |
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
-| US-004 | Export dati personali | T-08, T-09 | ⏳ In Progress (backend done) |
+| US-004 | Export dati personali | T-08, T-09 | ✅ Done |
 | US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ⏳ Not Started |
 | US-007 | Cleanup refresh token scaduti | T-10, T-11 | ⏳ Not Started |
@@ -235,19 +235,26 @@ Creare query MediatR `ExportMyDataQuery` che raccoglie tutti i dati dell'utente 
 
 **Stories:** US-004
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-08
 
 **What to do:**
 Aggiungere pulsante "Esporta i miei dati" nella pagina profilo. Al click, chiama l'endpoint e scarica il JSON come file. Usare `Blob` + `URL.createObjectURL` per il download.
 
 **Definition of Done:**
-- [ ] Pulsante "Esporta i miei dati" aggiunto in `profile.html`
-- [ ] Metodo `exportMyData()` in `profile.ts` che chiama l'endpoint e scarica il file JSON
-- [ ] Metodo `exportMyData()` aggiunto in `AuthService` (shared-auth)
-- [ ] Feedback visivo durante il download (loading state)
-- [ ] Test unitario: verifica che il metodo venga chiamato al click
-- [ ] All tests pass
+- [x] Pulsante "Export My Data" aggiunto in `profile.html` (prima del pulsante Delete Account)
+- [x] Metodo `exportMyData()` in `profile.ts` che chiama l'endpoint e scarica il file JSON via Blob + createObjectURL
+- [x] Metodo `exportMyData()` aggiunto in `AuthService` (shared-auth) — `GET /auth/export-my-data`
+- [x] Feedback visivo durante il download (signal `exporting` con loading state)
+- [x] Test unitari: verifica chiamata al click del pulsante + gestione errore export
+- [x] All tests pass (`ng test app`, `ng test shared-auth`, `ng build` OK)
+
+**Implementation Notes:**
+- Download via `Blob` + `URL.createObjectURL` + anchor click programmatico — pattern standard senza dipendenze esterne
+- JSON formattato con `JSON.stringify(data, null, 2)` per leggibilità del file esportato, filename fisso `my-data-export.json`
+- Gestione errore con `error.set()` coerente con il pattern esistente di `deleteAccount()`
+- Aggiunto source path fallback in `tsconfig.json` per `shared-auth` (directory `dist/shared-auth` era read-only) — pattern standard Angular per sviluppo locale
+- Fix collaterale in `auth.service.spec.ts`: aggiornato test `register` con campi consenso (`acceptPrivacyPolicy`/`acceptTermsOfService`) introdotti in T-05
 
 ---
 

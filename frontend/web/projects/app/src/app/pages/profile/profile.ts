@@ -20,6 +20,7 @@ export class Profile implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly deleting = signal(false);
+  protected readonly exporting = signal(false);
 
   ngOnInit(): void {
     this.authService.getProfile().subscribe({
@@ -27,6 +28,28 @@ export class Profile implements OnInit {
       error: () => {
         this.error.set('Unable to load user details.');
         this.loading.set(false);
+      },
+    });
+  }
+
+  exportMyData(): void {
+    this.exporting.set(true);
+    this.error.set(null);
+
+    this.authService.exportMyData().subscribe({
+      next: (data: object) => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'my-data-export.json';
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.error.set('Failed to export data.');
+        this.exporting.set(false);
       },
     });
   }

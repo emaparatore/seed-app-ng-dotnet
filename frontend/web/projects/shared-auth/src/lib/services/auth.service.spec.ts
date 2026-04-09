@@ -78,6 +78,8 @@ describe('AuthService', () => {
           password: 'Password1',
           firstName: 'John',
           lastName: 'Doe',
+          acceptPrivacyPolicy: true,
+          acceptTermsOfService: true,
         })
         .subscribe((res) => {
           expect(res.message).toBe('Please check your email to verify your account.');
@@ -137,6 +139,20 @@ describe('AuthService', () => {
       const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/me');
       expect(req.request.method).toBe('GET');
       req.flush(user);
+    });
+  });
+
+  describe('exportMyData', () => {
+    it('should send GET request to export-my-data endpoint', () => {
+      const mockExport = { profile: { email: 'test@example.com' } };
+
+      service.exportMyData().subscribe((res) => {
+        expect(res).toEqual(mockExport);
+      });
+
+      const req = httpMock.expectOne('http://localhost:5000/api/v1.0/auth/export-my-data');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockExport);
     });
   });
 
