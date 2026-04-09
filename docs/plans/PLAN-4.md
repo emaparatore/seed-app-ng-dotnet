@@ -26,7 +26,7 @@
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ✅ Done |
 | US-007 | Cleanup refresh token scaduti | T-10, T-11 | ✅ Done |
 | US-008 | Retention e cleanup audit log | T-10, T-11 | ✅ Done |
-| — | Checklist GDPR post-implementazione | T-13 | ⏳ Not Started |
+| — | Checklist GDPR post-implementazione | T-13 | ✅ Done |
 
 ---
 
@@ -351,18 +351,25 @@ Modificare il `LoginCommandHandler` per verificare se la `ConsentVersion` dell'u
 
 **Stories:** —
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-01 (il placeholder della privacy policy deve esistere)
 
 **What to do:**
 Creare un documento `docs/gdpr-compliance-checklist.md` che guida il titolare del trattamento nel completare gli aspetti non tecnici della conformità GDPR. Il documento elenca le azioni manuali necessarie dopo l'implementazione tecnica di FEAT-2, con indicazioni pratiche su cosa fare, chi deve farlo e risorse utili.
 
 **Definition of Done:**
-- [ ] File `docs/gdpr-compliance-checklist.md` creato
-- [ ] Sezione: **Testo legale Privacy Policy e ToS** — cosa deve contenere (Art. 13-14), suggerimento di usare generatori (es. iubenda.com) o consultare un legale, dove sostituire il placeholder nel codice
-- [ ] Sezione: **Contatto privacy** — decidere un'email dedicata (es. `privacy@dominio.com`), indicarla nella privacy policy
-- [ ] Sezione: **DPA con fornitori terzi** — se si usa SMTP esterno (Brevo, Gmail), firmare un Data Processing Agreement con il fornitore
-- [ ] Sezione: **Registro dei trattamenti (Art. 30)** — cosa deve contenere, template semplificato (Excel), quando è obbligatorio
-- [ ] Ogni sezione ha: descrizione dell'azione, responsabile suggerito, risorse/link utili, checkbox di stato
-- [ ] Riferimento al documento aggiunto in `README.md` (indice docs) e in `CLAUDE.md` (lista docs)
-- [ ] All tests pass (nessun test necessario, solo documentazione)
+- [x] File `docs/gdpr-compliance-checklist.md` creato con 6 sezioni complete
+- [x] Sezione: **Testo legale Privacy Policy e ToS** — cosa deve contenere (Art. 13-14), suggerimento di usare generatori (es. iubenda.com) o consultare un legale, dove sostituire il placeholder nel codice, nota su `ConsentVersion` per re-accettazione
+- [x] Sezione: **Contatto privacy** — decidere un'email dedicata (es. `privacy@dominio.com`), indicarla nella privacy policy, menzione DPO (Art. 37)
+- [x] Sezione: **DPA con fornitori terzi** — se si usa SMTP esterno (Brevo, Gmail), firmare un Data Processing Agreement con il fornitore, link DPA di Brevo, Google e Cloudflare
+- [x] Sezione: **Registro dei trattamenti (Art. 30)** — cosa deve contenere, template semplificato con esempi concreti basati sulle funzionalità implementate, quando è obbligatorio
+- [x] Ogni sezione ha: descrizione dell'azione, responsabile suggerito, risorse/link utili, checkbox di stato
+- [x] Riferimento al documento aggiunto in `README.md` (indice docs) e in `CLAUDE.md` (lista docs)
+- [x] All tests pass (nessun test necessario, solo documentazione)
+
+**Implementation Notes:**
+- Documento strutturato con 6 sezioni numerate, ognuna con descrizione azione, responsabile suggerito, risorse/link utili e checkbox di stato
+- Link DPA dei fornitori (Brevo, Google, Cloudflare) inclusi per rendere il documento immediatamente actionable
+- Tabella registro trattamenti (Art. 30) con esempi concreti basati sulle funzionalità implementate (periodi di retention, tipi di dati, misure di sicurezza)
+- Sezione 6 (riepilogo tecnico) mappa ogni funzionalità GDPR al relativo articolo e riferimento tecnico nel codice
+- Nota su `ConsentVersion` in sezione 1 collega la modifica del testo legale al meccanismo tecnico di re-accettazione (T-12)
