@@ -9,18 +9,18 @@
 
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Visualizzare i piani disponibili | T-07, T-14 | ⏳ Not Started |
-| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | ⏳ Not Started |
-| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | ⏳ Not Started |
+| US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (domain entities done) |
+| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (domain entities done) |
+| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (domain entities done) |
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ⏳ Not Started |
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | ⏳ Not Started |
 | US-006 | Trial period | T-08, T-15 | ⏳ Not Started |
-| US-007 | Admin — CRUD piani | T-10, T-17 | ⏳ Not Started |
+| US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (domain entities done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
 | US-009 | Webhook processing | T-06 | ⏳ Not Started |
 | US-010 | Subscription guard su endpoint | T-12 | ⏳ Not Started |
 | US-011 | Feature gating frontend | T-13 | ⏳ Not Started |
-| US-012 | Richiesta fattura manuale | T-19, T-20 | ⏳ Not Started |
+| US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
 
 ---
 
@@ -62,7 +62,7 @@ Create the module toggle and Stripe configuration infrastructure:
 
 **Stories:** US-001, US-002, US-003, US-007, US-012 (RF-1, RF-2, RF-9)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Create the domain entities in `Seed.Domain/Entities/`:
@@ -75,11 +75,18 @@ Create the domain entities in `Seed.Domain/Entities/`:
 6. Add navigation property `ICollection<UserSubscription> Subscriptions` to `ApplicationUser`.
 
 **Definition of Done:**
-- [ ] All entities created with proper types and nullable annotations
-- [ ] Enums created for Status fields
-- [ ] Navigation properties set correctly
-- [ ] Solution builds successfully
-- [ ] Unit tests for any domain validation logic
+- [x] All entities created with proper types and nullable annotations
+- [x] Enums created for Status fields (PlanStatus, SubscriptionStatus, CustomerType, InvoiceRequestStatus, BillingInterval)
+- [x] Navigation properties set correctly (bidirectional: Plan↔Feature, Plan↔Subscription, User↔Subscription, User↔InvoiceRequest)
+- [x] Solution builds successfully
+- [x] No unit tests needed — entities are pure POCOs with no domain validation logic
+
+**Implementation Notes:**
+- Created 5 enums in new `Seed.Domain/Enums/` namespace: PlanStatus, SubscriptionStatus, CustomerType, InvoiceRequestStatus, BillingInterval
+- Created 4 entities: SubscriptionPlan, PlanFeature, UserSubscription, InvoiceRequest — all following existing POCO conventions
+- Added `Subscriptions` and `InvoiceRequests` navigation properties to ApplicationUser
+- Navigation properties to parent entities initialized with `= null!` (EF Core recommended pattern)
+- Enum defaults set to sensible values (PlanStatus.Active, SubscriptionStatus.Active, InvoiceRequestStatus.Requested)
 
 ---
 
