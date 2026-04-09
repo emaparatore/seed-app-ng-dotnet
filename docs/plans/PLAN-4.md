@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-2 — GDPR & Privacy Compliance
 
 **Requirements:** `docs/requirements/FEAT-2.md`
-**Status:** Not Started
+**Status:** Done
 **Created:** 2026-04-09
 **Last Updated:** 2026-04-09
 
@@ -22,7 +22,7 @@
 | US-002 | Pagina Terms of Service | T-01, T-02 | ✅ Done |
 | US-003 | Consenso alla registrazione | T-03, T-04, T-05 | ✅ Done |
 | US-004 | Export dati personali | T-08, T-09 | ✅ Done |
-| US-005 | Hard delete account | T-06, T-07 | ⏳ Not Started |
+| US-005 | Hard delete account | T-06, T-07 | ✅ Done |
 | US-006 | Purge automatico utenti soft-deleted | T-10, T-11 | ✅ Done |
 | US-007 | Cleanup refresh token scaduti | T-10, T-11 | ✅ Done |
 | US-008 | Retention e cleanup audit log | T-10, T-11 | ✅ Done |
@@ -168,21 +168,21 @@ Aggiungere checkbox di consenso al form di registrazione (`register.ts` / `regis
 
 **Stories:** US-005
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 
 **What to do:**
 Modificare `DeleteAccountCommandHandler` per eseguire hard delete anziché soft delete. Il flusso diventa: verificare password → anonimizzare audit log dell'utente (set `UserId = null`, rimuovere PII dal campo `Details`) → eliminare refresh token → eliminare il record utente dal DB (via `UserManager.DeleteAsync`). Creare un servizio `IUserPurgeService` in Application con interfaccia, implementazione in Infrastructure, per riutilizzare la logica in US-006.
 
 **Definition of Done:**
-- [ ] Interfaccia `IUserPurgeService` in `Application/Common/Interfaces/` con metodo `PurgeUserAsync(Guid userId)`
-- [ ] Implementazione `UserPurgeService` in `Infrastructure/Services/` che: anonimizza audit log, elimina refresh token, elimina utente
-- [ ] `DeleteAccountCommandHandler` usa `IUserPurgeService` per il hard delete
-- [ ] Registrazione del servizio in DI
-- [ ] Audit log di cancellazione scritto prima del purge (con dati anonimizzati)
-- [ ] Unit test: purge anonimizza audit log
-- [ ] Unit test: purge elimina refresh token
-- [ ] Integration test: hard delete rimuove utente dal DB
-- [ ] All tests pass
+- [x] Interfaccia `IUserPurgeService` in `Application/Common/Interfaces/` con metodo `PurgeUserAsync(Guid userId)`
+- [x] Implementazione `UserPurgeService` in `Infrastructure/Services/` che: anonimizza audit log, elimina refresh token, elimina utente
+- [x] `DeleteAccountCommandHandler` usa `IUserPurgeService` per il hard delete
+- [x] Registrazione del servizio in DI
+- [x] Audit log di cancellazione scritto prima del purge (con dati anonimizzati)
+- [x] Unit test: purge anonimizza audit log
+- [x] Unit test: purge elimina refresh token
+- [x] Integration test: hard delete rimuove utente dal DB
+- [x] All tests pass
 
 ---
 
@@ -190,16 +190,16 @@ Modificare `DeleteAccountCommandHandler` per eseguire hard delete anziché soft 
 
 **Stories:** US-005
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-06
 
 **What to do:**
 Aggiornare il dialog di conferma cancellazione nella pagina profilo per informare l'utente che la cancellazione è definitiva e irreversibile. Aggiungere testo esplicativo che i dati verranno eliminati permanentemente.
 
 **Definition of Done:**
-- [ ] Testo dialog aggiornato: menzione esplicita che la cancellazione è permanente e i dati saranno eliminati
-- [ ] Nessuna modifica funzionale necessaria (il dialog già raccoglie la password)
-- [ ] All tests pass
+- [x] Testo dialog aggiornato: menzione esplicita che la cancellazione è permanente e i dati saranno eliminati
+- [x] Nessuna modifica funzionale necessaria (il dialog già raccoglie la password)
+- [x] All tests pass
 
 ---
 
