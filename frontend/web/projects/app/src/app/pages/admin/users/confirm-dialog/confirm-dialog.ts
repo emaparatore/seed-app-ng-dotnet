@@ -27,6 +27,14 @@ export interface ConfirmDialogData {
       margin: 0;
       color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
     }
+
+    mat-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0.5rem 1.5rem 1rem;
+      gap: 8px;
+    }
   `,
 })
 export class ConfirmDialog {
