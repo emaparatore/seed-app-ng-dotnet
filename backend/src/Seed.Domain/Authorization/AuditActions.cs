@@ -36,4 +36,5 @@ public static class AuditActions
     public const string SubscriptionPaymentFailed = "SubscriptionPaymentFailed";
     public const string WebhookReceived = "WebhookReceived";
     public const string WebhookVerificationFailed = "WebhookVerificationFailed";
+    public const string CheckoutSessionCreated = "CheckoutSessionCreated";
 }

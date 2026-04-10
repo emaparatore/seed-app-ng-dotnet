@@ -10,11 +10,11 @@
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
 | US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (backend done) |
-| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (domain entities done) |
+| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (backend done) |
 | US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (domain entities done) |
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ⏳ Not Started |
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | ⏳ Not Started |
-| US-006 | Trial period | T-08, T-15 | ⏳ Not Started |
+| US-006 | Trial period | T-08, T-15 | 🔄 In Progress (backend done) |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (domain entities done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
 | US-009 | Webhook processing | T-06 | ✅ Done |
@@ -286,7 +286,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-002, US-006 (RF-3, RF-8)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-04, T-05, T-07
 
 **What to do:**
@@ -302,14 +302,21 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Add audit log entry.
 
 **Definition of Done:**
-- [ ] Command + Handler + Validator created
-- [ ] Stripe customer creation for first-time users
-- [ ] Correct price ID selected based on billing interval
-- [ ] Trial period included when plan has TrialDays > 0
-- [ ] Returns checkout URL
-- [ ] Audit log entry on checkout session creation
-- [ ] Unit tests for handler (with MockPaymentGateway)
-- [ ] Validator tests
+- [x] Command + Handler + Validator created
+- [x] Stripe customer creation for first-time users (lookup existing StripeCustomerId from last UserSubscription, create new via IPaymentGateway if missing)
+- [x] Correct price ID selected based on billing interval (Monthly → StripePriceIdMonthly, Yearly → StripePriceIdYearly)
+- [x] Trial period included when plan has TrialDays > 0
+- [x] Returns checkout URL via CheckoutSessionResponse DTO
+- [x] Audit log entry on checkout session creation (AuditActions.CheckoutSessionCreated)
+- [x] Unit tests for handler (9 test cases with NSubstitute mocks + InMemoryDatabase)
+- [x] Validator tests (4 test cases)
+
+**Implementation Notes:**
+- BillingController created with `[Authorize]`, primary constructor pattern (ISender), and helper properties (CurrentUserId, IpAddress, UserAgent) matching AdminSettingsController
+- Handler registered manually in DI inside `IsPaymentsModuleEnabled()` block, consistent with GetPlansQueryHandler
+- InMemoryDatabase used for DbContext in handler unit tests; NSubstitute for UserManager and IPaymentGateway to verify call patterns (Received/DidNotReceive)
+- StripeCustomerId lookup follows existing domain model: searches last UserSubscription for the user, creates new Stripe customer only if none found
+- Metadata keys `"userId"` and `"planId"` passed in checkout request for webhook compatibility with StripeWebhookEventHandler
 
 ---
 
