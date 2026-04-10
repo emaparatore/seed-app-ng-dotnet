@@ -9,7 +9,7 @@
 
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (domain entities done) |
+| US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (backend done) |
 | US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (domain entities done) |
 | US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (domain entities done) |
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ⏳ Not Started |
@@ -252,7 +252,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-001 (RF-1)
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-02, T-03
 
 **What to do:**
@@ -266,12 +266,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Controller only registered when payments module is enabled.
 
 **Definition of Done:**
-- [ ] Query + Handler created following existing patterns
-- [ ] DTOs created as sealed records
-- [ ] Controller with AllowAnonymous GET endpoint
-- [ ] Endpoint returns plans with features, sorted correctly
-- [ ] Unit test for handler
-- [ ] Integration test for endpoint
+- [x] Query + Handler created following existing patterns (query in Application, handler in Infrastructure)
+- [x] DTOs created as sealed records (`PlanDto`, `PlanFeatureDto` in `Seed.Application/Billing/Models/`)
+- [x] Controller with AllowAnonymous GET endpoint (`PlansController` at `api/v1.0/plans`)
+- [x] Endpoint returns plans with features, sorted by SortOrder, filtered by Status == Active
+- [x] 4 unit tests for handler (active filter, sort order, features inclusion, empty list)
+- [x] 2 integration tests for endpoint (active plans, empty list)
+
+**Implementation Notes:**
+- Handler placed in `Seed.Infrastructure/Billing/Queries/` instead of `Seed.Application/` because Application does not reference Infrastructure (and thus `ApplicationDbContext`). Query contract and DTOs remain in Application.
+- Handler registered manually in DI (`AddScoped<IRequestHandler<...>>`) inside the `IsPaymentsModuleEnabled()` block, since MediatR only scans the Application assembly.
+- Used LINQ projection (`Select`) instead of Mapster for mapping — simpler for a read-only query with no complex logic.
+- Integration tests reuse `WebhookWebApplicationFactory` which already configures the payments module as enabled.
+- No additional DI or middleware changes needed — controller discovered via standard MVC assembly scan.
 
 ---
 

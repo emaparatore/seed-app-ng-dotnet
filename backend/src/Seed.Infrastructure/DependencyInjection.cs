@@ -2,8 +2,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MediatR;
+using Seed.Application.Billing.Models;
+using Seed.Application.Billing.Queries.GetPlans;
+using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
+using Seed.Infrastructure.Billing.Queries;
 using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Seed.Infrastructure.Services;
@@ -74,6 +79,7 @@ public static class DependencyInjection
 
             services.AddMemoryCache();
             services.AddScoped<IWebhookEventHandler, StripeWebhookEventHandler>();
+            services.AddScoped<IRequestHandler<GetPlansQuery, Result<IReadOnlyList<PlanDto>>>, GetPlansQueryHandler>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
