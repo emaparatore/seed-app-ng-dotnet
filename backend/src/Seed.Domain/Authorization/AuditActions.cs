@@ -27,4 +27,13 @@ public static class AuditActions
     public const string ConfirmationEmailResent = "ConfirmationEmailResent";
     public const string ConsentGiven = "ConsentGiven";
     public const string DataExported = "DataExported";
+
+    // Subscription & Payments
+    public const string SubscriptionCreated = "SubscriptionCreated";
+    public const string SubscriptionUpdated = "SubscriptionUpdated";
+    public const string SubscriptionCanceled = "SubscriptionCanceled";
+    public const string SubscriptionPaymentSucceeded = "SubscriptionPaymentSucceeded";
+    public const string SubscriptionPaymentFailed = "SubscriptionPaymentFailed";
+    public const string WebhookReceived = "WebhookReceived";
+    public const string WebhookVerificationFailed = "WebhookVerificationFailed";
 }

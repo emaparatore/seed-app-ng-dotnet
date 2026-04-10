@@ -71,6 +71,9 @@ public static class DependencyInjection
             {
                 services.AddScoped<IPaymentGateway, StripePaymentGateway>();
             }
+
+            services.AddMemoryCache();
+            services.AddScoped<IWebhookEventHandler, StripeWebhookEventHandler>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

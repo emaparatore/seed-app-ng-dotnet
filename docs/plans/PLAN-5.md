@@ -17,7 +17,7 @@
 | US-006 | Trial period | T-08, T-15 | ⏳ Not Started |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (domain entities done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
-| US-009 | Webhook processing | T-06 | ⏳ Not Started |
+| US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ⏳ Not Started |
 | US-011 | Feature gating frontend | T-13 | ⏳ Not Started |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
@@ -202,7 +202,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-009 (RF-5, RNF-1, RNF-2)
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-02, T-03, T-05
 
 **What to do:**
@@ -227,15 +227,22 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 6. The webhook controller should only be registered when payments module is enabled.
 
 **Definition of Done:**
-- [ ] Webhook endpoint created at `/webhooks/stripe`
-- [ ] Stripe signature validation working
-- [ ] All 6 event types handled correctly
-- [ ] Idempotency implemented (duplicate events ignored)
-- [ ] Events logged
-- [ ] HTTP 200 returned for unknown event types
-- [ ] HTTP 400 returned for invalid signatures
-- [ ] Unit tests for event handler logic (using mock data)
-- [ ] Integration test for webhook endpoint (signature validation, event dispatch)
+- [x] Webhook endpoint created at `POST /webhooks/stripe`
+- [x] Stripe signature validation working via `EventUtility.ConstructEvent()`
+- [x] All 6 event types handled correctly in `StripeWebhookEventHandler`
+- [x] Idempotency implemented via `IMemoryCache` (duplicate events ignored, 24h TTL)
+- [x] Events logged via `IAuditService` (7 audit actions added to `AuditActions.cs`)
+- [x] HTTP 200 returned for unknown event types
+- [x] HTTP 400 returned for invalid signatures
+- [x] 15 unit tests for event handler logic (8 handler + 1 idempotency + 6 MapStripeStatus theory)
+- [x] 2 integration tests for webhook endpoint (valid and invalid signature)
+
+**Implementation Notes:**
+- Used `Stripe.EventTypes` constants instead of `Stripe.Events` (which doesn't exist in Stripe.net v47.4.0)
+- `WebhookWebApplicationFactory` extends `CustomWebApplicationFactory` with payments module enabled and a known webhook secret, avoiding modifications to the shared factory
+- Unit tests use InMemory database provider for `ApplicationDbContext` to test business logic without external dependencies
+- JSON test payloads include `livemode`, `pending_webhooks`, and `request` fields required by `EventUtility.ParseEvent()` in Stripe.net v47
+- `IWebhookEventHandler` interface kept Stripe-agnostic in `Seed.Application`, implementation in `Seed.Infrastructure`
 
 ---
 
