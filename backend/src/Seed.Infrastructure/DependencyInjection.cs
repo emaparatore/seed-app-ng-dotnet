@@ -3,8 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MediatR;
+using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
+using Seed.Application.Billing.Commands.CreatePortalSession;
 using Seed.Application.Billing.Models;
+using Seed.Application.Billing.Queries.GetMySubscription;
 using Seed.Application.Billing.Queries.GetPlans;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
@@ -83,6 +86,9 @@ public static class DependencyInjection
             services.AddScoped<IWebhookEventHandler, StripeWebhookEventHandler>();
             services.AddScoped<IRequestHandler<GetPlansQuery, Result<IReadOnlyList<PlanDto>>>, GetPlansQueryHandler>();
             services.AddScoped<IRequestHandler<CreateCheckoutSessionCommand, Result<CheckoutSessionResponse>>, CreateCheckoutSessionCommandHandler>();
+            services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
+            services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
+            services.AddScoped<IRequestHandler<CancelSubscriptionCommand, Result<bool>>, CancelSubscriptionCommandHandler>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

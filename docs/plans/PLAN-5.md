@@ -11,9 +11,9 @@
 |-------|-------------|-------|--------|
 | US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (backend done) |
 | US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (backend done) |
-| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (domain entities done) |
-| US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ⏳ Not Started |
-| US-005 | Upgrade/downgrade del piano | T-09, T-16 | ⏳ Not Started |
+| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
+| US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
+| US-005 | Upgrade/downgrade del piano | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-006 | Trial period | T-08, T-15 | 🔄 In Progress (backend done) |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (domain entities done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
@@ -324,7 +324,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-003, US-004, US-005 (RF-4)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-06, T-08
 
 **What to do:**
@@ -347,13 +347,20 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 5. Create DTOs: `UserSubscriptionDto`, `PortalSessionDto`.
 
 **Definition of Done:**
-- [ ] GetMySubscription query returns subscription with plan details
-- [ ] CreatePortalSession returns valid portal URL
-- [ ] CancelSubscription sets cancel_at_period_end
-- [ ] All endpoints created and auth-protected
-- [ ] Audit log for cancel action
-- [ ] Unit tests for all handlers
-- [ ] Integration tests for endpoints
+- [x] GetMySubscription query returns subscription with plan details
+- [x] CreatePortalSession returns valid portal URL
+- [x] CancelSubscription sets cancel_at_period_end via `IPaymentGateway.CancelSubscriptionAsync` and sets `CanceledAt` locally
+- [x] All endpoints created and auth-protected
+- [x] Audit log for cancel action
+- [x] Unit tests for all handlers (13 test cases total across 3 handler test files)
+- [x] Integration tests for endpoints (4 integration tests in BillingControllerTests)
+
+**Implementation Notes:**
+- `GetMySubscription` returns `null` (not failure) when no subscription exists — "no data ≠ error" pattern, consistent with clean API semantics
+- `CancelSubscription` sets both `CanceledAt` and `UpdatedAt` locally after calling `IPaymentGateway.CancelSubscriptionAsync` (which sets cancel_at_period_end on Stripe); webhook will later sync final status
+- `CreatePortalSession` intentionally has no audit logging — it's a redirect to Stripe with no local state mutation
+- All 3 new handlers registered manually via `AddScoped<IRequestHandler<...>>` inside the `IsPaymentsModuleEnabled()` block in `DependencyInjection.cs`
+- Unit tests use InMemory DB for `ApplicationDbContext` and NSubstitute for `IPaymentGateway`/`IAuditService`, following the pattern established in T-08
 
 ---
 
