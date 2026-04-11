@@ -1057,7 +1057,7 @@ una decisione gia' presa, o una dipendenza, l'exec la violera' silenziosamente.
 
 Procedi in questo ordine:
 
-1. Leggi $PLAN per intero e individua il task pending.
+1. Individua il task pending dal file $PLAN.
 
 2. Identifica il contesto ereditato:
    a. I task elencati in 'Depends on:' del task corrente.
