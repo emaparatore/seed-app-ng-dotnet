@@ -15,7 +15,7 @@
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-006 | Trial period | T-08, T-15 | 🔄 In Progress (backend done) |
-| US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (domain entities done) |
+| US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ⏳ Not Started |
@@ -368,7 +368,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-007 (RF-7)
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-02, T-03, T-05
 
 **What to do:**
@@ -389,15 +389,22 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 5. Add audit log actions for plan CRUD.
 
 **Definition of Done:**
-- [ ] Create, Update, Archive commands with handlers and validators
-- [ ] Admin list query with subscriber counts
-- [ ] Admin detail query
-- [ ] Stripe sync on create/update
-- [ ] Plans permissions added and registered in seeder
-- [ ] Audit log for all mutations
-- [ ] Controller with proper permission attributes
-- [ ] Unit tests for all handlers
-- [ ] Validator tests
+- [x] Create, Update, Archive commands with handlers and validators
+- [x] Admin list query with subscriber counts
+- [x] Admin detail query
+- [x] Stripe sync on create/update
+- [x] Plans permissions added and auto-registered via `RolesAndPermissionsSeeder` (reads `Permissions.GetAll()`)
+- [x] Audit log for all mutations (PlanCreated, PlanUpdated, PlanArchived)
+- [x] Controller with proper permission attributes
+- [x] Unit tests for all handlers
+- [x] Validator tests
+
+**Implementation Notes:**
+- `AdminPlanDetailDto` not created separately — `AdminPlanDto` reused for both list and detail endpoints, as it already contains full details including Stripe IDs and features
+- `UpdatePlan` manages features via Key matching: features with the same Key are updated, missing ones removed, new ones added
+- `ArchivePlanCommand` does not call `IPaymentGateway` — archiving is a DB-only status change, no Stripe sync needed
+- Plans permissions (Read/Create/Update) are seeded automatically because `RolesAndPermissionsSeeder` reads `Permissions.GetAll()` — no manual seeder change required
+- All 5 new handlers registered manually via `AddScoped<IRequestHandler<...>>` inside the `IsPaymentsModuleEnabled()` block in `DependencyInjection.cs`, consistent with prior billing tasks
 
 ---
 

@@ -42,6 +42,13 @@ public static class Permissions
         public const string Read = "SystemHealth.Read";
     }
 
+    public static class Plans
+    {
+        public const string Read = "Plans.Read";
+        public const string Create = "Plans.Create";
+        public const string Update = "Plans.Update";
+    }
+
     private static readonly string[] All =
     [
         Users.Read, Users.Create, Users.Update, Users.Delete, Users.ToggleStatus, Users.AssignRoles,
@@ -49,7 +56,8 @@ public static class Permissions
         AuditLog.Read, AuditLog.Export,
         Settings.Read, Settings.Manage,
         Dashboard.ViewStats,
-        SystemHealth.Read
+        SystemHealth.Read,
+        Plans.Read, Plans.Create, Plans.Update
     ];
 
     public static IReadOnlyList<string> GetAll() => All;

@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MediatR;
+using Seed.Application.Admin.Plans.Commands.ArchivePlan;
+using Seed.Application.Admin.Plans.Commands.CreatePlan;
+using Seed.Application.Admin.Plans.Commands.UpdatePlan;
+using Seed.Application.Admin.Plans.Models;
+using Seed.Application.Admin.Plans.Queries.GetAdminPlanById;
+using Seed.Application.Admin.Plans.Queries.GetAdminPlans;
 using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.CreatePortalSession;
@@ -89,6 +95,12 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
             services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
             services.AddScoped<IRequestHandler<CancelSubscriptionCommand, Result<bool>>, CancelSubscriptionCommandHandler>();
+
+            services.AddScoped<IRequestHandler<CreatePlanCommand, Result<Guid>>, CreatePlanCommandHandler>();
+            services.AddScoped<IRequestHandler<UpdatePlanCommand, Result<bool>>, UpdatePlanCommandHandler>();
+            services.AddScoped<IRequestHandler<ArchivePlanCommand, Result<bool>>, ArchivePlanCommandHandler>();
+            services.AddScoped<IRequestHandler<GetAdminPlansQuery, Result<IReadOnlyList<AdminPlanDto>>>, GetAdminPlansQueryHandler>();
+            services.AddScoped<IRequestHandler<GetAdminPlanByIdQuery, Result<AdminPlanDto>>, GetAdminPlanByIdQueryHandler>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
