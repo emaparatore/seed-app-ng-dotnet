@@ -298,11 +298,14 @@ case "$CLAUDE_EFFORT" in
 esac
 
 CLAUDE_FLAGS=(--verbose --model "$CLAUDE_MODEL_ID" --effort "$CLAUDE_EFFORT")
-# Plan: sonnet+medium — il piano principale ha gia' path, firme, pattern espliciti;
-# la fase plan e' trascrizione contestualizzata, non design. Medium e' sufficiente.
-# Fix: sonnet+high — gli errori sono gia' in input ma il reasoning migliore
-# riduce i retry a catena, che costano piu' del delta medium→high.
-PLAN_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort medium)
+# Plan: stesso modello/effort scelti dall'utente. Il mini-plan deve essere
+# self-contained (l'exec NON rilegge il main plan), quindi la qualita' di
+# estrazione e' il vero punto critico del flusso. Se l'utente ha scelto opus
+# e' perche' vuole quella qualita'; applicarla al plan e' dove conta di piu'.
+# Fix: sonnet+high — fase remediale con errori gia' in input, non serve il
+# modello premium ma serve reasoning decente. Sonnet-high lo garantisce
+# anche quando l'utente ha scelto haiku per exec.
+PLAN_FLAGS=("${CLAUDE_FLAGS[@]}")
 FIX_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort high)
 
 # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
@@ -643,6 +646,28 @@ summarize_claude_phase() {
   echo "" >> "$CLAUDE_LOG_SUMMARY"
 }
 
+# --- Estrazione smart di output lunghi: head (contesto iniziale) + tail (errori finali) ---
+# Per output di build/test, il contesto iniziale (comando lanciato, primi
+# errori) e quello finale (summary + ultimi errori) sono entrambi utili.
+# Un tail puro perde i primi errori quando l'output e' molto lungo.
+# Se l'output e' abbastanza corto, lo ritorna integralmente.
+# Uso: smart_truncate <content> <head_lines> <tail_lines>
+smart_truncate() {
+  local content="$1"
+  local head_n="$2"
+  local tail_n="$3"
+  local total
+  total=$(printf '%s\n' "$content" | wc -l)
+
+  if [ "$total" -le $((head_n + tail_n + 2)) ]; then
+    printf '%s\n' "$content"
+  else
+    printf '%s\n' "$content" | head -"$head_n"
+    printf '\n... [%d righe omesse dal centro] ...\n\n' $((total - head_n - tail_n))
+    printf '%s\n' "$content" | tail -"$tail_n"
+  fi
+}
+
 # --- Verifica indipendente: build + test ---
 # Imposta VERIFY_ERRORS (vuoto = tutto ok)
 run_verify() {
@@ -665,7 +690,7 @@ run_verify() {
     BUILD_OUT=$(cd backend && dotnet build Seed.slnx 2>&1)
     if [ $? -ne 0 ]; then
       VERIFY_ERRORS+="=== DOTNET BUILD FAILED ===
-$(echo "$BUILD_OUT" | tail -30)
+$(smart_truncate "$BUILD_OUT" 10 50)
 
 "
       log "FAIL: dotnet build"
@@ -676,7 +701,7 @@ $(echo "$BUILD_OUT" | tail -30)
       TEST_OUT=$(cd backend && dotnet test Seed.slnx --no-build 2>&1)
       if [ $? -ne 0 ]; then
         VERIFY_ERRORS+="=== DOTNET TEST FAILED ===
-$(echo "$TEST_OUT" | tail -40)
+$(smart_truncate "$TEST_OUT" 20 130)
 
 "
         log "FAIL: dotnet test"
@@ -692,12 +717,24 @@ $(echo "$TEST_OUT" | tail -40)
     FE_BUILD_OUT=$(cd frontend/web && npm run build 2>&1)
     if [ $? -ne 0 ]; then
       VERIFY_ERRORS+="=== FRONTEND BUILD FAILED ===
-$(echo "$FE_BUILD_OUT" | tail -30)
+$(smart_truncate "$FE_BUILD_OUT" 10 50)
 
 "
       log "FAIL: frontend build"
     else
       log "OK: frontend build"
+      log "Verifica frontend: ng test (vitest run)..."
+      local FE_TEST_OUT
+      FE_TEST_OUT=$(cd frontend/web && npm test -- --watch=false 2>&1)
+      if [ $? -ne 0 ]; then
+        VERIFY_ERRORS+="=== FRONTEND TEST FAILED ===
+$(smart_truncate "$FE_TEST_OUT" 20 130)
+
+"
+        log "FAIL: frontend test"
+      else
+        log "OK: frontend test"
+      fi
     fi
   fi
 }
@@ -707,11 +744,13 @@ run_post_success() {
   local task_i="$1"
   local task_file="$2"
 
-  log "=== Task $task_i - Update piano (haiku) ==="
+  log "=== Task $task_i - Update piano (sonnet) ==="
 
-  # Update piano usa haiku: e' un task meccanico (flip checkbox + scrivere
-  # implementation notes dal Risultato gia' presente nel mini-plan). Opus
-  # qui e' spreco puro — costava ~$0.25/task contro ~$0.02 con haiku.
+  # Update piano usa sonnet: la parte meccanica (flip checkbox) la farebbe
+  # anche haiku, ma la sintesi delle Implementation Notes dal Risultato
+  # beneficia di un modello piu' capace. Il delta di costo e' trascurabile
+  # (~$0.01-0.04/task in piu') rispetto alla qualita' guadagnata. Opus qui
+  # resta comunque spreco puro.
   local update_temp=$(mktemp)
   local update_prompt="Task verificato con successo (build + test ok).
 Aggiorna il task in $PLAN leggendo anche il mini-plan $TASKS_DIR/$task_file (sezione '## Risultato').
@@ -727,12 +766,12 @@ Modifiche da fare al task nel piano:
 NON usare git add/commit/push. Quando hai finito rispondi: UPDATED"
 
   if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$update_prompt" --verbose --model claude-haiku-4-5-20251001 --effort low \
+    claude -p "$update_prompt" --verbose --model claude-sonnet-4-6 --effort low \
       --output-format stream-json --max-turns 15 \
       --dangerously-skip-permissions \
       --disallowedTools "Task" "Agent" "WebSearch" "WebFetch" "TodoWrite" > "$update_temp" 2>> "$LOG_FILE"
   else
-    claude -p "$update_prompt" --verbose --model claude-haiku-4-5-20251001 --effort low \
+    claude -p "$update_prompt" --verbose --model claude-sonnet-4-6 --effort low \
       --output-format stream-json --max-turns 15 \
       --allowedTools "Read" "Write" "Edit" > "$update_temp" 2>> "$LOG_FILE"
   fi
@@ -968,7 +1007,7 @@ echo "========================================="
 echo "  Piano:     $(basename "$PLAN")"
 echo "  Modalita': $MODE"
 echo "  Branch:    $(git branch --show-current)"
-echo "  Modello:   plan=sonnet(medium)  fix=sonnet(high)  exec=$CLAUDE_MODEL($CLAUDE_EFFORT)"
+echo "  Modello:   plan=$CLAUDE_MODEL($CLAUDE_EFFORT)  exec=$CLAUDE_MODEL($CLAUDE_EFFORT)  fix=sonnet(high)"
 echo "-----------------------------------------"
 echo "  Log:       $LOG_FILE"
 echo "  Claude:    $CLAUDE_LOG_JSONL"
@@ -981,7 +1020,7 @@ if [ "$YOLO_MODE" = "true" ]; then
   log "  YOLO MODE - Permessi totali (sandbox)"
   log "=========================================="
 fi
-log "Avvio esecuzione - Modalita': $MODE - Exec: $CLAUDE_MODEL($CLAUDE_EFFORT) Plan: sonnet(medium) Fix: sonnet(high)"
+log "Avvio esecuzione - Modalita': $MODE - Plan/Exec: $CLAUDE_MODEL($CLAUDE_EFFORT) Fix: sonnet(high)"
 log "Piano: $PLAN"
 log "Branch: $CURRENT_BRANCH"
 
@@ -991,21 +1030,66 @@ for ((i=1; i<=MAX_TASKS; i++)); do
   OUTPUT=$(build_plan_cmd "Trova il primo task pending in $PLAN.
 Se non ce ne sono, rispondi SOLO: ALL_COMPLETE
 
-Esplora il codice rilevante e crea un mini-plan in
-$TASKS_DIR/task-{numero}-{slug}.md con:
+IMPORTANTE: il mini-plan che produci deve essere COMPLETAMENTE self-contained.
+L'exec NON rileggera' $PLAN ne' altri file del piano. Se ometti una convenzione,
+una decisione gia' presa, o una dipendenza, l'exec la violera' silenziosamente.
+
+Procedi in questo ordine:
+
+1. Leggi $PLAN per intero e individua il task pending.
+
+2. Identifica il contesto ereditato:
+   a. I task elencati in 'Depends on:' del task corrente.
+   b. I task con stato Done nella stessa Phase del task corrente.
+   c. I task Done (ovunque nel piano) che toccano gli stessi file, namespace,
+      entity o servizi del task corrente.
+   d. ADR, requirement (FEAT-X.md) o altri doc citati nel task.
+
+3. Per ciascun task identificato al punto 2, estrai la sezione
+   '**Implementation Notes:**' VERBATIM (non riassumere) e le righe della
+   'Definition of Done' che stabiliscono convenzioni riutilizzabili.
+
+4. Estrai dalla tabella 'Story Coverage' di $PLAN la/le righe relative alle
+   storie del task corrente.
+
+5. Esplora il codice rilevante con Read/Grep/Glob per verificare lo stato attuale.
+
+6. Crea il mini-plan in $TASKS_DIR/task-{numero}-{slug}.md con questa struttura
+   ESATTA (tutte le sezioni obbligatorie):
+
    # Task {numero}: {titolo}
-   ## Contesto
-   - Stato attuale del codice rilevante
-   - Dipendenze e vincoli
+
+   ## Contesto ereditato dal piano
+   ### Storie coperte
+   {righe della Story Coverage estratte al punto 4}
+   ### Dipendenze (da 'Depends on:')
+   {per ogni dipendenza: 'T-XX: <titolo> — <Implementation Notes verbatim>'}
+   ### Convenzioni da task Done correlati
+   {Implementation Notes verbatim dei task identificati al punto 2c, raggruppate
+    per task di origine. Max 8 bullet totali, scegli le piu' rilevanti.}
+   ### Riferimenti
+   {ADR, requirement, doc citati — path + sezione rilevante}
+
+   ## Stato attuale del codice
+   - File esistenti rilevanti (path esatti) e loro ruolo
+   - Pattern gia' in uso che il task deve seguire
+
    ## Piano di esecuzione
    - File da creare/modificare (path esatti)
    - Approccio tecnico step-by-step
-   - Test da scrivere/verificare
-   ## Criteri di completamento
-   - Cosa deve funzionare per considerare il task done
+   - Test da scrivere/verificare (path + nomi metodi)
 
-Il mini plan deve essere breve, azionabile e self-contained, chi lo
-esegue non rileggera' $PLAN. 
+   ## Criteri di completamento
+   - Cosa deve funzionare per considerare il task done (Definition of Done
+     del task corrente, copiata verbatim da $PLAN)
+
+Regole:
+- NON riassumere le Implementation Notes: copiale verbatim. Se sono troppe,
+  scegli le piu' rilevanti ma non parafrasare.
+- Se una sezione del contesto ereditato e' vuota (es. nessuna dipendenza),
+  scrivi esplicitamente 'Nessuna' — non omettere la sezione.
+- Il mini-plan puo' essere lungo: meglio ridondante che incompleto.
+
 Rispondi SOLO: PLANNED:{filename}" "Task $i - Plan")
 
   echo "$OUTPUT" >> "$LOG_FILE"
