@@ -882,7 +882,7 @@ run_claude_cmd() {
   # Cap turni per fase
   local max_turns
   case "$phase" in
-    plan) max_turns=20 ;;
+    plan) max_turns=35 ;;
     exec) max_turns=40 ;;
     fix)  max_turns=25 ;;
     *)    max_turns=40 ;;
@@ -946,6 +946,27 @@ run_claude_cmd() {
         continue  # riprova
       else
         echo "RATE_LIMITED"
+        return
+      fi
+    fi
+
+    # Se max-turns raggiunto durante plan: riprova da capo una volta sola,
+    # chiedendo al modello di essere piu' conciso nell'esplorazione.
+    # Non e' una continuazione ma un fresh restart con nota aggiuntiva.
+    if [[ "$phase" == "plan" ]] && check_max_turns "$temp"; then
+      rm -f "$temp"
+      if [ "$continuation" -lt 1 ]; then
+        ((continuation++))
+        log "Max-turns raggiunto durante planning — riprovo (tentativo $continuation/1) con nota di concisione"
+        current_prompt="$prompt
+
+NOTA: un'invocazione precedente ha esaurito i turni esplorando troppi file.
+Questa volta: leggi solo i file strettamente necessari per il task corrente,
+evita letture ridondanti del piano, e scrivi il mini-plan appena hai abbastanza contesto."
+        continue
+      else
+        log "Max-turns esaurito nel planning anche al secondo tentativo — skip task"
+        echo ""
         return
       fi
     fi
