@@ -298,12 +298,6 @@ case "$CLAUDE_EFFORT" in
 esac
 
 CLAUDE_FLAGS=(--verbose --model "$CLAUDE_MODEL_ID" --effort "$CLAUDE_EFFORT")
-# Plan: sonnet+medium — il piano principale ha gia' path, firme, pattern espliciti;
-# la fase plan e' trascrizione contestualizzata, non design. Medium e' sufficiente.
-# Fix: sonnet+high — gli errori sono gia' in input ma il reasoning migliore
-# riduce i retry a catena, che costano piu' del delta medium→high.
-PLAN_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort medium)
-FIX_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort high)
 
 # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
 case "$MODE" in
@@ -394,14 +388,6 @@ check_rate_limit() {
   fi
 
   return 1
-}
-
-# Controlla se l'output di Claude indica max-turns raggiunto.
-# Il JSONL result line ha subtype "max_turns" quando claude esaurisce i turni.
-# Ritorna 0 se max-turns, 1 se ok.
-check_max_turns() {
-  local jsonl_file="$1"
-  grep '"type":"result"' "$jsonl_file" | tail -1 | grep -q '"subtype":"max_turns"'
 }
 
 # Calcola i secondi di attesa fino a un orario UTC (es. "3pm", "11am").
@@ -707,52 +693,34 @@ run_post_success() {
   local task_i="$1"
   local task_file="$2"
 
-  log "=== Task $task_i - Update piano (haiku) ==="
+  log "=== Task $task_i - Update piano ==="
+  OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE UPDATE.
+Il task e' stato verificato con successo (build e test passano).
 
-  # Update piano usa haiku: e' un task meccanico (flip checkbox + scrivere
-  # implementation notes dal Risultato gia' presente nel mini-plan). Opus
-  # qui e' spreco puro — costava ~$0.25/task contro ~$0.02 con haiku.
-  local update_temp=$(mktemp)
-  local update_prompt="Task verificato con successo (build + test ok).
-Aggiorna il task in $PLAN leggendo anche il mini-plan $TASKS_DIR/$task_file (sezione '## Risultato').
+ISTRUZIONI:
+1. Leggi il piano $PLAN
+2. Leggi il mini-plan $TASKS_DIR/$task_file (contiene il Risultato con i dettagli di cosa e' stato fatto)
+3. Aggiorna il task corrispondente nel piano $PLAN:
+   a. Se il campo Status del task e' '[ ] Not Started' o simile, cambialo in '[x] Done'
+   b. Spunta tutte le checkbox nella Definition of Done: cambia '- [ ]' in '- [x]'. Se il testo non corrisponde esattamente a quanto implementato, aggiorna il testo per riflettere cosa e' stato effettivamente fatto.
+   c. Aggiungi una sezione **Implementation Notes:** dopo la Definition of Done con un riassunto conciso (3-5 bullet) delle scelte implementative prese dal Risultato nel mini-plan
+   d. Aggiorna la tabella Story Coverage se le storie coperte da questo task cambiano stato (es. se il backend e' done ma il frontend e' pending, metti 'In Progress (backend done)')
+4. Salva il file modificato
+5. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
 
-Modifiche da fare al task nel piano:
-- cambia stato '[ ] Not Started' → '[x] Done' (se presente)
-- spunta tutte le checkbox della Definition of Done: '- [ ]' → '- [x]'.
-  Se un bullet non corrisponde a cosa e' stato realmente fatto, aggiorna il testo.
-- aggiungi dopo la Definition of Done una sezione '**Implementation Notes:**'
-  con 3-5 bullet dal Risultato del mini-plan
-- aggiorna la tabella Story Coverage se lo stato delle storie copre e' cambiato
+Quando hai finito rispondi: UPDATED" "Task $task_i - Update")
+  echo "$OUTPUT" >> "$LOG_FILE"
 
-NON usare git add/commit/push. Quando hai finito rispondi: UPDATED"
-
-  if [ "$YOLO_MODE" = "true" ]; then
-    claude -p "$update_prompt" --verbose --model claude-haiku-4-5-20251001 --effort low \
-      --output-format stream-json --max-turns 15 \
-      --dangerously-skip-permissions \
-      --disallowedTools "Task" "Agent" "WebSearch" "WebFetch" "TodoWrite" > "$update_temp" 2>> "$LOG_FILE"
-  else
-    claude -p "$update_prompt" --verbose --model claude-haiku-4-5-20251001 --effort low \
-      --output-format stream-json --max-turns 15 \
-      --allowedTools "Read" "Write" "Edit" > "$update_temp" 2>> "$LOG_FILE"
-  fi
-
-  cat "$update_temp" >> "$CLAUDE_LOG_JSONL"
-  summarize_claude_phase "$update_temp" "Task $task_i - Update"
-  local UPDATE_RESULT
-  UPDATE_RESULT=$(extract_claude_result "$update_temp")
-
-  if check_rate_limit "$update_temp" "$UPDATE_RESULT"; then
-    log "RATE LIMIT durante update piano. Uscita."
-    rm -f "$update_temp"
+  # Rate limit durante update → ferma lo script
+  if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
+    log "Esecuzione interrotta per rate limit durante update stato task."
     exit 1
   fi
-  rm -f "$update_temp"
 
-  if echo "$UPDATE_RESULT" | grep -qiw "UPDATED"; then
+  if echo "$OUTPUT" | grep -qiw "UPDATED"; then
     log "Piano aggiornato"
   else
-    log "ATTENZIONE: aggiornamento piano potrebbe non essere riuscito (output: $(echo "$UPDATE_RESULT" | head -c 100))"
+    log "ATTENZIONE: aggiornamento piano potrebbe non essere riuscito (output: $(echo "$OUTPUT" | head -c 100))"
   fi
 
   COMMIT_MSG=""
@@ -820,64 +788,30 @@ Regole:
 }
 
 # --- Costruzione opzioni Claude ---
-# In YOLO mode: --dangerously-skip-permissions + --disallowedTools per bloccare
-#   sub-agent spawning e strumenti inutili (Task/Agent/WebSearch/TodoWrite).
-#   WebFetch resta abilitato per consultazione mirata di URL dal PLAN.
-# In modalita' normale: whitelist di tool specifici per fase.
-#
-# --max-turns per phase fa da circuit-breaker contro fix-loop costosi:
-#   plan: 20 (esplorazione + scrittura mini-plan)
-#   exec: 40 (implementazione)
-#   fix:  25 (correzione con errori gia' in input, non serve esplorare)
-#
+# In YOLO mode: --dangerously-skip-permissions (nessuna restrizione)
+# In modalita' normale: whitelist di tool specifici per fase
 # Output: stream-json -> JSONL (dettaglio) + summary (leggibile)
 # Ritorna solo il testo risultato per la logica dello script
 #
 # Uso: run_claude_cmd <prompt> <label> <phase>
-#   phase: "plan" | "exec" | "fix"
+#   phase: "plan" (solo lettura) | "exec" (operativa)
 run_claude_cmd() {
   local prompt="$1"
   local label="${2:-claude}"
   local phase="${3:-exec}"
 
-  # Cap turni per fase
-  local max_turns
-  case "$phase" in
-    plan) max_turns=20 ;;
-    exec) max_turns=40 ;;
-    fix)  max_turns=25 ;;
-    *)    max_turns=40 ;;
-  esac
-
-  # Continuazioni per max-turns: solo exec, max 2 (3 invocazioni totali = 120 turni)
-  local max_continuations=2
-  local continuation=0
-  local current_prompt="$prompt"
-
   while true; do
     local temp=$(mktemp)
 
-    # Selezione flags per fase: plan=sonnet+medium, fix=sonnet+high, exec=utente
-    local flags=("${CLAUDE_FLAGS[@]}")
-    [[ "$phase" == "plan" ]] && flags=("${PLAN_FLAGS[@]}")
-    [[ "$phase" == "fix"  ]] && flags=("${FIX_FLAGS[@]}")
-
     if [ "$YOLO_MODE" = "true" ]; then
-      claude -p "$current_prompt" "${flags[@]}" --output-format stream-json \
-        --max-turns "$max_turns" \
-        --dangerously-skip-permissions \
-        --disallowedTools "Task" "Agent" "WebSearch" "TodoWrite" > "$temp" 2>> "$LOG_FILE"
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json --dangerously-skip-permissions > "$temp" 2>> "$LOG_FILE"
     elif [ "$phase" = "plan" ]; then
-      claude -p "$current_prompt" "${flags[@]}" --output-format stream-json \
-        --max-turns "$max_turns" \
-        --allowedTools "Read" "Write" "WebFetch" \
-          "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json \
+        --allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)" > "$temp" 2>> "$LOG_FILE"
     else
-      # exec + fix: stessa whitelist (build/test consentiti per validazione mirata)
-      claude -p "$current_prompt" "${flags[@]}" --output-format stream-json \
-        --max-turns "$max_turns" \
+      claude -p "$prompt" "${CLAUDE_FLAGS[@]}" --output-format stream-json \
         --allowedTools \
-          "Read" "Write" "Edit" "WebFetch" \
+          "Read" "Write" "Edit" \
           "Bash(git*)" \
           "Bash(dotnet*)" \
           "Bash(npm*)" \
@@ -911,46 +845,6 @@ run_claude_cmd() {
       fi
     fi
 
-    # Se max-turns raggiunto durante exec: continua automaticamente fino al limite,
-    # poi chiede all'utente se riprovare da capo o uscire.
-    if [[ "$phase" == "exec" ]] && check_max_turns "$temp"; then
-      rm -f "$temp"
-      if [ "$continuation" -lt "$max_continuations" ]; then
-        ((continuation++))
-        log "Max-turns raggiunto durante exec (continuazione $continuation/$max_continuations)"
-        current_prompt="Stai continuando un'esecuzione interrotta per max-turns (tentativo $continuation/$max_continuations).
-Mini-plan: $TASKS_DIR/$TASK_FILE
-
-Rileggi il mini-plan, controlla i file gia' modificati e completa il task rimanente.
-NON rifare lavoro gia' completato. NON fare git add/commit/push. Rispondi SOLO: DONE"
-        continue
-      else
-        log "Max-turns esaurito dopo $max_continuations continuazioni su task: $TASK_FILE"
-        echo "" > /dev/tty
-        echo "=========================================" > /dev/tty
-        echo "  MAX-TURNS ESAURITO" > /dev/tty
-        echo "  Task: $TASK_FILE" > /dev/tty
-        echo "  Il task non e' stato completato dopo $max_continuations continuazioni." > /dev/tty
-        echo "=========================================" > /dev/tty
-        local choice
-        read -p "  (r) riprova da capo  (q) esci: " choice < /dev/tty
-        echo "" > /dev/tty
-        case "$choice" in
-          r|R)
-            log "Utente: riprova da capo (reset continuazioni)"
-            continuation=0
-            current_prompt="$prompt"
-            continue
-            ;;
-          *)
-            log "Utente: uscita su max-turns esaurito"
-            echo "MAX_TURNS_ABORT"
-            return
-            ;;
-        esac
-      fi
-    fi
-
     rm -f "$temp"
     echo "$result"
     return
@@ -960,7 +854,6 @@ NON rifare lavoro gia' completato. NON fare git add/commit/push. Rispondi SOLO: 
 # Alias per retrocompatibilita' interna
 build_plan_cmd() { run_claude_cmd "$1" "${2:-plan}" "plan"; }
 build_exec_cmd() { run_claude_cmd "$1" "${2:-exec}" "exec"; }
-build_fix_cmd()  { run_claude_cmd "$1" "${2:-fix}"  "fix"; }
 
 # --- Riepilogo configurazione ---
 echo ""
@@ -968,7 +861,8 @@ echo "========================================="
 echo "  Piano:     $(basename "$PLAN")"
 echo "  Modalita': $MODE"
 echo "  Branch:    $(git branch --show-current)"
-echo "  Modello:   plan=sonnet(medium)  fix=sonnet(high)  exec=$CLAUDE_MODEL($CLAUDE_EFFORT)"
+echo "  Modello:   $CLAUDE_MODEL ($CLAUDE_MODEL_ID)"
+echo "  Effort:    $CLAUDE_EFFORT"
 echo "-----------------------------------------"
 echo "  Log:       $LOG_FILE"
 echo "  Claude:    $CLAUDE_LOG_JSONL"
@@ -981,18 +875,19 @@ if [ "$YOLO_MODE" = "true" ]; then
   log "  YOLO MODE - Permessi totali (sandbox)"
   log "=========================================="
 fi
-log "Avvio esecuzione - Modalita': $MODE - Exec: $CLAUDE_MODEL($CLAUDE_EFFORT) Plan: sonnet(medium) Fix: sonnet(high)"
+log "Avvio esecuzione - Modalita': $MODE - Modello: $CLAUDE_MODEL ($CLAUDE_EFFORT)"
 log "Piano: $PLAN"
 log "Branch: $CURRENT_BRANCH"
 
 for ((i=1; i<=MAX_TASKS; i++)); do
   log "=== Task $i - Planning ==="
 
-  OUTPUT=$(build_plan_cmd "Trova il primo task pending in $PLAN.
-Se non ce ne sono, rispondi SOLO: ALL_COMPLETE
-
-Esplora il codice rilevante e crea un mini-plan in
-$TASKS_DIR/task-{numero}-{slug}.md con:
+  OUTPUT=$(build_plan_cmd "Sei in autonomous execution mode - FASE PLAN.
+1. Leggi il piano in $PLAN
+2. Trova il primo task con stato 'pending'
+3. Se non ce ne sono, rispondi SOLO: ALL_COMPLETE
+4. Esplora il codice esistente rilevante
+5. Crea un file ESCLUSIVAMENTE nella directory $TASKS_DIR/ (path assoluto: $(cd "$TASKS_DIR" 2>/dev/null && pwd || echo "$TASKS_DIR")) con nome task-{numero}-{slug}.md contenente:
    # Task {numero}: {titolo}
    ## Contesto
    - Stato attuale del codice rilevante
@@ -1003,10 +898,7 @@ $TASKS_DIR/task-{numero}-{slug}.md con:
    - Test da scrivere/verificare
    ## Criteri di completamento
    - Cosa deve funzionare per considerare il task done
-
-Il mini plan deve essere breve, azionabile e self-contained, chi lo
-esegue non rileggera' $PLAN. 
-Rispondi SOLO: PLANNED:{filename}" "Task $i - Plan")
+6. Rispondi SOLO con: PLANNED:{filename} o ALL_COMPLETE" "Task $i - Plan")
 
   echo "$OUTPUT" >> "$LOG_FILE"
   log "Output plan: $(echo "$OUTPUT" | tail -1)"
@@ -1056,30 +948,36 @@ Rispondi SOLO: PLANNED:{filename}" "Task $i - Plan")
   while [ $RETRY -le $MAX_RETRIES ]; do
     if [ $RETRY -eq 0 ]; then
       # --- Prima esecuzione ---
-      OUTPUT=$(build_exec_cmd "Esegui il mini-plan in $TASKS_DIR/$TASK_FILE.
-
-Disciplina test/build: puoi eseguire build/test puntuali per validare
-un'assunzione specifica, ma NON entrare in loop iterativo — la verifica
-finale (build + test) la fa lo script dopo di te. Se il codice ti sembra
-corretto, fermati e rispondi DONE: se qualcosa non va lo script ti
-ripassera' gli errori in un retry con contesto pulito.
-
-NON fare git add/commit/push (ci pensa lo script).
-
-Al termine aggiungi in fondo al mini-plan una sezione '## Risultato' con
-file modificati, scelte chiave ed eventuali deviazioni dal mini-plan. Rispondi SOLO: DONE" "Task $i - Exec")
+      OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE EXECUTE.
+1. Leggi il mini-plan in $TASKS_DIR/$TASK_FILE
+2. Leggi il piano principale in $PLAN per contesto generale
+3. Esegui esattamente quello descritto nel mini-plan
+4. NON aggiornare lo stato del task nel piano (lo fara' lo script dopo la verifica)
+5. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
+6. Aggiungi in fondo al mini-plan una sezione:
+   ## Risultato
+   - File modificati/creati
+   - Scelte implementative e motivazioni
+   - Eventuali deviazioni dal piano e perche'
+7. Rispondi SOLO: DONE" "Task $i - Exec")
     else
       # --- Retry: fix degli errori ---
       log "=== Task $i - Fix attempt $RETRY/$MAX_RETRIES ==="
-      OUTPUT=$(build_fix_cmd "La verifica automatica e' FALLITA.
+      OUTPUT=$(build_exec_cmd "Sei in autonomous execution mode - FASE FIX.
+La verifica automatica (build/test) e' FALLITA dopo l'esecuzione del task.
+
 Mini-plan: $TASKS_DIR/$TASK_FILE
+Piano principale: $PLAN
 
-ERRORI (output reale dalla verifica — sono la fonte di verita', non
-rilanciare build/test prima di aver capito e corretto il problema):
-
+ERRORI DA CORREGGERE:
 $VERIFY_ERRORS
 
-Correggi il codice. NON fare git add/commit/push. Rispondi SOLO: DONE" "Task $i - Fix $RETRY/$MAX_RETRIES")
+Istruzioni:
+1. Analizza gli errori sopra
+2. Correggi il codice per far passare build e test
+3. NON aggiornare lo stato del task nel piano
+4. NON usare git add, git commit, git push — il commit viene gestito automaticamente dallo script
+5. Rispondi SOLO: DONE" "Task $i - Fix $RETRY/$MAX_RETRIES")
     fi
 
     echo "$OUTPUT" >> "$LOG_FILE"
@@ -1088,12 +986,6 @@ Correggi il codice. NON fare git add/commit/push. Rispondi SOLO: DONE" "Task $i 
     # Rate limit durante esecuzione → ferma lo script
     if echo "$OUTPUT" | grep -q "RATE_LIMITED"; then
       log "Esecuzione interrotta per rate limit durante exec/fix."
-      exit 1
-    fi
-
-    # Max-turns abort (utente ha scelto di uscire) → ferma lo script
-    if echo "$OUTPUT" | grep -q "MAX_TURNS_ABORT"; then
-      log "Esecuzione interrotta per max-turns su task: $TASK_FILE"
       exit 1
     fi
 
