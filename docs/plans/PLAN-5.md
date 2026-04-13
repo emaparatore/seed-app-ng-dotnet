@@ -10,11 +10,11 @@
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
 | US-001 | Visualizzare i piani disponibili | T-07, T-14 | ✅ Done |
-| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (backend done) |
+| US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | ✅ Done |
 | US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | 🔄 In Progress (backend done) |
-| US-006 | Trial period | T-08, T-15 | 🔄 In Progress (backend done) |
+| US-006 | Trial period | T-08, T-15 | ✅ Done |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
 | US-009 | Webhook processing | T-06 | ✅ Done |
@@ -556,7 +556,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-002, US-006
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-08, T-14
 
 **What to do:**
@@ -567,11 +567,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 5. Add routes with `authGuard`.
 
 **Definition of Done:**
-- [ ] Clicking plan CTA creates checkout session and redirects to Stripe
-- [ ] Success page rendered after successful checkout
-- [ ] Cancel page rendered when user cancels checkout
-- [ ] Trial CTA shows "Prova gratis per X giorni" when plan has trial
-- [ ] Routes protected by authGuard
+- [x] Clicking plan CTA creates checkout session and redirects to Stripe
+- [x] Success page rendered after successful checkout
+- [x] Cancel page rendered when user cancels checkout
+- [x] Trial CTA shows "Prova gratis per X giorni" when plan has trial
+- [x] Routes protected by authGuard
+
+**Implementation Notes:**
+- `billing.models.ts` extended with `CheckoutSessionResponse` and `CreateCheckoutRequest` interfaces mirroring backend DTOs
+- `BillingService` gained `billingUrl` and `createCheckoutSession()` method; `apiUrl` renamed to `plansUrl` for clarity
+- `checkoutLoading` signal added to `PricingComponent`; not reset on success since `window.location.href` immediately triggers external navigation
+- `CheckoutSuccess` and `CheckoutCancel` standalone components created following the `confirm-email` pattern (MatCard, status icon, RouterLink buttons)
+- Routes `/billing/success` and `/billing/cancel` added with `authGuard`; success page links to `/` temporarily until T-16 implements `/billing/subscription`
 
 ---
 

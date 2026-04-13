@@ -97,12 +97,17 @@
             mat-flat-button
             class="cta-button"
             [color]="plan.isPopular ? 'primary' : undefined"
+            [disabled]="checkoutLoading()"
             (click)="onCtaClick(plan)"
           >
-            @if (plan.isFreeTier) {
+            @if (checkoutLoading() && authService.isAuthenticated() && !plan.isFreeTier) {
+              <mat-spinner diameter="20" />
+            } @else if (plan.isFreeTier) {
               Inizia gratis
             } @else if (!authService.isAuthenticated()) {
               Scegli piano
+            } @else if (plan.trialDays > 0) {
+              Prova gratis per {{ plan.trialDays }} giorni
             } @else {
               Scegli piano
             }

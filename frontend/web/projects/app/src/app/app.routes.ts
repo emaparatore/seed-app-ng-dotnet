@@ -61,5 +61,15 @@ export const routes: Routes = [
     path: 'pricing',
     loadComponent: () => import('./pages/pricing/pricing').then((m) => m.Pricing),
   },
+  {
+    path: 'billing/success',
+    loadComponent: () => import('./pages/billing/checkout-success/checkout-success').then((m) => m.CheckoutSuccess),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'billing/cancel',
+    loadComponent: () => import('./pages/billing/checkout-cancel/checkout-cancel').then((m) => m.CheckoutCancel),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: '' },
 ];

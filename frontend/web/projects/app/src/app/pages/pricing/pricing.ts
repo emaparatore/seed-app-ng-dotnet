@@ -5,13 +5,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from 'shared-auth';
 import { BillingService } from './billing.service';
 import { Plan } from './billing.models';
 
 @Component({
   selector: 'app-pricing',
-  imports: [CurrencyPipe, RouterLink, MatCardModule, MatIconModule, MatButtonModule, MatButtonToggleModule],
+  imports: [CurrencyPipe, RouterLink, MatCardModule, MatIconModule, MatButtonModule, MatButtonToggleModule, MatProgressSpinnerModule],
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss',
 })
@@ -24,6 +25,7 @@ export class Pricing implements OnInit {
   protected readonly plans = signal<Plan[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly billingInterval = signal<'monthly' | 'yearly'>('monthly');
+  protected readonly checkoutLoading = signal(false);
 
   protected readonly sortedPlans = computed(() =>
     [...this.plans()].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -57,8 +59,23 @@ export class Pricing implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
-    // T-15: checkout flow — navigate to checkout (not yet implemented)
-    this.router.navigate(['/login']);
+    this.checkoutLoading.set(true);
+    this.billingService
+      .createCheckoutSession({
+        planId: plan.id,
+        billingInterval: this.billingInterval() === 'yearly' ? 'Yearly' : 'Monthly',
+        successUrl: window.location.origin + '/billing/success',
+        cancelUrl: window.location.origin + '/billing/cancel',
+      })
+      .subscribe({
+        next: (res) => {
+          window.location.href = res.checkoutUrl;
+        },
+        error: (err) => {
+          this.error.set(err.error?.errors?.[0] ?? 'Errore durante la creazione della sessione di pagamento.');
+          this.checkoutLoading.set(false);
+        },
+      });
   }
 
   private loadPlans(): void {

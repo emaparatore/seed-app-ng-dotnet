@@ -1,3 +1,14 @@
+export interface CheckoutSessionResponse {
+  checkoutUrl: string;
+}
+
+export interface CreateCheckoutRequest {
+  planId: string;
+  billingInterval: 'Monthly' | 'Yearly';
+  successUrl: string;
+  cancelUrl: string;
+}
+
 export interface PlanFeature {
   id: string;
   key: string;
