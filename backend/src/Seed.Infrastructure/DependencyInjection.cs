@@ -25,6 +25,7 @@ using Seed.Application.Common.Models;
 using Seed.Domain.Entities;
 using Seed.Infrastructure.Billing.Commands;
 using Seed.Infrastructure.Billing.Queries;
+using Seed.Infrastructure.Billing.Services;
 using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Seed.Infrastructure.Services;
@@ -77,6 +78,8 @@ public static class DependencyInjection
 
         if (configuration.IsPaymentsModuleEnabled())
         {
+            services.AddScoped<ISubscriptionAccessService, SubscriptionAccessService>();
+
             services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
 
             var stripeSection = configuration.GetSection(StripeSettings.SectionName);
@@ -110,6 +113,10 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<GetSubscriptionMetricsQuery, Result<SubscriptionMetricsDto>>, GetSubscriptionMetricsQueryHandler>();
             services.AddScoped<IRequestHandler<GetSubscriptionsListQuery, Result<PagedResult<AdminSubscriptionDto>>>, GetSubscriptionsListQueryHandler>();
             services.AddScoped<IRequestHandler<GetSubscriptionDetailQuery, Result<AdminSubscriptionDetailDto>>, GetSubscriptionDetailQueryHandler>();
+        }
+        else
+        {
+            services.AddScoped<ISubscriptionAccessService, AlwaysAllowSubscriptionAccessService>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

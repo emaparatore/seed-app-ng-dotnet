@@ -81,6 +81,8 @@ builder.Services
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, RequiresPlanAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, RequiresFeatureAuthorizationHandler>();
 
 builder.Services
     .AddApiVersioning(options =>

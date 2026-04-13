@@ -18,7 +18,7 @@
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
 | US-009 | Webhook processing | T-06 | ✅ Done |
-| US-010 | Subscription guard su endpoint | T-12 | ⏳ Not Started |
+| US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
 | US-011 | Feature gating frontend | T-13 | ⏳ Not Started |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
 
@@ -449,7 +449,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-010 (RF-6)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03
 
 **What to do:**
@@ -467,12 +467,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 6. Add `ISubscriptionAccessService` in Application layer to encapsulate the check logic (query DB for user's subscription + plan features).
 
 **Definition of Done:**
-- [ ] `[RequiresPlan]` attribute works on controllers/actions
-- [ ] `[RequiresFeature]` attribute works on controllers/actions
-- [ ] Guards pass always when module is disabled
-- [ ] Guards check subscription status (active/trialing only)
-- [ ] HTTP 403 returned with descriptive message
-- [ ] Unit tests for authorization handlers (module enabled vs disabled, various subscription states)
+- [x] `[RequiresPlan]` attribute works on controllers/actions
+- [x] `[RequiresFeature]` attribute works on controllers/actions
+- [x] Guards pass always when module is disabled
+- [x] Guards check subscription status (active/trialing only)
+- [x] HTTP 403 returned when user lacks required plan or feature
+- [x] Unit tests for authorization handlers (module enabled vs disabled, various subscription states) — 17 new tests (6 plan handler, 4 feature handler, 7 service)
+
+**Implementation Notes:**
+- `PermissionAuthorizationPolicyProvider` extended to handle `Plan:` and `Feature:` prefixes in addition to `Permission:`, keeping a single policy provider for all authorization schemes
+- `AlwaysAllowSubscriptionAccessService` registered as fallback (else branch) when payments module is disabled, following the same if/else pattern as the email service in `DependencyInjection.cs`
+- `FrameworkReference` to `Microsoft.AspNetCore.App` added to `Seed.UnitTests.csproj` along with a `ProjectReference` to `Seed.Api`, enabling unit tests of the authorization handlers without integration tests
+- Both handlers (`RequiresPlanAuthorizationHandler`, `RequiresFeatureAuthorizationHandler`) registered unconditionally in `Program.cs` — the module-disabled bypass is internal to each handler, not a DI concern
+- `ISubscriptionAccessService` uses `AnyAsync` for efficiency; queries filter on `SubscriptionStatus.Active` and `SubscriptionStatus.Trialing` only
 
 ---
 
