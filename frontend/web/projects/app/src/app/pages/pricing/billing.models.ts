@@ -1,3 +1,22 @@
+export interface UserSubscription {
+  id: string;
+  planName: string;
+  planDescription: string | null;
+  status: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEnd: string | null;
+  canceledAt: string | null;
+  isFreeTier: boolean;
+  features: PlanFeature[];
+}
+
+export interface PortalSessionResponse {
+  portalUrl: string;
+}
+
 export interface CheckoutSessionResponse {
   checkoutUrl: string;
 }

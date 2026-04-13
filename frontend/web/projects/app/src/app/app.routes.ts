@@ -71,5 +71,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/billing/checkout-cancel/checkout-cancel').then((m) => m.CheckoutCancel),
     canActivate: [authGuard],
   },
+  {
+    path: 'billing/subscription',
+    loadComponent: () => import('./pages/billing/subscription/subscription').then((m) => m.Subscription),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: '' },
 ];

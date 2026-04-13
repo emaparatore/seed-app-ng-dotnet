@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AUTH_CONFIG } from 'shared-auth';
-import { CheckoutSessionResponse, CreateCheckoutRequest, Plan } from './billing.models';
+import { CheckoutSessionResponse, CreateCheckoutRequest, Plan, PortalSessionResponse, UserSubscription } from './billing.models';
 
 @Injectable({ providedIn: 'root' })
 export class BillingService {
@@ -17,5 +17,17 @@ export class BillingService {
 
   createCheckoutSession(request: CreateCheckoutRequest): Observable<CheckoutSessionResponse> {
     return this.http.post<CheckoutSessionResponse>(`${this.billingUrl}/checkout`, request);
+  }
+
+  getMySubscription(): Observable<UserSubscription | null> {
+    return this.http.get<UserSubscription | null>(`${this.billingUrl}/subscription`);
+  }
+
+  createPortalSession(returnUrl: string): Observable<PortalSessionResponse> {
+    return this.http.post<PortalSessionResponse>(`${this.billingUrl}/portal`, { returnUrl });
+  }
+
+  cancelSubscription(): Observable<void> {
+    return this.http.post<void>(`${this.billingUrl}/cancel`, {});
   }
 }

@@ -11,9 +11,9 @@
 |-------|-------------|-------|--------|
 | US-001 | Visualizzare i piani disponibili | T-07, T-14 | ✅ Done |
 | US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | ✅ Done |
-| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
-| US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
-| US-005 | Upgrade/downgrade del piano | T-09, T-16 | 🔄 In Progress (backend done) |
+| US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | ✅ Done |
+| US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ✅ Done |
+| US-005 | Upgrade/downgrade del piano | T-09, T-16 | ✅ Done |
 | US-006 | Trial period | T-08, T-15 | ✅ Done |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
@@ -586,7 +586,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-003, US-004, US-005
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-09, T-15
 
 **What to do:**
@@ -602,12 +602,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Add route(s) with `authGuard`.
 
 **Definition of Done:**
-- [ ] Subscription details displayed correctly for all states (active, trialing, canceled, free)
-- [ ] Portal redirect works
-- [ ] Cancel flow with confirmation dialog
-- [ ] Upgrade/change plan navigates to pricing
-- [ ] Trial days remaining shown when applicable
-- [ ] Link accessible from profile/navigation
+- [x] Subscription details displayed correctly for all states (active, trialing, canceled, free)
+- [x] Portal redirect works
+- [x] Cancel flow with confirmation dialog
+- [x] Upgrade/change plan navigates to pricing
+- [x] Trial days remaining shown when applicable
+- [x] Link accessible from profile/navigation
+
+**Implementation Notes:**
+- `SubscriptionComponent` uses five signals (`loading`, `subscription`, `error`, `canceling`, `portalLoading`) and four computed signals (`trialDaysRemaining`, `isActive`, `isTrialing`, `isCanceled`) for all UI states
+- `loadSubscription()` declared `protected` (not `private`) to allow template binding on the "Riprova" retry button
+- `DatePipe` and `DecimalPipe` imported explicitly in the standalone component (required in Angular 17+ standalone)
+- `confirm-cancel-dialog.ts` follows the `confirm-delete-dialog` pattern from the profile page; returns `true` on confirm
+- Navbar link uses `mat-icon-button` with `credit_card` icon, consistent with existing `account_circle` style; checkout-success page updated to link to `/billing/subscription`
 
 ---
 
