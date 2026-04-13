@@ -15,7 +15,6 @@
 # Modelli (--model):
 #   opus    → claude-opus-4-6 [default]
 #   sonnet  → claude-sonnet-4-6
-#   haiku   → claude-haiku-4-5-20251001
 #
 # Effort (--effort):
 #   low, medium [default], high, max
@@ -47,6 +46,7 @@ CURRENT_BRANCH=""
 
 CLAUDE_FLAGS=()
 PLAN_FLAGS=()
+EXEC_FLAGS=()
 FIX_FLAGS=()
 TTY_STATE_SNAPSHOT=""
 TERMINAL_RESTORED=false
@@ -305,13 +305,11 @@ configure_execution_context() {
     local model_choice=0
     select_menu "Seleziona il modello Claude" model_choice \
       "Opus   - claude-opus-4-6 (piu' capace, piu' lento)" \
-      "Sonnet - claude-sonnet-4-6 (bilanciato)" \
-      "Haiku  - claude-haiku-4-5 (veloce, meno capace)"
+      "Sonnet - claude-sonnet-4-6 (bilanciato)"
 
     case $model_choice in
       0) CLAUDE_MODEL="opus" ;;
       1) CLAUDE_MODEL="sonnet" ;;
-      2) CLAUDE_MODEL="haiku" ;;
     esac
   fi
 
@@ -336,10 +334,9 @@ configure_execution_context() {
   case "$CLAUDE_MODEL" in
     opus)   CLAUDE_MODEL_ID="claude-opus-4-6" ;;
     sonnet) CLAUDE_MODEL_ID="claude-sonnet-4-6" ;;
-    haiku)  CLAUDE_MODEL_ID="claude-haiku-4-5-20251001" ;;
     *)
       echo "ERRORE: modello sconosciuto: $CLAUDE_MODEL"
-      echo "Valori ammessi: opus, sonnet, haiku"
+      echo "Valori ammessi: opus, sonnet"
       exit 1
       ;;
   esac
@@ -359,11 +356,14 @@ configure_execution_context() {
   # self-contained (l'exec NON rilegge il main plan), quindi la qualita' di
   # estrazione e' il vero punto critico del flusso. Se l'utente ha scelto opus
   # e' perche' vuole quella qualita'; applicarla al plan e' dove conta di piu'.
-  # Fix: sonnet+high - fase remediale con errori gia' in input, non serve il
-  # modello premium ma serve reasoning decente. Sonnet-high lo garantisce
-  # anche quando l'utente ha scelto haiku per exec.
+  # Exec: sonnet+high - implementazione guidata dal mini-plan, sonnet-high offre
+  # il miglior rapporto qualita'/costo per eseguire task gia' specificati.
+  # Fix: modello/effort scelti dall'utente - fase remediale dove la qualita' di
+  # reasoning richiesta dipende dalla complessita' del progetto, quindi rispetta
+  # la scelta dell'utente.
   PLAN_FLAGS=("${CLAUDE_FLAGS[@]}")
-  FIX_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort high)
+  EXEC_FLAGS=(--verbose --model "claude-sonnet-4-6" --effort high)
+  FIX_FLAGS=("${CLAUDE_FLAGS[@]}")
 
   # --- Deriva YOLO_MODE e AUTO_APPROVE dalla modalita' ---
   case "$MODE" in
@@ -1074,9 +1074,10 @@ run_claude_cmd() {
   while true; do
     local temp=$(mktemp)
 
-    # Selezione flags per fase: plan=sonnet+medium, fix=sonnet+high, exec=utente
+    # Selezione flags per fase: plan=utente, exec=sonnet+high, fix=utente
     local flags=("${CLAUDE_FLAGS[@]}")
     [[ "$phase" == "plan" ]] && flags=("${PLAN_FLAGS[@]}")
+    [[ "$phase" == "exec" ]] && flags=("${EXEC_FLAGS[@]}")
     [[ "$phase" == "fix"  ]] && flags=("${FIX_FLAGS[@]}")
 
     if [ "$YOLO_MODE" = "true" ]; then
