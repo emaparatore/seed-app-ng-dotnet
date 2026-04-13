@@ -57,5 +57,9 @@ export const routes: Routes = [
     path: 'terms-of-service',
     loadComponent: () => import('./pages/terms-of-service/terms-of-service').then((m) => m.TermsOfService),
   },
+  {
+    path: 'pricing',
+    loadComponent: () => import('./pages/pricing/pricing').then((m) => m.Pricing),
+  },
   { path: '**', redirectTo: '' },
 ];

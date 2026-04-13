@@ -9,7 +9,7 @@
 
 | Story | Description | Tasks | Status |
 |-------|-------------|-------|--------|
-| US-001 | Visualizzare i piani disponibili | T-07, T-14 | 🔄 In Progress (backend done) |
+| US-001 | Visualizzare i piani disponibili | T-07, T-14 | ✅ Done |
 | US-002 | Sottoscrivere un piano a pagamento | T-08, T-15 | 🔄 In Progress (backend done) |
 | US-003 | Visualizzare il proprio abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | 🔄 In Progress (backend done) |
@@ -518,7 +518,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-001
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-07
 
 **What to do:**
@@ -535,13 +535,20 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 6. Use Angular Material cards, toggle buttons, icons.
 
 **Definition of Done:**
-- [ ] Pricing page renders all active plans
-- [ ] Monthly/yearly price toggle works
-- [ ] Popular plan highlighted
-- [ ] Free tier CTA links to registration
-- [ ] Paid plan CTA redirects to login if not authenticated
-- [ ] Route accessible without authentication
-- [ ] Responsive layout (mobile-friendly)
+- [x] Pricing page renders all active plans
+- [x] Monthly/yearly price toggle works
+- [x] Popular plan highlighted
+- [x] Free tier CTA links to registration
+- [x] Paid plan CTA redirects to login if not authenticated
+- [x] Route accessible without authentication
+- [x] Responsive layout (mobile-friendly)
+
+**Implementation Notes:**
+- `billing.models.ts` defines `Plan` and `PlanFeature` interfaces mirroring backend DTOs (Guid → `string`)
+- `BillingService` uses `inject(AUTH_CONFIG).apiUrl` for base URL; `getPlans()` calls `GET ${apiUrl}/plans` (v1 ≈ v1.0 for Asp.Versioning)
+- Component state managed via signals: `loading`, `plans`, `error`, `billingInterval`; `sortedPlans` is a computed that orders by `sortOrder` without mutating the original signal
+- Paid plan CTA when authenticated still navigates to `/login` — checkout redirect will be updated in T-15
+- Lazy-loaded route `/pricing` added to `app.routes.ts` before the wildcard `**` redirect
 
 ---
 
