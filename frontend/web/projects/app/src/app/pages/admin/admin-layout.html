@@ -21,6 +21,11 @@
         <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
         <span matListItemTitle>Ruoli</span>
       </a>
+      <a mat-list-item routerLink="plans" routerLinkActive="active"
+         *hasPermission="permissions.Plans.Read" (click)="onNavClick()">
+        <mat-icon matListItemIcon>payments</mat-icon>
+        <span matListItemTitle>Piani</span>
+      </a>
       <a mat-list-item routerLink="audit-log" routerLinkActive="active"
          *hasPermission="permissions.AuditLog.Read" (click)="onNavClick()">
         <mat-icon matListItemIcon>history</mat-icon>

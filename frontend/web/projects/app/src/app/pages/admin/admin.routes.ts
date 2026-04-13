@@ -42,6 +42,12 @@ export const adminRoutes: Routes = [
     ],
   },
   {
+    path: 'plans',
+    loadComponent: () => import('./plans/plan-list/plan-list').then((m) => m.PlanList),
+    canActivate: [permissionGuard('Plans.Read')],
+    data: { title: 'Piani' },
+  },
+  {
     path: 'audit-log',
     loadComponent: () => import('./audit-log/audit-log-list/audit-log-list').then((m) => m.AuditLogList),
     canActivate: [permissionGuard('AuditLog.Read')],

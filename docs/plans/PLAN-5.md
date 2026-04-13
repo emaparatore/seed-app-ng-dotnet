@@ -15,7 +15,7 @@
 | US-004 | Gestire pagamento e cancellare abbonamento | T-09, T-16 | ✅ Done |
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | ✅ Done |
 | US-006 | Trial period | T-08, T-15 | ✅ Done |
-| US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
+| US-007 | Admin — CRUD piani | T-10, T-17 | ✅ Done |
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
@@ -622,7 +622,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-007
 **Size:** Large
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-10
 
 **What to do:**
@@ -637,13 +637,20 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 5. Add "Piani" to admin sidebar navigation.
 
 **Definition of Done:**
-- [ ] Plans list with all columns rendered
-- [ ] Create plan dialog with all fields + dynamic feature list
-- [ ] Edit plan dialog
-- [ ] Archive with confirmation
-- [ ] Subscriber count shown per plan
-- [ ] Permission-gated route and navigation item
-- [ ] Form validation
+- [x] Plans list with all columns rendered
+- [x] Create plan dialog with all fields + dynamic feature list
+- [x] Edit plan dialog
+- [x] Archive with confirmation
+- [x] Subscriber count shown per plan
+- [x] Permission-gated route and navigation item
+- [x] Form validation
+
+**Implementation Notes:**
+- `PlanFeature` reused from `billing.models.ts` via re-export in `admin-plans.models.ts` — no duplication between public and admin models
+- `ConfirmDialog` reused from `../../users/confirm-dialog/confirm-dialog` — no new dialog component needed for archive confirmation
+- `Plans: { Read, Create, Update }` block added to `permissions.ts`; permissions are automatically picked up by existing permission guard infrastructure
+- In `plan-edit-dialog.ts`, `updatePlan` and `createPlan` calls kept separate (not a union type) to resolve TypeScript incompatibility between `Observable<void>` and `Observable<{id: string}>`
+- Build verified with no new errors (only pre-existing `RouterLink` warnings in unrelated components)
 
 ---
 

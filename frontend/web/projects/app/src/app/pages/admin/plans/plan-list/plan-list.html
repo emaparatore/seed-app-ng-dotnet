@@ -1,0 +1,116 @@
+<div class="page-header">
+  <h1>Piani</h1>
+  <button mat-flat-button *hasPermission="permissions.Plans.Create" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Nuovo piano
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="skeleton-table">
+    @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton-row">
+        <div class="skeleton-cell wide"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (plans().length === 0) {
+  <div class="empty-state">
+    <mat-icon>payments</mat-icon>
+    <p>Nessun piano trovato.</p>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="plans()">
+      <!-- Name column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let plan">
+          <div class="name-cell">
+            <span class="plan-name">{{ plan.name }}</span>
+            @if (plan.isDefault) {
+              <span class="badge default-badge">Default</span>
+            }
+            @if (plan.isPopular) {
+              <span class="badge popular-badge">Popolare</span>
+            }
+            @if (plan.isFreeTier) {
+              <span class="badge free-badge">Free</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Monthly Price column -->
+      <ng-container matColumnDef="monthlyPrice">
+        <th mat-header-cell *matHeaderCellDef>Prezzo mensile</th>
+        <td mat-cell *matCellDef="let plan">
+          {{ plan.monthlyPrice | number: '1.2-2' }} €
+        </td>
+      </ng-container>
+
+      <!-- Yearly Price column -->
+      <ng-container matColumnDef="yearlyPrice">
+        <th mat-header-cell *matHeaderCellDef>Prezzo annuale</th>
+        <td mat-cell *matCellDef="let plan">
+          {{ plan.yearlyPrice | number: '1.2-2' }} €
+        </td>
+      </ng-container>
+
+      <!-- Status column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let plan">
+          <span class="status-badge"
+            [class.active]="plan.status === 'Active'"
+            [class.inactive]="plan.status === 'Inactive'"
+            [class.archived]="plan.status === 'Archived'">
+            {{ plan.status }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Subscribers column -->
+      <ng-container matColumnDef="subscribers">
+        <th mat-header-cell *matHeaderCellDef>Subscriber</th>
+        <td mat-cell *matCellDef="let plan">{{ plan.subscriberCount }}</td>
+      </ng-container>
+
+      <!-- Actions column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Azioni</th>
+        <td mat-cell *matCellDef="let plan">
+          <div class="action-buttons">
+            @if (hasPermission(permissions.Plans.Update)) {
+              <button mat-icon-button matTooltip="Modifica" (click)="openEditDialog(plan, $event)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              @if (plan.status !== 'Archived') {
+                <button mat-icon-button matTooltip="Archivia" (click)="archivePlan(plan, $event)">
+                  <mat-icon>archive</mat-icon>
+                </button>
+              }
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+}
