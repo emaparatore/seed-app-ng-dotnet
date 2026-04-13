@@ -6,4 +6,5 @@ public sealed record MeResponse(
     string FirstName,
     string LastName,
     IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions);
+    IReadOnlyList<string> Permissions,
+    SubscriptionInfoDto? Subscription);

@@ -19,7 +19,7 @@
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
-| US-011 | Feature gating frontend | T-13 | ⏳ Not Started |
+| US-011 | Feature gating frontend | T-13 | 🔄 In Progress (backend done) |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
 
 ---
@@ -487,7 +487,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-011 (RF-2)
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03
 
 **What to do:**
@@ -497,11 +497,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Update `AuthResponse` / `UserDto` similarly if needed.
 
 **Definition of Done:**
-- [ ] `MeResponse` includes subscription data
-- [ ] Handler loads subscription conditionally (only when module enabled)
-- [ ] Returns null/empty when module disabled or no subscription
-- [ ] Existing auth tests still pass
-- [ ] Unit test for handler with subscription data
+- [x] `MeResponse` includes subscription data
+- [x] Handler loads subscription conditionally (only when module enabled)
+- [x] Returns null/empty when module disabled or no subscription
+- [x] Existing auth tests still pass
+- [x] Unit tests added for handler with and without subscription data
+
+**Implementation Notes:**
+- `ISubscriptionInfoService` created as a separate interface from `ISubscriptionAccessService` — the former returns structured data for `/me`, the latter is bool-based for authorization
+- `SubscriptionInfoDto` is a `sealed record` with `CurrentPlan`, `PlanFeatures`, `SubscriptionStatus`, `TrialEndsAt`
+- `SubscriptionInfoService` queries with `Include(Plan).ThenInclude(Features)`, filters on Active/Trialing statuses, returns `null` if no active subscription found
+- `NullSubscriptionInfoService` (always returns `null`) registered as fallback when payments module is disabled — frontend interprets absence as "all features available" (DA-1)
+- Two new unit tests added: `Should_Include_Subscription_Info_When_Service_Returns_Data` and `Should_Return_Null_Subscription_When_Service_Returns_Null`
 
 ---
 

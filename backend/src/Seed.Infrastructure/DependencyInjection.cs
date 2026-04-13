@@ -79,6 +79,7 @@ public static class DependencyInjection
         if (configuration.IsPaymentsModuleEnabled())
         {
             services.AddScoped<ISubscriptionAccessService, SubscriptionAccessService>();
+            services.AddScoped<ISubscriptionInfoService, SubscriptionInfoService>();
 
             services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
 
@@ -117,6 +118,7 @@ public static class DependencyInjection
         else
         {
             services.AddScoped<ISubscriptionAccessService, AlwaysAllowSubscriptionAccessService>();
+            services.AddScoped<ISubscriptionInfoService, NullSubscriptionInfoService>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);
