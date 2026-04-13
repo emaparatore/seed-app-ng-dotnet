@@ -16,7 +16,7 @@
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | 🔄 In Progress (backend done) |
 | US-006 | Trial period | T-08, T-15 | 🔄 In Progress (backend done) |
 | US-007 | Admin — CRUD piani | T-10, T-17 | 🔄 In Progress (backend done) |
-| US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ⏳ Not Started |
+| US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ⏳ Not Started |
 | US-011 | Feature gating frontend | T-13 | ⏳ Not Started |
@@ -412,7 +412,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-008 (RF-7)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03, T-06
 
 **What to do:**
@@ -428,13 +428,20 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Add `Subscriptions` permissions to `Permissions.cs` (Read).
 
 **Definition of Done:**
-- [ ] Metrics query calculates MRR, active count, trialing count, churn
-- [ ] List query with pagination and filtering
-- [ ] Detail query
-- [ ] Subscriptions permissions added
-- [ ] Controller with proper permission attributes
-- [ ] Unit tests for metric calculations
-- [ ] Integration test for list endpoint with filters
+- [x] Metrics query calculates MRR, active count, trialing count, churn
+- [x] List query with pagination and filtering
+- [x] Detail query
+- [x] Subscriptions permissions added to `Permissions.cs` and auto-seeded via `Permissions.GetAll()`
+- [x] Controller with proper permission attributes (`HasPermission(Permissions.Subscriptions.Read)`)
+- [x] Unit tests for all three handlers (metrics, list, detail) using InMemory DB
+- [x] Integration test for metrics and list endpoints using `WebhookWebApplicationFactory`
+
+**Implementation Notes:**
+- MRR calculation detects yearly billing by period length > 35 days and uses `YearlyPrice/12`; churn rate guards against division by zero when no subscriptions exist
+- Query handlers placed in `Seed.Infrastructure/Billing/Queries/` (not Application) because `ApplicationDbContext` is only available in Infrastructure — consistent with T-07/T-10 convention
+- All 3 handlers registered manually via `AddScoped<IRequestHandler<...>>` inside the `IsPaymentsModuleEnabled()` block in `DependencyInjection.cs`
+- Integration tests seed a real user with `Subscriptions.Read` permission via `WebhookWebApplicationFactory`, which already enables the payments module
+- `Subscriptions.Read` permission is added to the `All` array in `Permissions.cs`, so it is picked up automatically by `RolesAndPermissionsSeeder` without any seeder change
 
 ---
 

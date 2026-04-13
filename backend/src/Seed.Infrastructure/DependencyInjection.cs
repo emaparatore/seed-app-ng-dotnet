@@ -9,6 +9,10 @@ using Seed.Application.Admin.Plans.Commands.UpdatePlan;
 using Seed.Application.Admin.Plans.Models;
 using Seed.Application.Admin.Plans.Queries.GetAdminPlanById;
 using Seed.Application.Admin.Plans.Queries.GetAdminPlans;
+using Seed.Application.Admin.Subscriptions.Models;
+using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionDetail;
+using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionMetrics;
+using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionsList;
 using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.CreatePortalSession;
@@ -17,6 +21,7 @@ using Seed.Application.Billing.Queries.GetMySubscription;
 using Seed.Application.Billing.Queries.GetPlans;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
+using Seed.Application.Common.Models;
 using Seed.Domain.Entities;
 using Seed.Infrastructure.Billing.Commands;
 using Seed.Infrastructure.Billing.Queries;
@@ -101,6 +106,10 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<ArchivePlanCommand, Result<bool>>, ArchivePlanCommandHandler>();
             services.AddScoped<IRequestHandler<GetAdminPlansQuery, Result<IReadOnlyList<AdminPlanDto>>>, GetAdminPlansQueryHandler>();
             services.AddScoped<IRequestHandler<GetAdminPlanByIdQuery, Result<AdminPlanDto>>, GetAdminPlanByIdQueryHandler>();
+
+            services.AddScoped<IRequestHandler<GetSubscriptionMetricsQuery, Result<SubscriptionMetricsDto>>, GetSubscriptionMetricsQueryHandler>();
+            services.AddScoped<IRequestHandler<GetSubscriptionsListQuery, Result<PagedResult<AdminSubscriptionDto>>>, GetSubscriptionsListQueryHandler>();
+            services.AddScoped<IRequestHandler<GetSubscriptionDetailQuery, Result<AdminSubscriptionDetailDto>>, GetSubscriptionDetailQueryHandler>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

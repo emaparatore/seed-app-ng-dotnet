@@ -9,7 +9,7 @@ public class PermissionsTests
     [Fact]
     public void GetAll_Should_Return_19_Permissions()
     {
-        Permissions.GetAll().Should().HaveCount(19);
+        Permissions.GetAll().Should().HaveCount(20);
     }
 
     [Fact]
@@ -46,7 +46,8 @@ public class PermissionsTests
         categories.Should().Contain("Dashboard");
         categories.Should().Contain("SystemHealth");
         categories.Should().Contain("Plans");
-        categories.Should().HaveCount(7);
+        categories.Should().Contain("Subscriptions");
+        categories.Should().HaveCount(8);
     }
 
     [Fact]
@@ -73,5 +74,6 @@ public class PermissionsTests
         all.Should().Contain(Permissions.Plans.Read);
         all.Should().Contain(Permissions.Plans.Create);
         all.Should().Contain(Permissions.Plans.Update);
+        all.Should().Contain(Permissions.Subscriptions.Read);
     }
 }
