@@ -113,7 +113,19 @@
           <mat-icon>swap_horiz</mat-icon>
           Cambia piano
         </button>
+        <button mat-button routerLink="/billing/invoice-requests">
+          <mat-icon>receipt_long</mat-icon>
+          Storico fatture
+        </button>
         @if (!isCanceled()) {
+          <button mat-button (click)="openInvoiceRequest()" [disabled]="requestingInvoice()">
+            @if (requestingInvoice()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else {
+              <mat-icon>request_quote</mat-icon>
+            }
+            Richiedi fattura
+          </button>
           <button mat-button (click)="openPortal()" [disabled]="portalLoading()">
             @if (portalLoading()) {
               <mat-progress-spinner diameter="18" mode="indeterminate" />

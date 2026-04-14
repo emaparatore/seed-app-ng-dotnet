@@ -76,5 +76,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/billing/subscription/subscription').then((m) => m.Subscription),
     canActivate: [authGuard],
   },
+  {
+    path: 'billing/invoice-requests',
+    loadComponent: () => import('./pages/billing/invoice-requests/invoice-requests').then((m) => m.InvoiceRequests),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: '' },
 ];

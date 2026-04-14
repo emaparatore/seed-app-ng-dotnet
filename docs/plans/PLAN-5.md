@@ -20,7 +20,7 @@
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
 | US-011 | Feature gating frontend | T-13, T-13b | ✅ Done |
-| US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (backend done, frontend pending) |
+| US-012 | Richiesta fattura manuale | T-19, T-20 | ✅ Done |
 
 ---
 
@@ -762,7 +762,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-012
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-16, T-19
 
 **What to do:**
@@ -775,11 +775,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Admin side: add invoice requests list in admin area with status update capability.
 
 **Definition of Done:**
-- [ ] Invoice request form with all fields and conditional rendering
-- [ ] Fiscal data pre-filled from previous requests
-- [ ] Request history visible to user
-- [ ] Admin can view and update request status
-- [ ] Form validation
+- [x] Invoice request form with all fields and conditional rendering
+- [x] Fiscal data pre-filled from previous requests
+- [x] Request history visible to user
+- [x] Admin can view and update request status
+- [x] Form validation
+
+**Implementation Notes:**
+- Pre-fill caching: `getMyInvoiceRequests()` is called once on first dialog open and cached in `lastInvoiceRequest` signal — no repeated HTTP calls on subsequent opens.
+- `InvoiceRequestDialog` uses inline styles (styles array) instead of a separate `.scss` file, consistent with `ConfirmCancelDialog` convention.
+- Admin status update is an inline `mat-select` in the table row (no separate dialog), matching the mini-plan requirement.
+- Admin list route uses `permissionGuard('Subscriptions.Read')`; `Subscriptions.Manage` permission added to `permissions.ts` in `shared-auth` for the update action.
+- All 9 new/modified files follow the existing patterns: standalone components, signals, `inject()` DI, `AUTH_CONFIG` injection token for `apiUrl`.
 
 ---
 

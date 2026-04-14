@@ -49,3 +49,37 @@ export interface Plan {
   sortOrder: number;
   features: PlanFeature[];
 }
+
+export interface InvoiceRequest {
+  id: string;
+  customerType: string;
+  fullName: string;
+  companyName: string | null;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  fiscalCode: string | null;
+  vatNumber: string | null;
+  sdiCode: string | null;
+  pecEmail: string | null;
+  stripePaymentIntentId: string | null;
+  status: string;
+  createdAt: string;
+  processedAt: string | null;
+}
+
+export interface CreateInvoiceRequest {
+  customerType: 'Individual' | 'Company';
+  fullName: string;
+  companyName?: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  fiscalCode?: string;
+  vatNumber?: string;
+  sdiCode?: string;
+  pecEmail?: string;
+  stripePaymentIntentId?: string;
+}

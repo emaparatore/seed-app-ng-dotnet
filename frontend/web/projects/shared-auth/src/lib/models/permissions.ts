@@ -34,5 +34,6 @@ export const PERMISSIONS = {
   },
   Subscriptions: {
     Read: 'Subscriptions.Read',
+    Manage: 'Subscriptions.Manage',
   },
 } as const;

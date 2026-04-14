@@ -54,6 +54,12 @@ export const adminRoutes: Routes = [
     data: { title: 'Abbonamenti' },
   },
   {
+    path: 'invoice-requests',
+    loadComponent: () => import('./invoice-requests/invoice-request-list/invoice-request-list').then((m) => m.InvoiceRequestList),
+    canActivate: [permissionGuard('Subscriptions.Read')],
+    data: { title: 'Richieste fattura' },
+  },
+  {
     path: 'audit-log',
     loadComponent: () => import('./audit-log/audit-log-list/audit-log-list').then((m) => m.AuditLogList),
     canActivate: [permissionGuard('AuditLog.Read')],
