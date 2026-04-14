@@ -224,6 +224,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [Monitoring](docs/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
 | [.env Backup](docs/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |
 | [GDPR Compliance Checklist](docs/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
+| [Subscription Payments](docs/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
 
 ## Tech stack

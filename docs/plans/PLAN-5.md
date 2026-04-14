@@ -916,7 +916,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** Trasversale
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-23, T-24 (all tasks complete)
 
 **What to do:**
@@ -970,13 +970,20 @@ Aggiornare anche:
 - `README.md` — aggiungere il doc alla tabella indice (se presente)
 
 **Definition of Done:**
-- [ ] `docs/subscription-payments.md` creato con tutte le sezioni
-- [ ] Istruzioni Stripe verificabili (link a docs ufficiali dove appropriato)
-- [ ] Sezione sviluppo locale testabile passo-passo
-- [ ] Checklist staging/produzione completa
-- [ ] Troubleshooting con almeno 4 scenari comuni
-- [ ] `CLAUDE.md` aggiornato con riferimento al nuovo doc
-- [ ] Un developer senza contesto può attivare il modulo seguendo solo il doc
+- [x] `docs/subscription-payments.md` creato con tutte le sezioni
+- [x] Istruzioni Stripe verificabili (link a docs ufficiali dove appropriato)
+- [x] Sezione sviluppo locale testabile passo-passo
+- [x] Checklist staging/produzione completa
+- [x] Troubleshooting con almeno 4 scenari comuni
+- [x] `CLAUDE.md` aggiornato con riferimento al nuovo doc
+- [x] Un developer senza contesto può attivare il modulo seguendo solo il doc
+
+**Implementation Notes:**
+- `docs/subscription-payments.md` creato con 8 sezioni complete: overview, attivazione modulo, setup Stripe, sviluppo locale, staging/produzione, troubleshooting, aggiunta piani, protezione endpoint
+- Inclusa tabella di tutti e 6 gli eventi webhook gestiti (inclusi `invoice.payment_succeeded` e `invoice.payment_failed` non esplicitati nel piano ma gestiti dal codice)
+- Documentata la semantica fire-and-forget delle email e l'idempotenza via cache da `StripeWebhookEventHandler`
+- Sezione `MockPaymentGateway` inclusa in sviluppo locale con istruzioni self-contained per sviluppo FE senza Stripe
+- Comportamento guards quando il modulo è disabilitato documentato esplicitamente (pass-through backend, redirect frontend)
 
 ---
 
