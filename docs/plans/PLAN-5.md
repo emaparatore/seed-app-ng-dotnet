@@ -830,7 +830,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** Trasversale
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-10, T-11
 🔒 **INTERACTIVE ONLY** — modifies seeder that affects production data
 
@@ -841,11 +841,11 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Add the new permissions to the frontend `PERMISSIONS` constant in `shared-auth`.
 
 **Definition of Done:**
-- [ ] New permissions in `Permissions.cs` and `GetAll()` array
-- [ ] Seeder updated to create new permissions
-- [ ] Frontend permissions constant updated
-- [ ] Bootstrap runs without errors
-- [ ] Existing permissions unchanged
+- [x] New permissions in `Permissions.cs` and `GetAll()` array
+- [x] Seeder updated to create new permissions
+- [x] Frontend permissions constant updated
+- [x] Bootstrap runs without errors
+- [x] Existing permissions unchanged
 
 ---
 
