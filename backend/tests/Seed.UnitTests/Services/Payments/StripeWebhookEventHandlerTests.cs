@@ -17,6 +17,7 @@ public class StripeWebhookEventHandlerTests : IDisposable
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditService _auditService;
     private readonly IMemoryCache _cache;
+    private readonly IEmailService _emailService;
     private readonly StripeWebhookEventHandler _handler;
 
     private readonly Guid _userId = Guid.NewGuid();
@@ -30,12 +31,25 @@ public class StripeWebhookEventHandlerTests : IDisposable
 
         _dbContext = new ApplicationDbContext(options);
         _auditService = Substitute.For<IAuditService>();
+        _emailService = Substitute.For<IEmailService>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         var logger = Substitute.For<ILogger<StripeWebhookEventHandler>>();
 
-        _handler = new StripeWebhookEventHandler(_dbContext, _auditService, _cache, logger);
+        _handler = new StripeWebhookEventHandler(_dbContext, _auditService, _cache, _emailService, logger);
 
         SeedTestPlan();
+        SeedTestUser();
+    }
+
+    private void SeedTestUser()
+    {
+        _dbContext.Users.Add(new ApplicationUser
+        {
+            Id = _userId,
+            Email = "test@example.com",
+            UserName = "test@example.com",
+        });
+        _dbContext.SaveChanges();
     }
 
     private void SeedTestPlan()
@@ -244,6 +258,64 @@ public class StripeWebhookEventHandlerTests : IDisposable
         result.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task ProcessEventAsync_CheckoutSessionCompleted_SendsConfirmationEmail()
+    {
+        var json = BuildCheckoutSessionCompletedJson(_userId, _planId, "sub_email_1", "cus_email_1");
+
+        await _handler.ProcessEventAsync("evt_email_1", EventTypes.CheckoutSessionCompleted, json);
+
+        await _emailService.Received(1).SendSubscriptionConfirmationAsync(
+            "test@example.com",
+            "Pro",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessEventAsync_TrialWillEnd_SendsTrialEndingEmail()
+    {
+        await CreateTestSubscription("sub_trial_1", SubscriptionStatus.Trialing);
+        var trialEnd = DateTimeOffset.UtcNow.AddDays(3).ToUnixTimeSeconds();
+        var json = BuildSubscriptionEventJsonWithTrialEnd("customer.subscription.trial_will_end", "sub_trial_1", "trialing", trialEnd);
+
+        var result = await _handler.ProcessEventAsync("evt_trial_1", "customer.subscription.trial_will_end", json);
+
+        result.Should().BeTrue();
+        await _emailService.Received(1).SendTrialEndingNotificationAsync(
+            "test@example.com",
+            "Pro",
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessEventAsync_SubscriptionDeleted_SendsCanceledEmail()
+    {
+        await CreateTestSubscription("sub_cancel_1", SubscriptionStatus.Active);
+        var json = BuildSubscriptionEventJson(EventTypes.CustomerSubscriptionDeleted, "sub_cancel_1", "canceled");
+
+        await _handler.ProcessEventAsync("evt_cancel_1", EventTypes.CustomerSubscriptionDeleted, json);
+
+        await _emailService.Received(1).SendSubscriptionCanceledAsync(
+            "test@example.com",
+            "Pro",
+            Arg.Any<DateTime>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessEventAsync_EmailFailure_DoesNotBreakWebhookProcessing()
+    {
+        _emailService.SendSubscriptionConfirmationAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new Exception("SMTP error")));
+
+        var json = BuildCheckoutSessionCompletedJson(_userId, _planId, "sub_err_1", "cus_err_1");
+
+        var result = await _handler.ProcessEventAsync("evt_err_1", EventTypes.CheckoutSessionCompleted, json);
+
+        result.Should().BeTrue();
+    }
+
     [Theory]
     [InlineData("active", SubscriptionStatus.Active)]
     [InlineData("trialing", SubscriptionStatus.Trialing)]
@@ -361,6 +433,39 @@ public class StripeWebhookEventHandlerTests : IDisposable
                     "status": "{{status}}",
                     "current_period_start": {{periodStart}},
                     "current_period_end": {{periodEnd}},
+                    "items": {
+                        "object": "list",
+                        "data": []
+                    }
+                }
+            }
+        }
+        """;
+    }
+
+    private static string BuildSubscriptionEventJsonWithTrialEnd(string eventType, string subId, string status, long trialEnd)
+    {
+        var epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var periodStart = epoch;
+        var periodEnd = epoch + (30 * 86400);
+        return $$"""
+        {
+            "id": "evt_sub_trial",
+            "object": "event",
+            "type": "{{eventType}}",
+            "created": {{epoch}},
+            "livemode": false,
+            "pending_webhooks": 0,
+            "api_version": "2024-12-18.acacia",
+            "request": { "id": null, "idempotency_key": null },
+            "data": {
+                "object": {
+                    "id": "{{subId}}",
+                    "object": "subscription",
+                    "status": "{{status}}",
+                    "current_period_start": {{periodStart}},
+                    "current_period_end": {{periodEnd}},
+                    "trial_end": {{trialEnd}},
                     "items": {
                         "object": "list",
                         "data": []

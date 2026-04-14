@@ -14,6 +14,7 @@ public sealed class StripeWebhookEventHandler(
     ApplicationDbContext dbContext,
     IAuditService auditService,
     IMemoryCache cache,
+    IEmailService emailService,
     ILogger<StripeWebhookEventHandler> logger) : IWebhookEventHandler
 {
     private static readonly TimeSpan IdempotencyCacheDuration = TimeSpan.FromHours(24);
@@ -34,7 +35,7 @@ public sealed class StripeWebhookEventHandler(
             EventTypes.InvoicePaymentFailed => await HandleInvoicePaymentFailedAsync(jsonPayload, ct),
             EventTypes.CustomerSubscriptionUpdated => await HandleSubscriptionUpdatedAsync(jsonPayload, ct),
             EventTypes.CustomerSubscriptionDeleted => await HandleSubscriptionDeletedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionTrialWillEnd => HandleTrialWillEnd(eventId),
+            EventTypes.CustomerSubscriptionTrialWillEnd => await HandleTrialWillEndAsync(jsonPayload, ct),
             _ => false,
         };
 
@@ -118,6 +119,19 @@ public sealed class StripeWebhookEventHandler(
             cancellationToken: ct);
 
         logger.LogInformation("Subscription created for user {UserId}, plan {PlanId}", userGuid, planGuid);
+
+        try
+        {
+            var user = await dbContext.Users.FindAsync([userGuid], ct);
+            var plan = await dbContext.SubscriptionPlans.FindAsync([planGuid.Value], ct);
+            if (user?.Email is not null && plan is not null)
+                await emailService.SendSubscriptionConfirmationAsync(user.Email, plan.Name, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send subscription confirmation email for user {UserId}", userGuid);
+        }
+
         return true;
     }
 
@@ -272,12 +286,55 @@ public sealed class StripeWebhookEventHandler(
             cancellationToken: ct);
 
         logger.LogInformation("Subscription {SubscriptionId} canceled", stripeSub.Id);
+
+        try
+        {
+            var user = subscription.UserId.HasValue
+                ? await dbContext.Users.FindAsync([subscription.UserId.Value], ct)
+                : null;
+            var plan = await dbContext.SubscriptionPlans.FindAsync([subscription.PlanId], ct);
+            if (user?.Email is not null && plan is not null)
+                await emailService.SendSubscriptionCanceledAsync(user.Email, plan.Name, subscription.CurrentPeriodEnd, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send subscription canceled email for subscription {SubscriptionId}", stripeSub.Id);
+        }
+
         return true;
     }
 
-    private bool HandleTrialWillEnd(string eventId)
+    private async Task<bool> HandleTrialWillEndAsync(string jsonPayload, CancellationToken ct)
     {
-        logger.LogInformation("Trial will end soon for event {EventId}", eventId);
+        var stripeEvent = EventUtility.ParseEvent(jsonPayload);
+        var stripeSub = stripeEvent.Data.Object as Subscription;
+        if (stripeSub is null) return false;
+
+        logger.LogInformation("Trial will end soon for subscription {SubscriptionId}", stripeSub.Id);
+
+        try
+        {
+            var subscription = await dbContext.UserSubscriptions
+                .FirstOrDefaultAsync(s => s.StripeSubscriptionId == stripeSub.Id, ct);
+
+            if (subscription?.UserId is null) return true;
+
+            var user = await dbContext.Users.FindAsync([subscription.UserId.Value], ct);
+            var plan = await dbContext.SubscriptionPlans.FindAsync([subscription.PlanId], ct);
+
+            if (user?.Email is not null && plan is not null)
+            {
+                var daysRemaining = stripeSub.TrialEnd.HasValue
+                    ? Math.Max(0, (int)(stripeSub.TrialEnd.Value - DateTime.UtcNow).TotalDays)
+                    : 3;
+                await emailService.SendTrialEndingNotificationAsync(user.Email, plan.Name, daysRemaining, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send trial ending notification for subscription {SubscriptionId}", stripeSub.Id);
+        }
+
         return true;
     }
 

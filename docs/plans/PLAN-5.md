@@ -886,7 +886,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-006, Trasversale
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-06
 
 **What to do:**
@@ -898,10 +898,17 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 3. Call from webhook event handlers where appropriate.
 
 **Definition of Done:**
-- [ ] Three email methods added to interface and both implementations
-- [ ] Webhook handlers send emails on relevant events
-- [ ] Console fallback logs email content
-- [ ] Unit tests for email service methods
+- [x] Three email methods added to interface and both implementations
+- [x] Webhook handlers send emails on relevant events (`HandleCheckoutSessionCompletedAsync`, `HandleSubscriptionDeletedAsync`, `HandleTrialWillEndAsync`)
+- [x] Console fallback logs email content via `LogWarning` + `LogInformation`
+- [x] Unit tests for email service methods (4 new tests: confirmation, trial ending, canceled, email-failure resilience)
+
+**Implementation Notes:**
+- `HandleTrialWillEnd` converted from sync `bool` to async `Task<bool>` to enable DB queries and email sending; `ProcessEventAsync` switch updated with `await`
+- Email sending is fire-and-forget: each call wrapped in try/catch so SMTP failures never block webhook processing
+- `daysRemaining` calculated from `stripeSub.TrialEnd - UtcNow`, with fallback to 3 if `TrialEnd` is null
+- Tests use a shared `SeedTestUser()` helper (called in constructor) to ensure a user is available for handler queries
+- All 19 unit tests pass (15 existing + 4 new)
 
 ---
 
