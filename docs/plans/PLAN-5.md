@@ -19,7 +19,7 @@
 | US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ✅ Done |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
-| US-011 | Feature gating frontend | T-13 | 🔄 In Progress (backend done) |
+| US-011 | Feature gating frontend | T-13, T-13b | ✅ Done |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
 
 ---
@@ -690,7 +690,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-011
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-13
 
 **What to do:**
@@ -704,11 +704,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Export from library's `public-api.ts`.
 
 **Definition of Done:**
-- [ ] `SubscriptionService` exposes plan signals from auth/me data
-- [ ] `*requiresPlan` directive conditionally renders elements
-- [ ] `requiresPlanGuard` protects routes
-- [ ] All checks pass when payments module is disabled
-- [ ] Unit tests for service and directive
+- [x] `SubscriptionService` exposes plan signals from auth/me data
+- [x] `*requiresPlan` directive conditionally renders elements (accepts `string | string[]`)
+- [x] `requiresPlanGuard` protects routes, redirecting to `/pricing` on failure
+- [x] All checks pass when payments module is disabled (null subscription → all return true)
+- [x] Unit tests for service (9 tests), directive (3 tests), and guard (3 tests)
+
+**Implementation Notes:**
+- `subscription` stored directly on the `User` interface (optional field) so `getProfile()` picks it up from `/me` without a separate response type
+- `SubscriptionService` mirrors `PermissionService` pattern: `providedIn: 'root'`, computed signals, boolean check methods
+- `hasPlan`/`hasAnyPlan`/`hasFeature` all return `true` when `subscription === null`, consistent with DA-1 (payments module disabled → all features available)
+- `RequiresPlanDirective` accepts both `string` and `string[]` input for flexible single/multi-plan checks
+- `AuthService.clearAuth()` updated to reset `_subscription` signal to null alongside existing cleanup
 
 ---
 
