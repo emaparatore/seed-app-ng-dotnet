@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MediatR;
+using Seed.Application.Admin.InvoiceRequests.Commands.UpdateInvoiceRequestStatus;
+using Seed.Application.Admin.InvoiceRequests.Models;
+using Seed.Application.Admin.InvoiceRequests.Queries.GetInvoiceRequests;
 using Seed.Application.Admin.Plans.Commands.ArchivePlan;
 using Seed.Application.Admin.Plans.Commands.CreatePlan;
 using Seed.Application.Admin.Plans.Commands.UpdatePlan;
@@ -13,10 +16,12 @@ using Seed.Application.Admin.Subscriptions.Models;
 using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionDetail;
 using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionMetrics;
 using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionsList;
-using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
+using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
+using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Models;
+using Seed.Application.Billing.Queries.GetMyInvoiceRequests;
 using Seed.Application.Billing.Queries.GetMySubscription;
 using Seed.Application.Billing.Queries.GetPlans;
 using Seed.Application.Common;
@@ -114,6 +119,11 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<GetSubscriptionMetricsQuery, Result<SubscriptionMetricsDto>>, GetSubscriptionMetricsQueryHandler>();
             services.AddScoped<IRequestHandler<GetSubscriptionsListQuery, Result<PagedResult<AdminSubscriptionDto>>>, GetSubscriptionsListQueryHandler>();
             services.AddScoped<IRequestHandler<GetSubscriptionDetailQuery, Result<AdminSubscriptionDetailDto>>, GetSubscriptionDetailQueryHandler>();
+
+            services.AddScoped<IRequestHandler<CreateInvoiceRequestCommand, Result<Guid>>, CreateInvoiceRequestCommandHandler>();
+            services.AddScoped<IRequestHandler<GetMyInvoiceRequestsQuery, Result<IReadOnlyList<InvoiceRequestDto>>>, GetMyInvoiceRequestsQueryHandler>();
+            services.AddScoped<IRequestHandler<GetInvoiceRequestsQuery, Result<PagedResult<AdminInvoiceRequestDto>>>, GetAdminInvoiceRequestsQueryHandler>();
+            services.AddScoped<IRequestHandler<UpdateInvoiceRequestStatusCommand, Result<bool>>, UpdateInvoiceRequestStatusCommandHandler>();
         }
         else
         {

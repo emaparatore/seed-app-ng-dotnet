@@ -9,7 +9,7 @@ public class PermissionsTests
     [Fact]
     public void GetAll_Should_Return_19_Permissions()
     {
-        Permissions.GetAll().Should().HaveCount(20);
+        Permissions.GetAll().Should().HaveCount(21);
     }
 
     [Fact]

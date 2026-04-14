@@ -42,4 +42,8 @@ public static class AuditActions
     public const string PlanCreated = "PlanCreated";
     public const string PlanUpdated = "PlanUpdated";
     public const string PlanArchived = "PlanArchived";
+
+    // Invoice requests
+    public const string InvoiceRequestCreated = "InvoiceRequestCreated";
+    public const string InvoiceRequestStatusUpdated = "InvoiceRequestStatusUpdated";
 }

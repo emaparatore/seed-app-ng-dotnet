@@ -20,7 +20,7 @@
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
 | US-011 | Feature gating frontend | T-13, T-13b | ✅ Done |
-| US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (domain entities done) |
+| US-012 | Richiesta fattura manuale | T-19, T-20 | 🔄 In Progress (backend done, frontend pending) |
 
 ---
 
@@ -725,7 +725,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-012 (RF-9)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-03, T-09
 
 **What to do:**
@@ -742,12 +742,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
    - `PUT api/v1.0/admin/invoice-requests/{id}/status` — update status (admin)
 
 **Definition of Done:**
-- [ ] Create invoice request with all fiscal fields
-- [ ] User can view own invoice request history
-- [ ] Admin can list and update request status
-- [ ] Audit log on create and status change
-- [ ] Validator tests
-- [ ] Unit tests for handlers
+- [x] Create invoice request with all fiscal fields
+- [x] User can view own invoice request history
+- [x] Admin can list and update request status
+- [x] Audit log on create and status change
+- [x] Validator tests
+- [x] Unit tests for handlers
+
+**Implementation Notes:**
+- `Subscriptions.Manage` permission added to the existing `Subscriptions` class (not a new class) and inserted in `All` array — auto-picked up by `RolesAndPermissionsSeeder`
+- All 4 handlers registered manually via `AddScoped<IRequestHandler<...>>` inside the `IsPaymentsModuleEnabled()` block in `DependencyInjection.cs`, consistent with prior billing tasks
+- `UpdateInvoiceRequestStatusCommand`: `InvoiceRequestId` is `[JsonIgnore]` (bound from URL path), `NewStatus` comes from request body — same pattern as `UpdatePlanCommand`; sets `ProcessedAt` only when new status is `Issued`
+- Admin handlers placed in `Seed.Infrastructure/Billing/Commands|Queries/` (not Application) because `ApplicationDbContext` is only available in Infrastructure — query/command contracts remain in Application
+- `AuditActions.InvoiceRequestCreated` and `AuditActions.InvoiceRequestStatusUpdated` added; 5 unit test files cover handlers (create, update-status, get-my, get-admin) and validator
 
 ---
 

@@ -260,7 +260,7 @@ public class AdminRolesEndpointsTests(CustomWebApplicationFactory factory)
 
         var body = await response.Content.ReadFromJsonAsync<List<PermissionItemDto>>();
         body.Should().NotBeNull();
-        body!.Count.Should().Be(20);
+        body!.Count.Should().Be(21);
         body.Should().Contain(p => p.Name == "Users.Read");
         body.Should().Contain(p => p.Name == "Roles.Create");
     }
