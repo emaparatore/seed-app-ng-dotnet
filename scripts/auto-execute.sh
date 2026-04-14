@@ -1060,8 +1060,8 @@ run_claude_cmd() {
   # Cap turni per fase
   local max_turns
   case "$phase" in
-    plan) max_turns=35 ;;
-    exec) max_turns=40 ;;
+    plan) max_turns=100 ;; #35
+    exec) max_turns=100 ;; #40
     fix)  max_turns=25 ;;
     *)    max_turns=40 ;;
   esac
