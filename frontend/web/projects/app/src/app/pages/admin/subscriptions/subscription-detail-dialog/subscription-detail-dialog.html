@@ -1,0 +1,106 @@
+<h2 mat-dialog-title>Dettaglio abbonamento</h2>
+
+<mat-dialog-content>
+  <div class="detail-grid">
+    <!-- User section -->
+    <div class="detail-section">
+      <h4>Utente</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Email</span>
+      <span class="detail-value">{{ data.userEmail }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Nome completo</span>
+      <span class="detail-value">{{ data.userFullName }}</span>
+    </div>
+
+    <!-- Plan section -->
+    <div class="detail-section">
+      <h4>Piano</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Nome piano</span>
+      <span class="detail-value">{{ data.planName }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Prezzo mensile</span>
+      <span class="detail-value">{{ data.monthlyPrice | number: '1.2-2' }} €</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Prezzo annuale</span>
+      <span class="detail-value">{{ data.yearlyPrice | number: '1.2-2' }} €</span>
+    </div>
+
+    <!-- Subscription section -->
+    <div class="detail-section">
+      <h4>Abbonamento</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Stato</span>
+      <span>
+        <span class="status-badge"
+          [class.active]="data.status === 'Active'"
+          [class.trialing]="data.status === 'Trialing'"
+          [class.past-due]="data.status === 'PastDue'"
+          [class.canceled]="data.status === 'Canceled'"
+          [class.expired]="data.status === 'Expired'">
+          {{ data.status }}
+        </span>
+      </span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Inizio periodo</span>
+      <span class="detail-value">{{ data.currentPeriodStart | date: 'dd/MM/yyyy' }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Fine periodo</span>
+      <span class="detail-value">{{ data.currentPeriodEnd | date: 'dd/MM/yyyy' }}</span>
+    </div>
+    @if (data.trialEnd) {
+      <div class="detail-item">
+        <span class="detail-label">Fine prova</span>
+        <span class="detail-value">{{ data.trialEnd | date: 'dd/MM/yyyy' }}</span>
+      </div>
+    }
+    @if (data.canceledAt) {
+      <div class="detail-item">
+        <span class="detail-label">Annullato il</span>
+        <span class="detail-value">{{ data.canceledAt | date: 'dd/MM/yyyy' }}</span>
+      </div>
+    }
+    <div class="detail-item">
+      <span class="detail-label">Creato il</span>
+      <span class="detail-value">{{ data.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Aggiornato il</span>
+      <span class="detail-value">{{ data.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+
+    <!-- Stripe section -->
+    <div class="detail-section">
+      <h4>Stripe</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Subscription ID</span>
+      @if (data.stripeSubscriptionId) {
+        <span class="detail-value">{{ data.stripeSubscriptionId }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Customer ID</span>
+      @if (data.stripeCustomerId) {
+        <span class="detail-value">{{ data.stripeCustomerId }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Chiudi</button>
+</mat-dialog-actions>

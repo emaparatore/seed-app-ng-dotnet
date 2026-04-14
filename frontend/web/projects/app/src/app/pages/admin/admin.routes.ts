@@ -48,6 +48,12 @@ export const adminRoutes: Routes = [
     data: { title: 'Piani' },
   },
   {
+    path: 'subscriptions',
+    loadComponent: () => import('./subscriptions/subscription-list/subscription-list').then((m) => m.SubscriptionList),
+    canActivate: [permissionGuard('Subscriptions.Read')],
+    data: { title: 'Abbonamenti' },
+  },
+  {
     path: 'audit-log',
     loadComponent: () => import('./audit-log/audit-log-list/audit-log-list').then((m) => m.AuditLogList),
     canActivate: [permissionGuard('AuditLog.Read')],

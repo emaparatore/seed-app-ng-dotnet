@@ -32,4 +32,7 @@ export const PERMISSIONS = {
     Create: 'Plans.Create',
     Update: 'Plans.Update',
   },
+  Subscriptions: {
+    Read: 'Subscriptions.Read',
+  },
 } as const;

@@ -16,7 +16,7 @@
 | US-005 | Upgrade/downgrade del piano | T-09, T-16 | ✅ Done |
 | US-006 | Trial period | T-08, T-15 | ✅ Done |
 | US-007 | Admin — CRUD piani | T-10, T-17 | ✅ Done |
-| US-008 | Admin — dashboard abbonamenti | T-11, T-18 | 🔄 In Progress (backend done) |
+| US-008 | Admin — dashboard abbonamenti | T-11, T-18 | ✅ Done |
 | US-009 | Webhook processing | T-06 | ✅ Done |
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
 | US-011 | Feature gating frontend | T-13 | 🔄 In Progress (backend done) |
@@ -658,7 +658,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** US-008
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-11, T-17
 
 **What to do:**
@@ -672,10 +672,17 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Add "Abbonamenti" to admin sidebar navigation.
 
 **Definition of Done:**
-- [ ] Metrics cards displayed with correct values
-- [ ] Subscriptions list with filtering and pagination
-- [ ] Detail view accessible
-- [ ] Permission-gated route and navigation item
+- [x] Metrics cards displayed with correct values
+- [x] Subscriptions list with filtering and pagination
+- [x] Detail view accessible via read-only dialog (on-demand HTTP call for full detail)
+- [x] Permission-gated route and navigation item
+
+**Implementation Notes:**
+- Detail loaded on-demand at row click (HTTP call) rather than using list data, to retrieve all extra fields of `AdminSubscriptionDetail`
+- `PastDue` status uses CSS class `past-due` (with dash) to avoid invalid class name conflicts; other statuses use lowercase class names (active, trialing, canceled, expired)
+- `Subscriptions: { Read: 'Subscriptions.Read' }` block added to `permissions.ts` in `shared-auth`, auto-picked up by existing permission guard infrastructure
+- Detail dialog follows `PlanEditDialog` pattern (`MAT_DIALOG_DATA`, `MatDialogModule`, `MatDialogRef`) with no separate SCSS file — styles inline in component
+- Build verified: no new errors, only pre-existing warnings (RouterLink in Pricing/Subscription components, budget exceeded)
 
 ---
 
