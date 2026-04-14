@@ -22,6 +22,6 @@ public sealed class UserSubscriptionConfiguration : IEntityTypeConfiguration<Use
         builder.HasOne(s => s.User)
             .WithMany(u => u.Subscriptions)
             .HasForeignKey(s => s.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

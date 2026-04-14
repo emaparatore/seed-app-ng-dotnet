@@ -34,8 +34,8 @@ public sealed class GetAdminInvoiceRequestsQueryHandler(ApplicationDbContext dbC
             .Take(request.PageSize)
             .Select(r => new AdminInvoiceRequestDto(
                 r.Id,
-                r.User.Email!,
-                r.User.FirstName + " " + r.User.LastName,
+                r.User != null ? r.User.Email : null,
+                r.User != null ? r.User.FirstName + " " + r.User.LastName : null,
                 r.CustomerType.ToString(),
                 r.FullName,
                 r.CompanyName,

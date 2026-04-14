@@ -52,6 +52,12 @@ public sealed class MockPaymentGateway(ILogger<MockPaymentGateway> logger) : IPa
         return Task.FromResult<SubscriptionDetails?>(details);
     }
 
+    public Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default)
+    {
+        logger.LogWarning("MockPaymentGateway — DeleteCustomer: {CustomerId}", stripeCustomerId);
+        return Task.CompletedTask;
+    }
+
     public Task<ProductSyncResult> SyncPlanToProviderAsync(SyncPlanRequest request, CancellationToken ct = default)
     {
         var result = new ProductSyncResult(

@@ -160,6 +160,13 @@ public sealed class StripePaymentGateway(
         return new ProductSyncResult(productId, monthlyPriceId, yearlyPriceId);
     }
 
+    public async Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default)
+    {
+        var service = new CustomerService(_client);
+        await service.DeleteAsync(stripeCustomerId, cancellationToken: ct);
+        logger.LogInformation("Stripe customer deleted: {CustomerId}", stripeCustomerId);
+    }
+
     private async Task<string> CreatePriceIfNeededAsync(
         PriceService priceService,
         string productId,

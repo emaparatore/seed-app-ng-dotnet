@@ -38,7 +38,7 @@ public sealed class GetSubscriptionsListQueryHandler(ApplicationDbContext dbCont
             .Take(request.PageSize)
             .Select(s => new AdminSubscriptionDto(
                 s.Id,
-                s.User.Email!,
+                s.User != null ? s.User.Email! : "[anonymized]",
                 s.Plan.Name,
                 s.Status.ToString(),
                 s.CurrentPeriodStart,

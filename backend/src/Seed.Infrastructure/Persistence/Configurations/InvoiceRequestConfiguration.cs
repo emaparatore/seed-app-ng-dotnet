@@ -30,6 +30,6 @@ public sealed class InvoiceRequestConfiguration : IEntityTypeConfiguration<Invoi
         builder.HasOne(i => i.User)
             .WithMany(u => u.InvoiceRequests)
             .HasForeignKey(i => i.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

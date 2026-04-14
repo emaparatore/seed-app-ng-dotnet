@@ -5,7 +5,7 @@ namespace Seed.Domain.Entities;
 public class UserSubscription
 {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     public Guid PlanId { get; set; }
     public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
     public string? StripeSubscriptionId { get; set; }
@@ -17,6 +17,6 @@ public class UserSubscription
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public ApplicationUser User { get; set; } = null!;
+    public ApplicationUser? User { get; set; }
     public SubscriptionPlan Plan { get; set; } = null!;
 }

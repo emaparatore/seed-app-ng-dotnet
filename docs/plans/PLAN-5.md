@@ -21,6 +21,7 @@
 | US-010 | Subscription guard su endpoint | T-12 | ✅ Done |
 | US-011 | Feature gating frontend | T-13, T-13b | ✅ Done |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | ✅ Done |
+| (Trasversale) | GDPR subscription cleanup on account deletion | T-21 | ✅ Done |
 
 ---
 
@@ -796,7 +797,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** Trasversale (DA, Open Question 4)
 **Size:** Medium
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-05, T-06
 
 **What to do:**
@@ -809,12 +810,19 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 3. Update `DataCleanupService` if needed for retention policies.
 
 **Definition of Done:**
-- [ ] Account deletion cancels Stripe subscription
-- [ ] Account deletion deletes Stripe Customer
-- [ ] UserSubscription anonymized (not deleted)
-- [ ] InvoiceRequest kept 10 years with anonymized personal data
-- [ ] No-op when payments module disabled
-- [ ] Unit tests for purge logic
+- [x] Account deletion cancels Stripe subscription
+- [x] Account deletion deletes Stripe Customer
+- [x] UserSubscription anonymized (not deleted)
+- [x] InvoiceRequest kept 10 years with anonymized personal data
+- [x] No-op when payments module disabled
+- [x] Integration tests for purge logic (3 tests: anonymize subscriptions, anonymize invoice requests, skip when module disabled)
+
+**Implementation Notes:**
+- `IServiceProvider.GetService<IPaymentGateway>()` used in `UserPurgeService` to optionally resolve the gateway — avoids changing DI registration, returns null when module is disabled (no-op)
+- `UserSubscription.UserId` and `InvoiceRequest.UserId` changed to `Guid?`; FK behavior changed from `DeleteBehavior.Cascade` to `DeleteBehavior.SetNull` on both tables; migration `20260414061919_GdprAnonymizeSubscriptions` generated
+- Invoice request anonymization keeps `FiscalCode`, `VatNumber`, `SdiCode`, `CustomerType`, `Status`, and dates for legal/fiscal compliance; personal fields (`FullName`, `Address`, `City`, `PostalCode`, `PecEmail`) replaced with `"ANONYMIZED"`
+- `AdminSubscriptionDetailDto` and `AdminInvoiceRequestDto` updated to nullable `UserId`/`UserEmail`/`UserFullName`; query handlers use null-safe access with `"[anonymized]"` fallback
+- Integration tests use `WebhookWebApplicationFactory` (payments enabled + MockPaymentGateway) for gateway scenarios and `CustomWebApplicationFactory` for the module-disabled scenario
 
 ---
 

@@ -10,4 +10,5 @@ public interface IPaymentGateway
     Task CancelSubscriptionAsync(string stripeSubscriptionId, CancellationToken ct = default);
     Task<SubscriptionDetails?> GetSubscriptionAsync(string stripeSubscriptionId, CancellationToken ct = default);
     Task<ProductSyncResult> SyncPlanToProviderAsync(SyncPlanRequest request, CancellationToken ct = default);
+    Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default);
 }

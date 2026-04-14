@@ -5,7 +5,7 @@ namespace Seed.Domain.Entities;
 public class InvoiceRequest
 {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     public string? StripePaymentIntentId { get; set; }
     public CustomerType CustomerType { get; set; }
     public string FullName { get; set; } = string.Empty;
@@ -23,5 +23,5 @@ public class InvoiceRequest
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ProcessedAt { get; set; }
 
-    public ApplicationUser User { get; set; } = null!;
+    public ApplicationUser? User { get; set; }
 }

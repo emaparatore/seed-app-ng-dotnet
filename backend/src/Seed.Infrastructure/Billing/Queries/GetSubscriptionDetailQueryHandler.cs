@@ -21,8 +21,8 @@ public sealed class GetSubscriptionDetailQueryHandler(ApplicationDbContext dbCon
             .Select(s => new AdminSubscriptionDetailDto(
                 s.Id,
                 s.UserId,
-                s.User.Email!,
-                s.User.FirstName + " " + s.User.LastName,
+                s.User != null ? s.User.Email : null,
+                s.User != null ? s.User.FirstName + " " + s.User.LastName : null,
                 s.PlanId,
                 s.Plan.Name,
                 s.Plan.MonthlyPrice,

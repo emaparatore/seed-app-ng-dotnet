@@ -2,8 +2,8 @@ namespace Seed.Application.Admin.InvoiceRequests.Models;
 
 public sealed record AdminInvoiceRequestDto(
     Guid Id,
-    string UserEmail,
-    string UserFullName,
+    string? UserEmail,
+    string? UserFullName,
     string CustomerType,
     string FullName,
     string? CompanyName,
