@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService, PermissionService } from 'shared-auth';
 import { PwaInstallPrompt } from './pwa-install-prompt/pwa-install-prompt';
 import { AppFooter } from './footer/footer';
+import { ConfigService } from './services/config.service';
 
 @Component({
   selector: 'app-root',
@@ -16,4 +17,5 @@ import { AppFooter } from './footer/footer';
 export class App {
   protected readonly authService = inject(AuthService);
   protected readonly permissionService = inject(PermissionService);
+  protected readonly configService = inject(ConfigService);
 }

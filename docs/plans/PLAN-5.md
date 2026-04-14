@@ -22,6 +22,7 @@
 | US-011 | Feature gating frontend | T-13, T-13b | ✅ Done |
 | US-012 | Richiesta fattura manuale | T-19, T-20 | ✅ Done |
 | (Trasversale) | GDPR subscription cleanup on account deletion | T-21 | ✅ Done |
+| (Trasversale) | DA-1: Modulo attivabile via configurazione | T-01, T-23 | ✅ Done |
 
 ---
 
@@ -853,7 +854,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 
 **Stories:** Trasversale (DA-1)
 **Size:** Small
-**Status:** [ ] Not Started
+**Status:** [x] Done
 **Depends on:** T-01
 
 **What to do:**
@@ -866,11 +867,18 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 4. Frontend: add a config flag (from `/auth/me` or a dedicated `/config` endpoint) indicating if payments module is active, to conditionally show/hide navigation items and routes.
 
 **Definition of Done:**
-- [ ] All payment services/controllers conditionally registered
-- [ ] Module disabled → no payment routes, guards pass always
-- [ ] Module enabled → full functionality
-- [ ] Frontend hides payment UI when module disabled
-- [ ] Integration test verifying disabled module behavior
+- [x] All payment services/controllers conditionally registered
+- [x] Module disabled → no payment routes (removed from application model at build time), guards pass always
+- [x] Module enabled → full functionality
+- [x] Frontend hides payment UI when module disabled (nav items and routes guarded)
+- [x] Integration test verifying disabled module behavior (5 integration tests)
+
+**Implementation Notes:**
+- `IApplicationModelConvention` (`PaymentsModuleConvention`) removes billing controllers from the application model at build time — routes are never registered and Swagger never exposes them when the module is disabled
+- `GET /api/v1.0/config` anonymous endpoint (`ConfigController`) exposes `{ paymentsEnabled: bool }` for unauthenticated and authenticated callers alike
+- Frontend `ConfigService` loads config via `APP_INITIALIZER`, guaranteeing `paymentsEnabled` signal is set before route guards execute
+- `paymentsEnabledGuard` applied to all billing and pricing routes (including public `/pricing`) — redirects to `/` when module disabled; admin routes also guarded
+- Fallback to `false` in `ConfigService` on HTTP error: safe default that hides all payment UI if backend is unreachable
 
 ---
 

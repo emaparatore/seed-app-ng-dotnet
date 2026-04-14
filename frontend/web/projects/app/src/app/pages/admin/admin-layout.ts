@@ -7,6 +7,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { HasPermissionDirective, PERMISSIONS } from 'shared-auth';
+import { ConfigService } from '../../services/config.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -25,6 +26,7 @@ import { HasPermissionDirective, PERMISSIONS } from 'shared-auth';
 })
 export class AdminLayout {
   protected readonly permissions = PERMISSIONS;
+  protected readonly configService = inject(ConfigService);
 
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly destroyRef = inject(DestroyRef);

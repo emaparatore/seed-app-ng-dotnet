@@ -5,7 +5,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { App } from './app';
-import { AuthService } from 'shared-auth';
+import { AuthService, AUTH_CONFIG } from 'shared-auth';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -25,6 +25,7 @@ describe('App', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: mockAuthService },
+        { provide: AUTH_CONFIG, useValue: { apiUrl: 'http://localhost:5000/api/v1.0' } },
       ],
     }).compileComponents();
   });

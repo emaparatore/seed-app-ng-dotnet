@@ -9,9 +9,11 @@
     @if (permissionService.isAdmin()) {
       <a mat-button routerLink="/admin">Admin</a>
     }
-    <a mat-icon-button routerLink="/billing/subscription" aria-label="Abbonamento">
-      <mat-icon>credit_card</mat-icon>
-    </a>
+    @if (configService.paymentsEnabled()) {
+      <a mat-icon-button routerLink="/billing/subscription" aria-label="Abbonamento">
+        <mat-icon>credit_card</mat-icon>
+      </a>
+    }
     <a class="user-name-link" routerLink="/profile">
       {{ authService.currentUser()?.firstName }} {{ authService.currentUser()?.lastName }}
     </a>
