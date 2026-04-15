@@ -108,8 +108,8 @@ public sealed class StripePaymentGateway(
                 CustomerId: subscription.CustomerId,
                 Status: subscription.Status,
                 PriceId: subscription.Items.Data[0].Price.Id,
-                CurrentPeriodStart: subscription.CurrentPeriodStart,
-                CurrentPeriodEnd: subscription.CurrentPeriodEnd,
+                CurrentPeriodStart: subscription.Items.Data[0].CurrentPeriodStart,
+                CurrentPeriodEnd: subscription.Items.Data[0].CurrentPeriodEnd,
                 TrialEnd: subscription.TrialEnd,
                 CancelAtPeriodEnd: subscription.CancelAtPeriodEnd);
         }

@@ -141,7 +141,7 @@ public sealed class StripeWebhookEventHandler(
         var invoice = stripeEvent.Data.Object as Invoice;
         if (invoice is null) return false;
 
-        var stripeSubscriptionId = invoice.SubscriptionId ?? invoice.Subscription?.Id;
+        var stripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
         if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return false;
 
         var subscription = await dbContext.UserSubscriptions
@@ -182,7 +182,7 @@ public sealed class StripeWebhookEventHandler(
         var invoice = stripeEvent.Data.Object as Invoice;
         if (invoice is null) return false;
 
-        var stripeSubscriptionId = invoice.SubscriptionId ?? invoice.Subscription?.Id;
+        var stripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
         if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return false;
 
         var subscription = await dbContext.UserSubscriptions
@@ -225,9 +225,10 @@ public sealed class StripeWebhookEventHandler(
             return false;
         }
 
+        var firstItem = stripeSub.Items?.Data?.FirstOrDefault();
         subscription.Status = MapStripeStatus(stripeSub.Status);
-        subscription.CurrentPeriodStart = stripeSub.CurrentPeriodStart;
-        subscription.CurrentPeriodEnd = stripeSub.CurrentPeriodEnd;
+        subscription.CurrentPeriodStart = firstItem?.CurrentPeriodStart ?? subscription.CurrentPeriodStart;
+        subscription.CurrentPeriodEnd = firstItem?.CurrentPeriodEnd ?? subscription.CurrentPeriodEnd;
         subscription.TrialEnd = stripeSub.TrialEnd;
 
         // Check if plan changed via price ID
