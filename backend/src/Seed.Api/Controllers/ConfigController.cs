@@ -9,11 +9,14 @@ namespace Seed.Api.Controllers;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/config")]
 [AllowAnonymous]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class ConfigController(IConfiguration configuration) : ControllerBase
 {
     [HttpGet]
     public IActionResult GetConfig()
     {
+        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        Response.Headers.Pragma = "no-cache";
         return Ok(new { paymentsEnabled = configuration.IsPaymentsModuleEnabled() });
     }
 }
