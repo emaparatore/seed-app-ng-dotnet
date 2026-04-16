@@ -203,13 +203,13 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa confrontarli e scegliere quello più adatto.
 
 **Acceptance Criteria:**
-- [ ] Esiste una route `/pricing` accessibile senza autenticazione
-- [ ] La pagina mostra tutti i piani attivi con nome, descrizione, prezzo mensile/annuale
-- [ ] Ogni piano elenca le feature incluse (con icone check/cross)
-- [ ] Il piano "più popolare" è evidenziato visivamente
-- [ ] È presente un toggle mensile/annuale per la visualizzazione dei prezzi
-- [ ] Ogni piano ha un pulsante CTA (Call To Action) che porta al checkout (o al login se non autenticato)
-- [ ] Il piano free (se presente) ha un CTA "Inizia gratis" che porta alla registrazione
+- [x] Esiste una route `/pricing` accessibile senza autenticazione
+- [x] La pagina mostra tutti i piani attivi con nome, descrizione, prezzo mensile/annuale
+- [x] Ogni piano elenca le feature incluse (con icone check/cross)
+- [x] Il piano "più popolare" è evidenziato visivamente
+- [x] È presente un toggle mensile/annuale per la visualizzazione dei prezzi
+- [x] Ogni piano ha un pulsante CTA (Call To Action) che porta al checkout (o al login se non autenticato)
+- [x] Il piano free (se presente) ha un CTA "Inizia gratis" che porta alla registrazione
 
 #### US-002: Sottoscrivere un piano a pagamento
 
@@ -218,12 +218,12 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa accedere alle feature premium.
 
 **Acceptance Criteria:**
-- [ ] Cliccando "Scegli piano" dalla pricing page, l'utente viene reindirizzato a Stripe Checkout
-- [ ] La sessione Stripe Checkout è pre-compilata con l'email dell'utente
-- [ ] Dopo il pagamento riuscito, l'utente torna all'app su una pagina di conferma
-- [ ] La subscription è attiva e visibile nel profilo utente
-- [ ] L'audit log registra l'evento di sottoscrizione
-- [ ] Se l'utente annulla il checkout, torna all'app sulla pricing page
+- [x] Cliccando "Scegli piano" dalla pricing page, l'utente viene reindirizzato a Stripe Checkout
+- [X] La sessione Stripe Checkout è pre-compilata con l'email dell'utente
+- [X] Dopo il pagamento riuscito, l'utente torna all'app su una pagina di conferma
+- [X] La subscription è attiva e visibile nel profilo utente
+- [X] L'audit log registra l'evento di sottoscrizione
+- [X] Se l'utente annulla il checkout, torna all'app sulla pricing page
 
 #### US-003: Visualizzare il proprio abbonamento
 
@@ -232,10 +232,10 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa sapere quale piano ho, quando si rinnova e quanto pago.
 
 **Acceptance Criteria:**
-- [ ] Nel profilo utente esiste una sezione "Il mio abbonamento"
-- [ ] Mostra: nome del piano, stato, prezzo, prossima data di rinnovo
-- [ ] Se l'utente non ha un piano a pagamento, mostra il piano free o un invito a sottoscrivere
-- [ ] Sono presenti pulsanti per: gestire il pagamento, cambiare piano, cancellare
+- [X] Nel profilo utente esiste una sezione "Il mio abbonamento"
+- [X] Mostra: nome del piano, stato, prezzo, prossima data di rinnovo
+- [X] Se l'utente non ha un piano a pagamento, mostra il piano free o un invito a sottoscrivere
+- [X] Sono presenti pulsanti per: gestire il pagamento, cambiare piano, cancellare
 
 #### US-004: Gestire pagamento e cancellare abbonamento
 
@@ -244,11 +244,11 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa gestire il mio account in autonomia.
 
 **Acceptance Criteria:**
-- [ ] Il pulsante "Gestisci pagamento" reindirizza a Stripe Customer Portal
-- [ ] Da Stripe Customer Portal l'utente può: aggiornare la carta, vedere lo storico pagamenti, scaricare le ricevute
-- [ ] Il pulsante "Cancella abbonamento" mostra un dialog di conferma
-- [ ] Dopo la cancellazione, la subscription resta attiva fino alla fine del periodo pagato
-- [ ] Lo stato della subscription si aggiorna via webhook
+- [X] Il pulsante "Gestisci pagamento" reindirizza a Stripe Customer Portal
+- [X] Da Stripe Customer Portal l'utente può: aggiornare la carta, vedere lo storico pagamenti, scaricare le ricevute
+- [X] Il pulsante "Cancella abbonamento" mostra un dialog di conferma
+- [X] Dopo la cancellazione, la subscription resta attiva fino alla fine del periodo pagato
+- [X] Lo stato della subscription si aggiorna via webhook
 
 #### US-005: Upgrade/downgrade del piano
 
@@ -257,7 +257,7 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa adattare il servizio alle mie esigenze.
 
 **Acceptance Criteria:**
-- [ ] Dalla pagina del proprio abbonamento, l'utente può cliccare "Cambia piano"
+- [x] Dalla pagina del proprio abbonamento, l'utente può cliccare "Cambia piano"
 - [ ] Viene mostrata la lista dei piani disponibili con il piano attuale evidenziato
 - [ ] L'upgrade è immediato, con proration calcolata da Stripe
 - [ ] Il downgrade diventa effettivo alla fine del periodo di billing corrente
