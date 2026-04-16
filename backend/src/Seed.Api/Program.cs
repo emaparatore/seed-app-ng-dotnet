@@ -37,6 +37,10 @@ builder.Services.AddControllers(options =>
 {
     if (!builder.Configuration.IsPaymentsModuleEnabled())
         options.Conventions.Add(new PaymentsModuleConvention());
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
