@@ -232,6 +232,85 @@ public class BillingControllerTests : IClassFixture<WebhookWebApplicationFactory
         await db.SaveChangesAsync();
     }
 
+    [Fact]
+    public async Task ChangePlan_Returns_Ok_And_Updates_Subscription_Plan()
+    {
+        var email = $"billing-change-plan-{Guid.NewGuid():N}@example.com";
+        var auth = await RegisterAndConfirmUserAsync(email);
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var userId = await GetUserIdAsync(email);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var oldPlan = new SubscriptionPlan
+        {
+            Id = Guid.NewGuid(),
+            Name = "Old Plan",
+            MonthlyPrice = 9.99m,
+            YearlyPrice = 99.99m,
+            StripePriceIdMonthly = "price_old_monthly",
+            StripePriceIdYearly = "price_old_yearly",
+            Status = PlanStatus.Active,
+            SortOrder = 1
+        };
+
+        var newPlan = new SubscriptionPlan
+        {
+            Id = Guid.NewGuid(),
+            Name = "New Plan",
+            MonthlyPrice = 19.99m,
+            YearlyPrice = 199.99m,
+            StripePriceIdMonthly = "price_new_monthly",
+            StripePriceIdYearly = "price_new_yearly",
+            Status = PlanStatus.Active,
+            SortOrder = 2
+        };
+
+        db.SubscriptionPlans.AddRange(oldPlan, newPlan);
+
+        var subscriptionId = Guid.NewGuid();
+        db.UserSubscriptions.Add(new UserSubscription
+        {
+            Id = subscriptionId,
+            UserId = userId,
+            PlanId = oldPlan.Id,
+            Status = SubscriptionStatus.Active,
+            StripeSubscriptionId = "sub_change_plan_test",
+            StripeCustomerId = "cus_change_plan_test",
+            CurrentPeriodStart = DateTime.UtcNow,
+            CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1)
+        });
+        await db.SaveChangesAsync();
+
+        var response = await _client.PostAsJsonAsync("/api/v1/billing/change-plan", new
+        {
+            planId = newPlan.Id,
+            billingInterval = "Monthly"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await using var verificationScope = _factory.Services.CreateAsyncScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var updatedSubscription = await verificationDb.UserSubscriptions.FindAsync(subscriptionId);
+        updatedSubscription.Should().NotBeNull();
+        updatedSubscription!.PlanId.Should().Be(newPlan.Id);
+        updatedSubscription.ScheduledPlanId.Should().BeNull();
+        updatedSubscription.StripeScheduleId.Should().BeNull();
+
+        // Cleanup
+        var subscriptionsToDelete = db.UserSubscriptions
+            .Where(s => s.UserId == userId || s.PlanId == oldPlan.Id || s.PlanId == newPlan.Id)
+            .ToList();
+        db.UserSubscriptions.RemoveRange(subscriptionsToDelete);
+        await db.SaveChangesAsync();
+
+        db.SubscriptionPlans.RemoveRange(oldPlan, newPlan);
+        await db.SaveChangesAsync();
+    }
+
     private record AuthResponseDto(
         string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User);
 
