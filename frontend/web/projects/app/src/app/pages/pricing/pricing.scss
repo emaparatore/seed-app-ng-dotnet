@@ -55,6 +55,11 @@
     border-color: var(--mat-sys-primary, #6750a4);
   }
 
+  &.active {
+    border-color: var(--mat-sys-tertiary, #7d5260);
+    background: var(--mat-sys-tertiary-container, #ffd8e4);
+  }
+
   mat-card-header {
     padding-top: 20px;
   }
@@ -80,6 +85,29 @@
   padding: 3px 16px;
   border-radius: 12px;
   white-space: nowrap;
+}
+
+.active-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--mat-sys-tertiary, #7d5260);
+  color: var(--mat-sys-on-tertiary, #fff);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
 }
 
 // Price block

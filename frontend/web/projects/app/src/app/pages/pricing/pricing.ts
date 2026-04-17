@@ -8,7 +8,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from 'shared-auth';
 import { BillingService } from './billing.service';
-import { Plan } from './billing.models';
+import { Plan, UserSubscription } from './billing.models';
 
 @Component({
   selector: 'app-pricing',
@@ -26,6 +26,7 @@ export class Pricing implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly billingInterval = signal<'monthly' | 'yearly'>('monthly');
   protected readonly checkoutLoading = signal(false);
+  protected readonly currentSubscription = signal<UserSubscription | null>(null);
 
   protected readonly sortedPlans = computed(() =>
     [...this.plans()].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -33,6 +34,15 @@ export class Pricing implements OnInit {
 
   ngOnInit(): void {
     this.loadPlans();
+    if (this.authService.isAuthenticated()) {
+      this.loadSubscription();
+    }
+  }
+
+  protected isActivePlan(plan: Plan): boolean {
+    const sub = this.currentSubscription();
+    if (!sub) return false;
+    return sub.planName === plan.name;
   }
 
   reload(): void {
@@ -90,6 +100,13 @@ export class Pricing implements OnInit {
         this.error.set(err.error?.errors?.[0] ?? 'Errore nel caricamento dei piani.');
         this.loading.set(false);
       },
+    });
+  }
+
+  private loadSubscription(): void {
+    this.billingService.getMySubscription().subscribe({
+      next: (sub) => this.currentSubscription.set(sub),
+      error: () => {},
     });
   }
 }

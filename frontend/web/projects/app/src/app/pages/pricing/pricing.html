@@ -43,8 +43,13 @@
 } @else {
   <div class="plans-grid">
     @for (plan of sortedPlans(); track plan.id) {
-      <mat-card class="plan-card" [class.popular]="plan.isPopular">
-        @if (plan.isPopular) {
+      <mat-card class="plan-card" [class.popular]="plan.isPopular" [class.active]="isActivePlan(plan)">
+        @if (isActivePlan(plan)) {
+          <div class="active-badge">
+            <mat-icon>check_circle</mat-icon>
+            Piano attuale
+          </div>
+        } @else if (plan.isPopular) {
           <div class="popular-badge">Più popolare</div>
         }
 
@@ -97,10 +102,12 @@
             mat-flat-button
             class="cta-button"
             [color]="plan.isPopular ? 'primary' : undefined"
-            [disabled]="checkoutLoading()"
+            [disabled]="checkoutLoading() || isActivePlan(plan)"
             (click)="onCtaClick(plan)"
           >
-            @if (checkoutLoading() && authService.isAuthenticated() && !plan.isFreeTier) {
+            @if (isActivePlan(plan)) {
+              Piano attuale
+            } @else if (checkoutLoading() && authService.isAuthenticated() && !plan.isFreeTier) {
               <mat-spinner diameter="20" />
             } @else if (plan.isFreeTier) {
               Inizia gratis
