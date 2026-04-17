@@ -5,4 +5,5 @@ public sealed record UserSubscriptionDto(
     string Status, decimal MonthlyPrice, decimal YearlyPrice,
     DateTime CurrentPeriodStart, DateTime CurrentPeriodEnd,
     DateTime? TrialEnd, DateTime? CanceledAt,
-    bool IsFreeTier, IReadOnlyList<PlanFeatureDto> Features);
+    bool IsFreeTier, IReadOnlyList<PlanFeatureDto> Features,
+    string? ScheduledPlanName = null, DateTime? ScheduledChangeDate = null);

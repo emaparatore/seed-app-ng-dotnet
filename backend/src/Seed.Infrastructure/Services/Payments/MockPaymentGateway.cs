@@ -52,6 +52,40 @@ public sealed class MockPaymentGateway(ILogger<MockPaymentGateway> logger) : IPa
         return Task.FromResult<SubscriptionDetails?>(details);
     }
 
+    public Task<SubscriptionDetails> UpdateSubscriptionPriceAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var details = new SubscriptionDetails(
+            SubscriptionId: stripeSubscriptionId,
+            CustomerId: "mock_cus_default",
+            Status: "active",
+            PriceId: newPriceId,
+            CurrentPeriodStart: now,
+            CurrentPeriodEnd: now.AddDays(30),
+            TrialEnd: null,
+            CancelAtPeriodEnd: false);
+
+        logger.LogWarning("MockPaymentGateway — UpdateSubscriptionPrice: {SubscriptionId} → {PriceId}", stripeSubscriptionId, newPriceId);
+        return Task.FromResult(details);
+    }
+
+    public Task<ScheduledDowngradeResult> ScheduleSubscriptionDowngradeAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)
+    {
+        var result = new ScheduledDowngradeResult(
+            ScheduleId: $"mock_sched_{Guid.NewGuid():N}",
+            ScheduledDate: DateTime.UtcNow.AddDays(30));
+
+        logger.LogWarning("MockPaymentGateway — ScheduleSubscriptionDowngrade: {SubscriptionId} → {PriceId} at {Date}",
+            stripeSubscriptionId, newPriceId, result.ScheduledDate);
+        return Task.FromResult(result);
+    }
+
+    public Task CancelSubscriptionScheduleAsync(string scheduleId, CancellationToken ct = default)
+    {
+        logger.LogWarning("MockPaymentGateway — CancelSubscriptionSchedule: {ScheduleId}", scheduleId);
+        return Task.CompletedTask;
+    }
+
     public Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default)
     {
         logger.LogWarning("MockPaymentGateway — DeleteCustomer: {CustomerId}", stripeCustomerId);

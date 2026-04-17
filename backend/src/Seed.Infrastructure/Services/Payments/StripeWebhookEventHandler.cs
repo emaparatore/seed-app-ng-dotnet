@@ -93,6 +93,21 @@ public sealed class StripeWebhookEventHandler(
             ? (session.SubscriptionId is not null ? SubscriptionStatus.Active : SubscriptionStatus.Active)
             : SubscriptionStatus.Active;
 
+        // Deactivate any existing active subscriptions for this user (safety net for plan changes)
+        var existingSubscriptions = await dbContext.UserSubscriptions
+            .Where(s => s.UserId == userGuid
+                && (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trialing)
+                && s.StripeSubscriptionId != subscriptionId)
+            .ToListAsync(ct);
+
+        foreach (var existing in existingSubscriptions)
+        {
+            existing.Status = SubscriptionStatus.Canceled;
+            existing.CanceledAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+            logger.LogInformation("Deactivated old subscription {OldSubscriptionId} for user {UserId}", existing.StripeSubscriptionId, userGuid);
+        }
+
         var subscription = new UserSubscription
         {
             Id = Guid.NewGuid(),
@@ -240,6 +255,13 @@ public sealed class StripeWebhookEventHandler(
             if (newPlan is not null && newPlan.Id != subscription.PlanId)
             {
                 subscription.PlanId = newPlan.Id;
+
+                // Clear scheduled downgrade fields — the plan change has been applied
+                if (subscription.ScheduledPlanId is not null)
+                {
+                    subscription.ScheduledPlanId = null;
+                    subscription.StripeScheduleId = null;
+                }
             }
         }
 

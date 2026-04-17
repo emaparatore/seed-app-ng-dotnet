@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,7 +12,7 @@ import { Plan, UserSubscription } from './billing.models';
 
 @Component({
   selector: 'app-pricing',
-  imports: [CurrencyPipe, RouterLink, MatCardModule, MatIconModule, MatButtonModule, MatButtonToggleModule, MatProgressSpinnerModule],
+  imports: [CurrencyPipe, MatCardModule, MatIconModule, MatButtonModule, MatButtonToggleModule, MatProgressSpinnerModule],
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss',
 })
@@ -45,6 +45,12 @@ export class Pricing implements OnInit {
     return sub.planName === plan.name;
   }
 
+  protected isScheduledPlan(plan: Plan): boolean {
+    const sub = this.currentSubscription();
+    if (!sub?.scheduledPlanName) return false;
+    return sub.scheduledPlanName === plan.name;
+  }
+
   reload(): void {
     this.loadPlans();
   }
@@ -69,6 +75,37 @@ export class Pricing implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
+
+    const sub = this.currentSubscription();
+    const hasActiveSubscription = sub && !sub.isFreeTier;
+
+    if (hasActiveSubscription) {
+      this.changePlan(plan);
+    } else {
+      this.checkout(plan);
+    }
+  }
+
+  private changePlan(plan: Plan): void {
+    this.checkoutLoading.set(true);
+    this.billingService
+      .changePlan({
+        planId: plan.id,
+        billingInterval: this.billingInterval() === 'yearly' ? 'Yearly' : 'Monthly',
+      })
+      .subscribe({
+        next: () => {
+          this.checkoutLoading.set(false);
+          this.router.navigate(['/billing/subscription']);
+        },
+        error: (err) => {
+          this.error.set(err.error?.errors?.[0] ?? 'Errore durante il cambio piano.');
+          this.checkoutLoading.set(false);
+        },
+      });
+  }
+
+  private checkout(plan: Plan): void {
     this.checkoutLoading.set(true);
     this.billingService
       .createCheckoutSession({

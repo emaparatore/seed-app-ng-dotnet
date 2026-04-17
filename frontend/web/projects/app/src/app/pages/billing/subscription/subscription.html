@@ -83,6 +83,16 @@
             </div>
           }
 
+          @if (subscription()?.scheduledPlanName) {
+            <div class="detail-row scheduled-downgrade-info">
+              <mat-icon>schedule</mat-icon>
+              <span>
+                Downgrade al piano <strong>{{ subscription()?.scheduledPlanName }}</strong>
+                pianificato per il {{ subscription()?.scheduledChangeDate | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+          }
+
           @if (subscription()?.features?.length) {
             <div class="features-section">
               <h3 class="features-title">Funzionalità incluse</h3>

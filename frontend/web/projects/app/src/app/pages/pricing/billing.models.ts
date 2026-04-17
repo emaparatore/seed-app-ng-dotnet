@@ -11,6 +11,8 @@ export interface UserSubscription {
   canceledAt: string | null;
   isFreeTier: boolean;
   features: PlanFeature[];
+  scheduledPlanName: string | null;
+  scheduledChangeDate: string | null;
 }
 
 export interface PortalSessionResponse {
@@ -26,6 +28,11 @@ export interface CreateCheckoutRequest {
   billingInterval: 'Monthly' | 'Yearly';
   successUrl: string;
   cancelUrl: string;
+}
+
+export interface ChangePlanRequest {
+  planId: string;
+  billingInterval: 'Monthly' | 'Yearly';
 }
 
 export interface PlanFeature {

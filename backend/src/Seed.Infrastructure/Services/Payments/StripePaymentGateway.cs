@@ -160,6 +160,98 @@ public sealed class StripePaymentGateway(
         return new ProductSyncResult(productId, monthlyPriceId, yearlyPriceId);
     }
 
+    public async Task<SubscriptionDetails> UpdateSubscriptionPriceAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)
+    {
+        var service = new SubscriptionService(_client);
+
+        var existing = await service.GetAsync(stripeSubscriptionId, cancellationToken: ct);
+        var existingItemId = existing.Items.Data[0].Id;
+
+        var options = new SubscriptionUpdateOptions
+        {
+            Items =
+            [
+                new SubscriptionItemOptions
+                {
+                    Id = existingItemId,
+                    Price = newPriceId,
+                },
+            ],
+            ProrationBehavior = "create_prorations",
+        };
+
+        var updated = await service.UpdateAsync(stripeSubscriptionId, options, cancellationToken: ct);
+        logger.LogInformation("Stripe subscription {SubscriptionId} updated to price {PriceId}", stripeSubscriptionId, newPriceId);
+
+        return new SubscriptionDetails(
+            SubscriptionId: updated.Id,
+            CustomerId: updated.CustomerId,
+            Status: updated.Status,
+            PriceId: updated.Items.Data[0].Price.Id,
+            CurrentPeriodStart: updated.Items.Data[0].CurrentPeriodStart,
+            CurrentPeriodEnd: updated.Items.Data[0].CurrentPeriodEnd,
+            TrialEnd: updated.TrialEnd,
+            CancelAtPeriodEnd: updated.CancelAtPeriodEnd);
+    }
+
+    public async Task<ScheduledDowngradeResult> ScheduleSubscriptionDowngradeAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)
+    {
+        var scheduleService = new SubscriptionScheduleService(_client);
+
+        // Create a schedule from the existing subscription
+        var schedule = await scheduleService.CreateAsync(new SubscriptionScheduleCreateOptions
+        {
+            FromSubscription = stripeSubscriptionId,
+        }, cancellationToken: ct);
+
+        var currentPhase = schedule.Phases[0];
+
+        // Update the schedule: keep current phase, add new phase with downgraded price
+        await scheduleService.UpdateAsync(schedule.Id, new SubscriptionScheduleUpdateOptions
+        {
+            EndBehavior = "release",
+            Phases =
+            [
+                new SubscriptionSchedulePhaseOptions
+                {
+                    Items = currentPhase.Items.Select(i => new SubscriptionSchedulePhaseItemOptions
+                    {
+                        Price = i.Price.Id,
+                        Quantity = i.Quantity,
+                    }).ToList(),
+                    StartDate = currentPhase.StartDate,
+                    EndDate = currentPhase.EndDate,
+                },
+                new SubscriptionSchedulePhaseOptions
+                {
+                    Items =
+                    [
+                        new SubscriptionSchedulePhaseItemOptions
+                        {
+                            Price = newPriceId,
+                            Quantity = 1,
+                        },
+                    ],
+                },
+            ],
+        }, cancellationToken: ct);
+
+        var scheduledDate = currentPhase.EndDate != default ? currentPhase.EndDate : DateTime.UtcNow.AddMonths(1);
+
+        logger.LogInformation(
+            "Stripe subscription {SubscriptionId} downgrade scheduled to price {PriceId} at {ScheduledDate}",
+            stripeSubscriptionId, newPriceId, scheduledDate);
+
+        return new ScheduledDowngradeResult(schedule.Id, scheduledDate);
+    }
+
+    public async Task CancelSubscriptionScheduleAsync(string scheduleId, CancellationToken ct = default)
+    {
+        var scheduleService = new SubscriptionScheduleService(_client);
+        await scheduleService.ReleaseAsync(scheduleId, cancellationToken: ct);
+        logger.LogInformation("Stripe subscription schedule {ScheduleId} released", scheduleId);
+    }
+
     public async Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default)
     {
         var service = new CustomerService(_client);

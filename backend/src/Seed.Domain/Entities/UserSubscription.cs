@@ -14,9 +14,12 @@ public class UserSubscription
     public DateTime CurrentPeriodEnd { get; set; }
     public DateTime? TrialEnd { get; set; }
     public DateTime? CanceledAt { get; set; }
+    public Guid? ScheduledPlanId { get; set; }
+    public string? StripeScheduleId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public ApplicationUser? User { get; set; }
     public SubscriptionPlan Plan { get; set; } = null!;
+    public SubscriptionPlan? ScheduledPlan { get; set; }
 }

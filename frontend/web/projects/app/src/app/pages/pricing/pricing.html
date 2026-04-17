@@ -49,6 +49,11 @@
             <mat-icon>check_circle</mat-icon>
             Piano attuale
           </div>
+        } @else if (isScheduledPlan(plan)) {
+          <div class="scheduled-badge">
+            <mat-icon>schedule</mat-icon>
+            Cambio pianificato
+          </div>
         } @else if (plan.isPopular) {
           <div class="popular-badge">Più popolare</div>
         }
@@ -102,11 +107,13 @@
             mat-flat-button
             class="cta-button"
             [color]="plan.isPopular ? 'primary' : undefined"
-            [disabled]="checkoutLoading() || isActivePlan(plan)"
+            [disabled]="checkoutLoading() || isActivePlan(plan) || isScheduledPlan(plan)"
             (click)="onCtaClick(plan)"
           >
             @if (isActivePlan(plan)) {
               Piano attuale
+            } @else if (isScheduledPlan(plan)) {
+              Cambio pianificato
             } @else if (checkoutLoading() && authService.isAuthenticated() && !plan.isFreeTier) {
               <mat-spinner diameter="20" />
             } @else if (plan.isFreeTier) {

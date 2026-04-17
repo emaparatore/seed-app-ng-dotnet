@@ -103,6 +103,15 @@
   }
 }
 
+.scheduled-downgrade-info {
+  color: var(--mat-sys-tertiary, #7b5800);
+  font-weight: 500;
+
+  mat-icon {
+    color: var(--mat-sys-tertiary, #7b5800);
+  }
+}
+
 .features-section {
   margin-top: 1rem;
 }

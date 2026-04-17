@@ -29,7 +29,9 @@ public sealed class GetMySubscriptionQueryHandler(ApplicationDbContext dbContext
                     .OrderBy(f => f.SortOrder)
                     .Select(f => new PlanFeatureDto(
                         f.Id, f.Key, f.Description, f.LimitValue, f.SortOrder))
-                    .ToList()))
+                    .ToList(),
+                s.ScheduledPlan != null ? s.ScheduledPlan.Name : null,
+                s.ScheduledPlanId != null ? s.CurrentPeriodEnd : null))
             .FirstOrDefaultAsync(cancellationToken);
 
         return Result<UserSubscriptionDto?>.Success(subscription);
