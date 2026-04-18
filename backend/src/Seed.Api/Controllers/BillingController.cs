@@ -3,7 +3,6 @@ using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
@@ -55,20 +54,6 @@ public class BillingController(ISender sender) : ControllerBase
 
         var result = await sender.Send(enrichedCommand);
         return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
-    }
-
-    [HttpPost("cancel")]
-    public async Task<IActionResult> CancelSubscription()
-    {
-        var command = new CancelSubscriptionCommand
-        {
-            UserId = CurrentUserId,
-            IpAddress = IpAddress,
-            UserAgent = UserAgent
-        };
-
-        var result = await sender.Send(command);
-        return result.Succeeded ? Ok() : BadRequest(new { errors = result.Errors });
     }
 
     [HttpPost("invoice-request")]

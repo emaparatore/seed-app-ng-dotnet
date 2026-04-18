@@ -10,7 +10,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BillingService } from '../../pricing/billing.service';
 import { CreateInvoiceRequest, InvoiceRequest, UserSubscription } from '../../pricing/billing.models';
-import { ConfirmCancelDialog } from './confirm-cancel-dialog';
 import { InvoiceRequestDialog } from './invoice-request-dialog';
 
 @Component({
@@ -37,7 +36,6 @@ export class Subscription implements OnInit {
   protected readonly loading = signal(true);
   protected readonly subscription = signal<UserSubscription | null>(null);
   protected readonly error = signal<string | null>(null);
-  protected readonly canceling = signal(false);
   protected readonly portalLoading = signal(false);
   protected readonly requestingInvoice = signal(false);
   private lastInvoiceRequest: InvoiceRequest | null = null;
@@ -94,29 +92,6 @@ export class Subscription implements OnInit {
         this.portalLoading.set(false);
       },
     });
-  }
-
-  cancelSubscription(): void {
-    this.dialog
-      .open(ConfirmCancelDialog, { width: '480px' })
-      .afterClosed()
-      .subscribe((confirmed: boolean | undefined) => {
-        if (!confirmed) return;
-
-        this.canceling.set(true);
-        this.error.set(null);
-
-        this.billingService.cancelSubscription().subscribe({
-          next: () => {
-            this.canceling.set(false);
-            this.loadSubscription();
-          },
-          error: () => {
-            this.error.set('Impossibile cancellare l\'abbonamento.');
-            this.canceling.set(false);
-          },
-        });
-      });
   }
 
   goToPricing(): void {

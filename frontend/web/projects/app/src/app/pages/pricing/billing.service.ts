@@ -27,10 +27,6 @@ export class BillingService {
     return this.http.post<PortalSessionResponse>(`${this.billingUrl}/portal`, { returnUrl });
   }
 
-  cancelSubscription(): Observable<void> {
-    return this.http.post<void>(`${this.billingUrl}/cancel`, {});
-  }
-
   createInvoiceRequest(request: CreateInvoiceRequest): Observable<string> {
     return this.http.post<string>(`${this.billingUrl}/invoice-request`, request);
   }

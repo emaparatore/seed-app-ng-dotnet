@@ -144,8 +144,8 @@
             }
             Gestisci Abbonamento
           </button>
-          <button mat-flat-button color="warn" (click)="cancelSubscription()" [disabled]="canceling()">
-            @if (canceling()) {
+          <button mat-flat-button color="warn" (click)="openPortal()" [disabled]="portalLoading()">
+            @if (portalLoading()) {
               <mat-progress-spinner diameter="18" mode="indeterminate" />
             } @else {
               <mat-icon>cancel</mat-icon>

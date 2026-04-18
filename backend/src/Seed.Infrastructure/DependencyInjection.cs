@@ -19,7 +19,6 @@ using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionsList;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
-using Seed.Application.Billing.Commands.CancelSubscription;
 using Seed.Application.Billing.Models;
 using Seed.Application.Billing.Queries.GetMyInvoiceRequests;
 using Seed.Application.Billing.Queries.GetMySubscription;
@@ -108,7 +107,6 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<CreateCheckoutSessionCommand, Result<CheckoutSessionResponse>>, CreateCheckoutSessionCommandHandler>();
             services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
             services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
-            services.AddScoped<IRequestHandler<CancelSubscriptionCommand, Result<bool>>, CancelSubscriptionCommandHandler>();
 
             services.AddScoped<IRequestHandler<CreatePlanCommand, Result<Guid>>, CreatePlanCommandHandler>();
             services.AddScoped<IRequestHandler<UpdatePlanCommand, Result<bool>>, UpdatePlanCommandHandler>();

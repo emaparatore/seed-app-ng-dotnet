@@ -133,53 +133,6 @@ public class BillingControllerTests : IClassFixture<WebhookWebApplicationFactory
     }
 
     [Fact]
-    public async Task Cancel_Returns_Ok_When_Active_Subscription_Exists()
-    {
-        var email = $"billing-cancel-{Guid.NewGuid():N}@example.com";
-        var auth = await RegisterAndConfirmUserAsync(email);
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
-
-        var userId = await GetUserIdAsync(email);
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var plan = new SubscriptionPlan
-        {
-            Id = Guid.NewGuid(),
-            Name = "Cancel Test Plan",
-            MonthlyPrice = 9.99m,
-            YearlyPrice = 99.99m,
-            Status = PlanStatus.Active,
-            SortOrder = 1
-        };
-        db.SubscriptionPlans.Add(plan);
-
-        db.UserSubscriptions.Add(new UserSubscription
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PlanId = plan.Id,
-            Status = SubscriptionStatus.Active,
-            StripeSubscriptionId = "sub_cancel_test",
-            StripeCustomerId = "cus_cancel_test",
-            CurrentPeriodStart = DateTime.UtcNow,
-            CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1)
-        });
-        await db.SaveChangesAsync();
-
-        var response = await _client.PostAsync("/api/v1.0/billing/cancel", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Cleanup
-        db.UserSubscriptions.RemoveRange(db.UserSubscriptions.Where(s => s.UserId == userId));
-        db.SubscriptionPlans.Remove(plan);
-        await db.SaveChangesAsync();
-    }
-
-    [Fact]
     public async Task Portal_Returns_Ok_With_PortalUrl()
     {
         var email = $"billing-portal-{Guid.NewGuid():N}@example.com";
