@@ -69,7 +69,7 @@ public class BillingController(ISender sender) : ControllerBase
         };
 
         var result = await sender.Send(enrichedCommand);
-        return result.Succeeded ? Ok() : BadRequest(new { errors = result.Errors });
+        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
     }
 
     [HttpPost("cancel")]

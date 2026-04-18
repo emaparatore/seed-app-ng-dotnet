@@ -119,11 +119,16 @@ export class Pricing implements OnInit {
       .changePlan({
         planId: plan.id,
         billingInterval: this.billingInterval() === 'yearly' ? 'Yearly' : 'Monthly',
+        returnUrl: window.location.origin + '/billing/subscription',
       })
       .subscribe({
-        next: () => {
-          this.checkoutLoading.set(false);
-          this.router.navigate(['/billing/subscription']);
+        next: (res) => {
+          if (res.redirectUrl) {
+            window.location.href = res.redirectUrl;
+          } else {
+            this.checkoutLoading.set(false);
+            this.router.navigate(['/billing/subscription']);
+          }
         },
         error: (err) => {
           this.error.set(err.error?.errors?.[0] ?? 'Errore durante il cambio piano.');

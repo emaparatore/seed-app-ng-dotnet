@@ -69,6 +69,14 @@ public sealed class MockPaymentGateway(ILogger<MockPaymentGateway> logger) : IPa
         return Task.FromResult(details);
     }
 
+    public Task<string> CreateUpgradePortalSessionAsync(string stripeCustomerId, string stripeSubscriptionId, string newPriceId, string returnUrl, CancellationToken ct = default)
+    {
+        var url = $"https://mock-portal.example.com/upgrade/{Guid.NewGuid():N}";
+        logger.LogWarning("MockPaymentGateway — CreateUpgradePortalSession: CustomerId={CustomerId}, SubscriptionId={SubscriptionId}, PriceId={PriceId} → {Url}",
+            stripeCustomerId, stripeSubscriptionId, newPriceId, url);
+        return Task.FromResult(url);
+    }
+
     public Task<ScheduledDowngradeResult> ScheduleSubscriptionDowngradeAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)
     {
         var result = new ScheduledDowngradeResult(

@@ -11,5 +11,8 @@ public sealed class ChangePlanCommandValidator : AbstractValidator<ChangePlanCom
 
         RuleFor(x => x.BillingInterval)
             .IsInEnum();
+
+        RuleFor(x => x.ReturnUrl)
+            .NotEmpty();
     }
 }

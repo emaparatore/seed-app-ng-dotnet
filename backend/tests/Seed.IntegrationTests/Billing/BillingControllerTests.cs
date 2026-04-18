@@ -288,17 +288,21 @@ public class BillingControllerTests : IClassFixture<WebhookWebApplicationFactory
         var response = await _client.PostAsJsonAsync("/api/v1/billing/change-plan", new
         {
             planId = newPlan.Id,
-            billingInterval = "Monthly"
+            billingInterval = "Monthly",
+            returnUrl = "https://example.com/billing/subscription"
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<ChangePlanResponseDto>();
+        body.Should().NotBeNull();
+        body!.RedirectUrl.Should().BeNull("upgrade applies immediately with no portal redirect");
+
+        // Plan should be updated locally right away (no webhook needed)
         await using var verificationScope = _factory.Services.CreateAsyncScope();
         var verificationDb = verificationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var updatedSubscription = await verificationDb.UserSubscriptions.FindAsync(subscriptionId);
         updatedSubscription.Should().NotBeNull();
-        updatedSubscription!.PlanId.Should().Be(newPlan.Id);
-        updatedSubscription.ScheduledPlanId.Should().BeNull();
-        updatedSubscription.StripeScheduleId.Should().BeNull();
+        updatedSubscription!.PlanId.Should().Be(newPlan.Id, "plan should be updated immediately on upgrade");
 
         // Cleanup
         var subscriptionsToDelete = db.UserSubscriptions
@@ -310,6 +314,8 @@ public class BillingControllerTests : IClassFixture<WebhookWebApplicationFactory
         db.SubscriptionPlans.RemoveRange(oldPlan, newPlan);
         await db.SaveChangesAsync();
     }
+
+    private record ChangePlanResponseDto(string? RedirectUrl);
 
     private record AuthResponseDto(
         string AccessToken, string RefreshToken, DateTime ExpiresAt, UserResponseDto User);

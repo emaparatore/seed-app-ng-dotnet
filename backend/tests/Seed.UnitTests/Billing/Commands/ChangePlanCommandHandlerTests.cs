@@ -21,6 +21,7 @@ public class ChangePlanCommandHandlerTests : IDisposable
     private readonly ChangePlanCommandHandler _handler;
 
     private static readonly Guid TestUserId = Guid.NewGuid();
+    private const string ReturnUrl = "https://example.com/billing/subscription";
 
     public ChangePlanCommandHandlerTests()
     {
@@ -61,16 +62,19 @@ public class ChangePlanCommandHandlerTests : IDisposable
         _paymentGateway.ScheduleSubscriptionDowngradeAsync(subscription.StripeSubscriptionId!, targetPlan.StripePriceIdYearly!, Arg.Any<CancellationToken>())
             .Returns(new ScheduledDowngradeResult("sched_test_123", DateTime.UtcNow.AddMonths(1)));
 
-        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Yearly) { UserId = TestUserId };
+        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Yearly, ReturnUrl) { UserId = TestUserId };
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Succeeded.Should().BeTrue();
+        result.Data!.RedirectUrl.Should().BeNull();
         await _paymentGateway.Received(1).ScheduleSubscriptionDowngradeAsync(
             subscription.StripeSubscriptionId!,
             targetPlan.StripePriceIdYearly!,
             Arg.Any<CancellationToken>());
-        await _paymentGateway.DidNotReceive().UpdateSubscriptionPriceAsync(
+        await _paymentGateway.DidNotReceive().CreateUpgradePortalSessionAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
@@ -81,7 +85,7 @@ public class ChangePlanCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_Apply_Immediately_When_Target_MonthlyEquivalent_Is_Higher()
+    public async Task Should_Update_Subscription_Immediately_When_Target_MonthlyEquivalent_Is_Higher()
     {
         var currentPlan = CreatePlan("Current", monthlyPrice: 100m, yearlyPrice: 840m, "price_cur_m", "price_cur_y");
         var targetPlan = CreatePlan("Target", monthlyPrice: 90m, yearlyPrice: 960m, "price_tar_m", "price_tar_y");
@@ -102,22 +106,27 @@ public class ChangePlanCommandHandlerTests : IDisposable
                 TrialEnd: null,
                 CancelAtPeriodEnd: false));
 
-        _paymentGateway.UpdateSubscriptionPriceAsync(subscription.StripeSubscriptionId!, targetPlan.StripePriceIdYearly!, Arg.Any<CancellationToken>())
+        var now = DateTime.UtcNow;
+        _paymentGateway.UpdateSubscriptionPriceAsync(
+                subscription.StripeSubscriptionId!,
+                targetPlan.StripePriceIdYearly!,
+                Arg.Any<CancellationToken>())
             .Returns(new SubscriptionDetails(
                 SubscriptionId: subscription.StripeSubscriptionId!,
                 CustomerId: subscription.StripeCustomerId!,
                 Status: "active",
                 PriceId: targetPlan.StripePriceIdYearly!,
-                CurrentPeriodStart: DateTime.UtcNow,
-                CurrentPeriodEnd: DateTime.UtcNow.AddYears(1),
+                CurrentPeriodStart: now,
+                CurrentPeriodEnd: now.AddYears(1),
                 TrialEnd: null,
                 CancelAtPeriodEnd: false));
 
-        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Yearly) { UserId = TestUserId };
+        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Yearly, ReturnUrl) { UserId = TestUserId };
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Succeeded.Should().BeTrue();
+        result.Data!.RedirectUrl.Should().BeNull("upgrade should update immediately with no portal redirect");
         await _paymentGateway.Received(1).UpdateSubscriptionPriceAsync(
             subscription.StripeSubscriptionId!,
             targetPlan.StripePriceIdYearly!,
@@ -126,10 +135,16 @@ public class ChangePlanCommandHandlerTests : IDisposable
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
+        await _paymentGateway.DidNotReceive().CreateUpgradePortalSessionAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
 
+        // Plan should be updated immediately in local DB
         var updated = await _dbContext.UserSubscriptions.FindAsync(subscription.Id);
-        updated!.PlanId.Should().Be(targetPlan.Id);
-        updated.ScheduledPlanId.Should().BeNull();
+        updated!.PlanId.Should().Be(targetPlan.Id, "upgrade updates local plan immediately");
     }
 
     [Fact]
@@ -153,13 +168,15 @@ public class ChangePlanCommandHandlerTests : IDisposable
                 TrialEnd: null,
                 CancelAtPeriodEnd: false));
 
-        var command = new ChangePlanCommand(currentPlan.Id, BillingInterval.Monthly) { UserId = TestUserId };
+        var command = new ChangePlanCommand(currentPlan.Id, BillingInterval.Monthly, ReturnUrl) { UserId = TestUserId };
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Succeeded.Should().BeFalse();
         result.Errors.Should().Contain("You are already on this plan and billing interval.");
-        await _paymentGateway.DidNotReceive().UpdateSubscriptionPriceAsync(
+        await _paymentGateway.DidNotReceive().CreateUpgradePortalSessionAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());

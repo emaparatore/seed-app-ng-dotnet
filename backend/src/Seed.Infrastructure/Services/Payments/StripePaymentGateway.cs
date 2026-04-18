@@ -177,7 +177,8 @@ public sealed class StripePaymentGateway(
                     Price = newPriceId,
                 },
             ],
-            ProrationBehavior = "create_prorations",
+            ProrationBehavior = "always_invoice",
+            BillingCycleAnchor = "now",
         };
 
         var updated = await service.UpdateAsync(stripeSubscriptionId, options, cancellationToken: ct);
@@ -192,6 +193,86 @@ public sealed class StripePaymentGateway(
             CurrentPeriodEnd: updated.Items.Data[0].CurrentPeriodEnd,
             TrialEnd: updated.TrialEnd,
             CancelAtPeriodEnd: updated.CancelAtPeriodEnd);
+    }
+
+    public async Task<string> CreateUpgradePortalSessionAsync(string stripeCustomerId, string stripeSubscriptionId, string newPriceId, string returnUrl, CancellationToken ct = default)
+    {
+        var subscriptionService = new SubscriptionService(_client);
+        var existing = await subscriptionService.GetAsync(stripeSubscriptionId, cancellationToken: ct);
+        var existingItemId = existing.Items.Data[0].Id;
+
+        // Resolve the product ID for the new price so we can build a portal configuration
+        // that explicitly allows updating to this price.
+        var priceService = new PriceService(_client);
+        var newPrice = await priceService.GetAsync(newPriceId, cancellationToken: ct);
+        var productId = newPrice.ProductId;
+
+        // Create a portal configuration on-the-fly with subscription updates enabled for
+        // this specific product/price. The default portal configuration may not have
+        // subscription updates turned on, so we create a minimal one here.
+        var configService = new ConfigurationService(_client);
+        var config = await configService.CreateAsync(new ConfigurationCreateOptions
+        {
+            Features = new ConfigurationFeaturesOptions
+            {
+                SubscriptionUpdate = new ConfigurationFeaturesSubscriptionUpdateOptions
+                {
+                    Enabled = true,
+                    DefaultAllowedUpdates = ["price"],
+                    Products =
+                    [
+                        new ConfigurationFeaturesSubscriptionUpdateProductOptions
+                        {
+                            Product = productId,
+                            Prices = [newPriceId],
+                        },
+                    ],
+                },
+                SubscriptionCancel = new ConfigurationFeaturesSubscriptionCancelOptions
+                {
+                    Enabled = false,
+                },
+                InvoiceHistory = new ConfigurationFeaturesInvoiceHistoryOptions
+                {
+                    Enabled = false,
+                },
+                PaymentMethodUpdate = new ConfigurationFeaturesPaymentMethodUpdateOptions
+                {
+                    Enabled = true,
+                },
+            },
+        }, cancellationToken: ct);
+
+        var portalService = new Stripe.BillingPortal.SessionService(_client);
+        var options = new Stripe.BillingPortal.SessionCreateOptions
+        {
+            Customer = stripeCustomerId,
+            ReturnUrl = returnUrl,
+            Configuration = config.Id,
+            FlowData = new SessionFlowDataOptions
+            {
+                Type = "subscription_update_confirm",
+                SubscriptionUpdateConfirm = new SessionFlowDataSubscriptionUpdateConfirmOptions
+                {
+                    Subscription = stripeSubscriptionId,
+                    Items =
+                    [
+                        new SessionFlowDataSubscriptionUpdateConfirmItemOptions
+                        {
+                            Id = existingItemId,
+                            Price = newPriceId,
+                            Quantity = 1,
+                        },
+                    ],
+                },
+            },
+        };
+
+        var session = await portalService.CreateAsync(options, cancellationToken: ct);
+        logger.LogInformation(
+            "Stripe upgrade portal session created for subscription {SubscriptionId} to price {PriceId}",
+            stripeSubscriptionId, newPriceId);
+        return session.Url;
     }
 
     public async Task<ScheduledDowngradeResult> ScheduleSubscriptionDowngradeAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default)

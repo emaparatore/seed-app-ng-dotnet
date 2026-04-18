@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Seed.Application.Billing.Commands.ChangePlan;
+using Seed.Application.Billing.Models;
 using Seed.Application.Common;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Authorization;
@@ -15,9 +16,9 @@ public sealed class ChangePlanCommandHandler(
     IPaymentGateway paymentGateway,
     IAuditService auditService,
     ILogger<ChangePlanCommandHandler> logger)
-    : IRequestHandler<ChangePlanCommand, Result<bool>>
+    : IRequestHandler<ChangePlanCommand, Result<ChangePlanResult>>
 {
-    public async Task<Result<bool>> Handle(
+    public async Task<Result<ChangePlanResult>> Handle(
         ChangePlanCommand request, CancellationToken cancellationToken)
     {
         var subscription = await dbContext.UserSubscriptions
@@ -28,10 +29,13 @@ public sealed class ChangePlanCommandHandler(
             .FirstOrDefaultAsync(cancellationToken);
 
         if (subscription is null)
-            return Result<bool>.Failure("No active subscription found.");
+            return Result<ChangePlanResult>.Failure("No active subscription found.");
 
         if (string.IsNullOrWhiteSpace(subscription.StripeSubscriptionId))
-            return Result<bool>.Failure("Subscription has no payment provider reference.");
+            return Result<ChangePlanResult>.Failure("Subscription has no payment provider reference.");
+
+        if (string.IsNullOrWhiteSpace(subscription.StripeCustomerId))
+            return Result<ChangePlanResult>.Failure("Subscription has no customer reference.");
 
         var currentBillingInterval = await ResolveCurrentBillingIntervalAsync(subscription, cancellationToken);
 
@@ -40,23 +44,23 @@ public sealed class ChangePlanCommandHandler(
             .FirstOrDefaultAsync(p => p.Id == request.PlanId, cancellationToken);
 
         if (newPlan is null)
-            return Result<bool>.Failure("Plan not found.");
+            return Result<ChangePlanResult>.Failure("Plan not found.");
 
         if (newPlan.Status != PlanStatus.Active)
-            return Result<bool>.Failure("Plan is not active.");
+            return Result<ChangePlanResult>.Failure("Plan is not active.");
 
         if (newPlan.IsFreeTier)
-            return Result<bool>.Failure("Cannot change to a free tier plan. Cancel your subscription instead.");
+            return Result<ChangePlanResult>.Failure("Cannot change to a free tier plan. Cancel your subscription instead.");
 
         if (subscription.PlanId == request.PlanId && request.BillingInterval == currentBillingInterval)
-            return Result<bool>.Failure("You are already on this plan and billing interval.");
+            return Result<ChangePlanResult>.Failure("You are already on this plan and billing interval.");
 
         var newPriceId = request.BillingInterval == BillingInterval.Monthly
             ? newPlan.StripePriceIdMonthly
             : newPlan.StripePriceIdYearly;
 
         if (string.IsNullOrWhiteSpace(newPriceId))
-            return Result<bool>.Failure($"No price configured for {request.BillingInterval} billing interval.");
+            return Result<ChangePlanResult>.Failure($"No price configured for {request.BillingInterval} billing interval.");
 
         var oldPlanId = subscription.PlanId;
         var currentPeriodPrice = currentBillingInterval == BillingInterval.Monthly
@@ -70,7 +74,6 @@ public sealed class ChangePlanCommandHandler(
         var targetMonthlyEquivalent = ToMonthlyEquivalent(targetPeriodPrice, request.BillingInterval);
         var isDowngrade = targetMonthlyEquivalent < currentMonthlyEquivalent;
         var isUpgrade = targetMonthlyEquivalent > currentMonthlyEquivalent;
-        var applyImmediately = !isDowngrade;
 
         // Cancel any existing scheduled downgrade before processing
         if (!string.IsNullOrWhiteSpace(subscription.StripeScheduleId))
@@ -78,17 +81,28 @@ public sealed class ChangePlanCommandHandler(
             await paymentGateway.CancelSubscriptionScheduleAsync(subscription.StripeScheduleId, cancellationToken);
             subscription.ScheduledPlanId = null;
             subscription.StripeScheduleId = null;
+            subscription.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (applyImmediately)
+        string changeType;
+        string? redirectUrl = null;
+
+        if (isUpgrade || !isDowngrade)
         {
-            // Upgrade/lateral change: immediate with proration
-            var updated = await paymentGateway.UpdateSubscriptionPriceAsync(
-                subscription.StripeSubscriptionId, newPriceId, cancellationToken);
+            // Upgrade/lateral change: update subscription immediately with proration invoice
+            var updatedDetails = await paymentGateway.UpdateSubscriptionPriceAsync(
+                subscription.StripeSubscriptionId,
+                newPriceId,
+                cancellationToken);
 
             subscription.PlanId = request.PlanId;
-            subscription.CurrentPeriodStart = updated.CurrentPeriodStart;
-            subscription.CurrentPeriodEnd = updated.CurrentPeriodEnd;
+            subscription.CurrentPeriodStart = updatedDetails.CurrentPeriodStart;
+            subscription.CurrentPeriodEnd = updatedDetails.CurrentPeriodEnd;
+            subscription.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            changeType = isUpgrade ? "Upgrade (immediate)" : "Lateral change (immediate)";
         }
         else
         {
@@ -98,16 +112,11 @@ public sealed class ChangePlanCommandHandler(
 
             subscription.ScheduledPlanId = request.PlanId;
             subscription.StripeScheduleId = result.ScheduleId;
+            subscription.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            changeType = "Downgrade (scheduled)";
         }
-
-        subscription.UpdatedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        var changeType = isUpgrade
-            ? "Upgrade (immediate)"
-            : isDowngrade
-                ? "Downgrade (scheduled)"
-                : "Lateral change (immediate)";
 
         await auditService.LogAsync(
             AuditActions.SubscriptionPlanChanged,
@@ -135,7 +144,7 @@ public sealed class ChangePlanCommandHandler(
             targetMonthlyEquivalent,
             request.UserId);
 
-        return Result<bool>.Success(true);
+        return Result<ChangePlanResult>.Success(new ChangePlanResult(redirectUrl));
     }
 
     private async Task<BillingInterval> ResolveCurrentBillingIntervalAsync(

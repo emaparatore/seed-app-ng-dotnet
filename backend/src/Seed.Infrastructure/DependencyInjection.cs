@@ -110,7 +110,7 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
             services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
             services.AddScoped<IRequestHandler<CancelSubscriptionCommand, Result<bool>>, CancelSubscriptionCommandHandler>();
-            services.AddScoped<IRequestHandler<ChangePlanCommand, Result<bool>>, ChangePlanCommandHandler>();
+            services.AddScoped<IRequestHandler<ChangePlanCommand, Result<ChangePlanResult>>, ChangePlanCommandHandler>();
 
             services.AddScoped<IRequestHandler<CreatePlanCommand, Result<Guid>>, CreatePlanCommandHandler>();
             services.AddScoped<IRequestHandler<UpdatePlanCommand, Result<bool>>, UpdatePlanCommandHandler>();

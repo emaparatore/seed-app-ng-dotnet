@@ -10,6 +10,7 @@ public interface IPaymentGateway
     Task CancelSubscriptionAsync(string stripeSubscriptionId, CancellationToken ct = default);
     Task<SubscriptionDetails?> GetSubscriptionAsync(string stripeSubscriptionId, CancellationToken ct = default);
     Task<SubscriptionDetails> UpdateSubscriptionPriceAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default);
+    Task<string> CreateUpgradePortalSessionAsync(string stripeCustomerId, string stripeSubscriptionId, string newPriceId, string returnUrl, CancellationToken ct = default);
     Task<ScheduledDowngradeResult> ScheduleSubscriptionDowngradeAsync(string stripeSubscriptionId, string newPriceId, CancellationToken ct = default);
     Task CancelSubscriptionScheduleAsync(string scheduleId, CancellationToken ct = default);
     Task<ProductSyncResult> SyncPlanToProviderAsync(SyncPlanRequest request, CancellationToken ct = default);
