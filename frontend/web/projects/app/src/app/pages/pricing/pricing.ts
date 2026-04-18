@@ -203,13 +203,33 @@ export class Pricing implements OnInit {
     const targetInterval = this.billingInterval();
     const currentPrice = this.getSubscriptionPriceForInterval(subscription, currentInterval);
     const targetPrice = this.getPrice(plan);
+    const currentPlanSortOrder = this.resolveCurrentPlanSortOrder(subscription);
+    const targetPlanSortOrder = plan.sortOrder;
     const currentMonthlyEquivalent = this.toMonthlyEquivalent(currentPrice, currentInterval);
     const targetMonthlyEquivalent = this.toMonthlyEquivalent(targetPrice, targetInterval);
+
+    if (currentPlanSortOrder !== null && targetPlanSortOrder > currentPlanSortOrder) {
+      return {
+        changeLabel: 'Upgrade',
+        timingLabel: 'Il cambio verra applicato subito con pro-rata e nuovo ciclo da oggi.',
+        currentPrice,
+        targetPrice,
+      };
+    }
+
+    if (currentPlanSortOrder !== null && targetPlanSortOrder < currentPlanSortOrder) {
+      return {
+        changeLabel: 'Downgrade',
+        timingLabel: 'Il cambio verra applicato alla fine del periodo corrente.',
+        currentPrice,
+        targetPrice,
+      };
+    }
 
     if (targetMonthlyEquivalent < currentMonthlyEquivalent) {
       return {
         changeLabel: 'Downgrade',
-        timingLabel: 'Il cambio verrà applicato alla fine del periodo corrente.',
+        timingLabel: 'Il cambio verra applicato alla fine del periodo corrente.',
         currentPrice,
         targetPrice,
       };
@@ -218,7 +238,7 @@ export class Pricing implements OnInit {
     if (targetMonthlyEquivalent > currentMonthlyEquivalent) {
       return {
         changeLabel: 'Upgrade',
-        timingLabel: 'Il cambio verrà applicato subito con eventuale pro-rata.',
+        timingLabel: 'Il cambio verra applicato subito con pro-rata e nuovo ciclo da oggi.',
         currentPrice,
         targetPrice,
       };
@@ -226,7 +246,7 @@ export class Pricing implements OnInit {
 
     return {
       changeLabel: 'Cambio laterale',
-      timingLabel: 'Il cambio verrà applicato subito.',
+      timingLabel: 'Il cambio verra applicato subito.',
       currentPrice,
       targetPrice,
     };
@@ -249,6 +269,11 @@ export class Pricing implements OnInit {
 
     const daysInPeriod = (end - start) / (1000 * 60 * 60 * 24);
     return daysInPeriod >= 180 ? 'yearly' : 'monthly';
+  }
+
+  private resolveCurrentPlanSortOrder(subscription: UserSubscription): number | null {
+    const currentPlan = this.plans().find((p) => p.name === subscription.planName);
+    return currentPlan?.sortOrder ?? null;
   }
 
   private toMonthlyEquivalent(price: number, interval: 'monthly' | 'yearly'): number {

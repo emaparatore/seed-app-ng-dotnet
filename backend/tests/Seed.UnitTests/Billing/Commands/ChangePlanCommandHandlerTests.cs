@@ -38,10 +38,10 @@ public class ChangePlanCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_Schedule_Downgrade_When_Target_MonthlyEquivalent_Is_Lower()
+    public async Task Should_Schedule_Downgrade_When_Target_Plan_Tier_Is_Lower_Even_If_More_Expensive()
     {
-        var currentPlan = CreatePlan("Current", monthlyPrice: 100m, yearlyPrice: 1200m, "price_cur_m", "price_cur_y");
-        var targetPlan = CreatePlan("Target", monthlyPrice: 120m, yearlyPrice: 900m, "price_tar_m", "price_tar_y");
+        var currentPlan = CreatePlan("Current", monthlyPrice: 100m, yearlyPrice: 1200m, "price_cur_m", "price_cur_y", sortOrder: 20);
+        var targetPlan = CreatePlan("Target", monthlyPrice: 120m, yearlyPrice: 1440m, "price_tar_m", "price_tar_y", sortOrder: 10);
 
         var subscription = CreateSubscription(currentPlan.Id);
         _dbContext.SubscriptionPlans.AddRange(currentPlan, targetPlan);
@@ -59,10 +59,10 @@ public class ChangePlanCommandHandlerTests : IDisposable
                 TrialEnd: null,
                 CancelAtPeriodEnd: false));
 
-        _paymentGateway.ScheduleSubscriptionDowngradeAsync(subscription.StripeSubscriptionId!, targetPlan.StripePriceIdYearly!, Arg.Any<CancellationToken>())
+        _paymentGateway.ScheduleSubscriptionDowngradeAsync(subscription.StripeSubscriptionId!, targetPlan.StripePriceIdMonthly!, Arg.Any<CancellationToken>())
             .Returns(new ScheduledDowngradeResult("sched_test_123", DateTime.UtcNow.AddMonths(1)));
 
-        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Yearly, ReturnUrl) { UserId = TestUserId };
+        var command = new ChangePlanCommand(targetPlan.Id, BillingInterval.Monthly, ReturnUrl) { UserId = TestUserId };
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -70,7 +70,7 @@ public class ChangePlanCommandHandlerTests : IDisposable
         result.Data!.RedirectUrl.Should().BeNull();
         await _paymentGateway.Received(1).ScheduleSubscriptionDowngradeAsync(
             subscription.StripeSubscriptionId!,
-            targetPlan.StripePriceIdYearly!,
+            targetPlan.StripePriceIdMonthly!,
             Arg.Any<CancellationToken>());
         await _paymentGateway.DidNotReceive().CreateUpgradePortalSessionAsync(
             Arg.Any<string>(),
@@ -85,10 +85,10 @@ public class ChangePlanCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_Update_Subscription_Immediately_When_Target_MonthlyEquivalent_Is_Higher()
+    public async Task Should_Update_Subscription_Immediately_When_Target_Plan_Tier_Is_Higher_Even_If_MonthlyEquivalent_Is_Lower()
     {
-        var currentPlan = CreatePlan("Current", monthlyPrice: 100m, yearlyPrice: 840m, "price_cur_m", "price_cur_y");
-        var targetPlan = CreatePlan("Target", monthlyPrice: 90m, yearlyPrice: 960m, "price_tar_m", "price_tar_y");
+        var currentPlan = CreatePlan("Current", monthlyPrice: 100m, yearlyPrice: 1200m, "price_cur_m", "price_cur_y", sortOrder: 10);
+        var targetPlan = CreatePlan("Target", monthlyPrice: 120m, yearlyPrice: 900m, "price_tar_m", "price_tar_y", sortOrder: 20);
 
         var subscription = CreateSubscription(currentPlan.Id);
         _dbContext.SubscriptionPlans.AddRange(currentPlan, targetPlan);
@@ -191,7 +191,8 @@ public class ChangePlanCommandHandlerTests : IDisposable
         decimal monthlyPrice,
         decimal yearlyPrice,
         string monthlyPriceId,
-        string yearlyPriceId)
+        string yearlyPriceId,
+        int sortOrder = 0)
     {
         return new SubscriptionPlan
         {
@@ -203,6 +204,7 @@ public class ChangePlanCommandHandlerTests : IDisposable
             StripePriceIdYearly = yearlyPriceId,
             Status = PlanStatus.Active,
             IsFreeTier = false,
+            SortOrder = sortOrder,
         };
     }
 

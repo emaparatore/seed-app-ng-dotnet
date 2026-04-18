@@ -259,9 +259,9 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **Acceptance Criteria:**
 - [x] Dalla pagina del proprio abbonamento, l'utente può cliccare "Cambia piano"
 - [x] Viene mostrata la lista dei piani disponibili con il piano attuale evidenziato
-- [x] L'upgrade è immediato, con proration calcolata da Stripe
-- [x] Il downgrade diventa effettivo alla fine del periodo di billing corrente (Stripe Subscription Schedules)
-- [x] L'audit log registra il cambio piano
+- [ ] L'upgrade è immediato, con proration calcolata da Stripe
+- [ ] Il downgrade diventa effettivo alla fine del periodo di billing corrente (Stripe Subscription Schedules)
+- [ ] L'audit log registra il cambio piano
 
 #### US-006: Trial period
 

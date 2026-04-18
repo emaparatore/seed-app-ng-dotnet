@@ -72,8 +72,13 @@ public sealed class ChangePlanCommandHandler(
 
         var currentMonthlyEquivalent = ToMonthlyEquivalent(currentPeriodPrice, currentBillingInterval);
         var targetMonthlyEquivalent = ToMonthlyEquivalent(targetPeriodPrice, request.BillingInterval);
-        var isDowngrade = targetMonthlyEquivalent < currentMonthlyEquivalent;
-        var isUpgrade = targetMonthlyEquivalent > currentMonthlyEquivalent;
+        var changeDirection = ResolveChangeDirection(
+            currentPlanSortOrder: subscription.Plan.SortOrder,
+            targetPlanSortOrder: newPlan.SortOrder,
+            currentMonthlyEquivalent: currentMonthlyEquivalent,
+            targetMonthlyEquivalent: targetMonthlyEquivalent);
+        var isDowngrade = changeDirection == PlanChangeDirection.Downgrade;
+        var isUpgrade = changeDirection == PlanChangeDirection.Upgrade;
 
         // Cancel any existing scheduled downgrade before processing
         if (!string.IsNullOrWhiteSpace(subscription.StripeScheduleId))
@@ -183,5 +188,41 @@ public sealed class ChangePlanCommandHandler(
     private static decimal ToMonthlyEquivalent(decimal periodPrice, BillingInterval interval)
     {
         return interval == BillingInterval.Yearly ? periodPrice / 12m : periodPrice;
+    }
+
+    private static PlanChangeDirection ResolveChangeDirection(
+        int currentPlanSortOrder,
+        int targetPlanSortOrder,
+        decimal currentMonthlyEquivalent,
+        decimal targetMonthlyEquivalent)
+    {
+        if (targetPlanSortOrder > currentPlanSortOrder)
+        {
+            return PlanChangeDirection.Upgrade;
+        }
+
+        if (targetPlanSortOrder < currentPlanSortOrder)
+        {
+            return PlanChangeDirection.Downgrade;
+        }
+
+        if (targetMonthlyEquivalent > currentMonthlyEquivalent)
+        {
+            return PlanChangeDirection.Upgrade;
+        }
+
+        if (targetMonthlyEquivalent < currentMonthlyEquivalent)
+        {
+            return PlanChangeDirection.Downgrade;
+        }
+
+        return PlanChangeDirection.Lateral;
+    }
+
+    private enum PlanChangeDirection
+    {
+        Downgrade = -1,
+        Lateral = 0,
+        Upgrade = 1
     }
 }

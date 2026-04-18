@@ -178,7 +178,7 @@ public sealed class StripePaymentGateway(
                 },
             ],
             ProrationBehavior = "always_invoice",
-            BillingCycleAnchor = "now",
+            BillingCycleAnchor = SubscriptionBillingCycleAnchor.Now,
         };
 
         var updated = await service.UpdateAsync(stripeSubscriptionId, options, cancellationToken: ct);
