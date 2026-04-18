@@ -1,6 +1,9 @@
 <div class="pricing-header">
   <h1 class="pricing-title">Scegli il piano giusto per te</h1>
   <p class="pricing-subtitle">Inizia gratis, upgrada quando vuoi.</p>
+  @if (authService.isAuthenticated() && hasPaidSubscription()) {
+    <p class="pricing-subtitle">Hai già un abbonamento a pagamento: per cambiare piano usa il portale Stripe.</p>
+  }
 
   <mat-button-toggle-group
     class="interval-toggle"
@@ -107,15 +110,17 @@
             mat-flat-button
             class="cta-button"
             [color]="plan.isPopular ? 'primary' : undefined"
-            [disabled]="checkoutLoading() || isActivePlan(plan) || isScheduledPlan(plan)"
+            [disabled]="checkoutLoading() || portalLoading() || isActivePlan(plan) || isScheduledPlan(plan)"
             (click)="onCtaClick(plan)"
           >
             @if (isActivePlan(plan)) {
               Piano attuale
             } @else if (isScheduledPlan(plan)) {
               Cambio pianificato
-            } @else if (checkoutLoading() && authService.isAuthenticated() && !plan.isFreeTier) {
+            } @else if ((checkoutLoading() || portalLoading()) && authService.isAuthenticated() && !plan.isFreeTier) {
               <mat-spinner diameter="20" />
+            } @else if (authService.isAuthenticated() && hasPaidSubscription()) {
+              Aggiorna abbonamento
             } @else if (plan.isFreeTier) {
               Inizia gratis
             } @else if (!authService.isAuthenticated()) {

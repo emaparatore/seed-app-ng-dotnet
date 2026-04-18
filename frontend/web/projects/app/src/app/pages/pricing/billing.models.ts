@@ -30,16 +30,6 @@ export interface CreateCheckoutRequest {
   cancelUrl: string;
 }
 
-export interface ChangePlanRequest {
-  planId: string;
-  billingInterval: 'Monthly' | 'Yearly';
-  returnUrl: string;
-}
-
-export interface ChangePlanResponse {
-  redirectUrl: string | null;
-}
-
 export interface PlanFeature {
   id: string;
   key: string;

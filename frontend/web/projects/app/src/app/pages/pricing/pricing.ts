@@ -5,12 +5,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from 'shared-auth';
 import { BillingService } from './billing.service';
 import { Plan, UserSubscription } from './billing.models';
-import { ConfirmDialog } from '../admin/users/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-pricing',
@@ -21,25 +19,23 @@ import { ConfirmDialog } from '../admin/users/confirm-dialog/confirm-dialog';
 export class Pricing implements OnInit {
   private readonly billingService = inject(BillingService);
   private readonly router = inject(Router);
-  private readonly dialog = inject(MatDialog);
   protected readonly authService = inject(AuthService);
-  private readonly currencyFormatter = new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
   protected readonly loading = signal(true);
   protected readonly plans = signal<Plan[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly billingInterval = signal<'monthly' | 'yearly'>('monthly');
   protected readonly checkoutLoading = signal(false);
+  protected readonly portalLoading = signal(false);
   protected readonly currentSubscription = signal<UserSubscription | null>(null);
 
   protected readonly sortedPlans = computed(() =>
     [...this.plans()].sort((a, b) => a.sortOrder - b.sortOrder),
   );
+  protected readonly hasPaidSubscription = computed(() => {
+    const sub = this.currentSubscription();
+    return !!sub && !sub.isFreeTier;
+  });
 
   ngOnInit(): void {
     this.loadPlans();
@@ -76,65 +72,24 @@ export class Pricing implements OnInit {
   }
 
   protected onCtaClick(plan: Plan): void {
-    if (plan.isFreeTier) {
-      this.router.navigate(['/register']);
-      return;
-    }
+    this.error.set(null);
+
     if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login']);
+      this.router.navigate([plan.isFreeTier ? '/register' : '/login']);
       return;
     }
 
-    const sub = this.currentSubscription();
-    const hasActiveSubscription = sub && !sub.isFreeTier;
-
-    if (hasActiveSubscription) {
-      this.confirmChangePlan(plan, sub);
-    } else {
-      this.checkout(plan);
+    if (this.hasPaidSubscription()) {
+      this.openPortal();
+      return;
     }
-  }
 
-  private confirmChangePlan(plan: Plan, subscription: UserSubscription): void {
-    const preview = this.getPlanChangePreview(plan, subscription);
-    const dialogRef = this.dialog.open(ConfirmDialog, {
-      width: '520px',
-      data: {
-        title: 'Conferma cambio piano',
-        message: this.buildChangePlanConfirmationMessage(plan, subscription, preview),
-        confirmText: 'Conferma cambio',
-        cancelText: 'Annulla',
-      },
-    });
+    if (plan.isFreeTier) {
+      this.router.navigate(['/billing/subscription']);
+      return;
+    }
 
-    dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
-      if (!confirmed) return;
-      this.changePlan(plan);
-    });
-  }
-
-  private changePlan(plan: Plan): void {
-    this.checkoutLoading.set(true);
-    this.billingService
-      .changePlan({
-        planId: plan.id,
-        billingInterval: this.billingInterval() === 'yearly' ? 'Yearly' : 'Monthly',
-        returnUrl: window.location.origin + '/billing/subscription',
-      })
-      .subscribe({
-        next: (res) => {
-          if (res.redirectUrl) {
-            window.location.href = res.redirectUrl;
-          } else {
-            this.checkoutLoading.set(false);
-            this.router.navigate(['/billing/subscription']);
-          }
-        },
-        error: (err) => {
-          this.error.set(err.error?.errors?.[0] ?? 'Errore durante il cambio piano.');
-          this.checkoutLoading.set(false);
-        },
-      });
+    this.checkout(plan);
   }
 
   private checkout(plan: Plan): void {
@@ -179,112 +134,16 @@ export class Pricing implements OnInit {
     });
   }
 
-  private buildChangePlanConfirmationMessage(
-    plan: Plan,
-    subscription: UserSubscription,
-    preview: { changeLabel: string; timingLabel: string; currentPrice: number; targetPrice: number },
-  ): string {
-    const currentIntervalLabel = this.getIntervalLabel(this.inferBillingInterval(subscription));
-    const targetIntervalLabel = this.getIntervalLabel(this.billingInterval());
-    const currentPrice = this.formatCurrency(preview.currentPrice);
-    const targetPrice = this.formatCurrency(preview.targetPrice);
-
-    return `Passerai da ${subscription.planName} (${currentPrice}/${currentIntervalLabel}) a ${plan.name} ` +
-      `(${targetPrice}/${targetIntervalLabel}). ` +
-      `Tipo cambio: ${preview.changeLabel}. ` +
-      `${preview.timingLabel}`;
-  }
-
-  private getPlanChangePreview(
-    plan: Plan,
-    subscription: UserSubscription,
-  ): { changeLabel: string; timingLabel: string; currentPrice: number; targetPrice: number } {
-    const currentInterval = this.inferBillingInterval(subscription);
-    const targetInterval = this.billingInterval();
-    const currentPrice = this.getSubscriptionPriceForInterval(subscription, currentInterval);
-    const targetPrice = this.getPrice(plan);
-    const currentPlanSortOrder = this.resolveCurrentPlanSortOrder(subscription);
-    const targetPlanSortOrder = plan.sortOrder;
-    const currentMonthlyEquivalent = this.toMonthlyEquivalent(currentPrice, currentInterval);
-    const targetMonthlyEquivalent = this.toMonthlyEquivalent(targetPrice, targetInterval);
-
-    if (currentPlanSortOrder !== null && targetPlanSortOrder > currentPlanSortOrder) {
-      return {
-        changeLabel: 'Upgrade',
-        timingLabel: 'Il cambio verra applicato subito con pro-rata e nuovo ciclo da oggi.',
-        currentPrice,
-        targetPrice,
-      };
-    }
-
-    if (currentPlanSortOrder !== null && targetPlanSortOrder < currentPlanSortOrder) {
-      return {
-        changeLabel: 'Downgrade',
-        timingLabel: 'Il cambio verra applicato alla fine del periodo corrente.',
-        currentPrice,
-        targetPrice,
-      };
-    }
-
-    if (targetMonthlyEquivalent < currentMonthlyEquivalent) {
-      return {
-        changeLabel: 'Downgrade',
-        timingLabel: 'Il cambio verra applicato alla fine del periodo corrente.',
-        currentPrice,
-        targetPrice,
-      };
-    }
-
-    if (targetMonthlyEquivalent > currentMonthlyEquivalent) {
-      return {
-        changeLabel: 'Upgrade',
-        timingLabel: 'Il cambio verra applicato subito con pro-rata e nuovo ciclo da oggi.',
-        currentPrice,
-        targetPrice,
-      };
-    }
-
-    return {
-      changeLabel: 'Cambio laterale',
-      timingLabel: 'Il cambio verra applicato subito.',
-      currentPrice,
-      targetPrice,
-    };
-  }
-
-  private getSubscriptionPriceForInterval(
-    subscription: UserSubscription,
-    interval: 'monthly' | 'yearly',
-  ): number {
-    return interval === 'yearly' ? subscription.yearlyPrice : subscription.monthlyPrice;
-  }
-
-  private inferBillingInterval(subscription: UserSubscription): 'monthly' | 'yearly' {
-    const start = new Date(subscription.currentPeriodStart).getTime();
-    const end = new Date(subscription.currentPeriodEnd).getTime();
-
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-      return 'monthly';
-    }
-
-    const daysInPeriod = (end - start) / (1000 * 60 * 60 * 24);
-    return daysInPeriod >= 180 ? 'yearly' : 'monthly';
-  }
-
-  private resolveCurrentPlanSortOrder(subscription: UserSubscription): number | null {
-    const currentPlan = this.plans().find((p) => p.name === subscription.planName);
-    return currentPlan?.sortOrder ?? null;
-  }
-
-  private toMonthlyEquivalent(price: number, interval: 'monthly' | 'yearly'): number {
-    return interval === 'yearly' ? price / 12 : price;
-  }
-
-  private formatCurrency(price: number): string {
-    return this.currencyFormatter.format(price);
-  }
-
-  private getIntervalLabel(interval: 'monthly' | 'yearly'): string {
-    return interval === 'yearly' ? 'anno' : 'mese';
+  private openPortal(): void {
+    this.portalLoading.set(true);
+    this.billingService.createPortalSession(window.location.origin + '/billing/subscription').subscribe({
+      next: (response) => {
+        window.location.href = response.portalUrl;
+      },
+      error: () => {
+        this.error.set('Impossibile aprire il portale Stripe.');
+        this.portalLoading.set(false);
+      },
+    });
   }
 }

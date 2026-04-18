@@ -4,7 +4,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Seed.Application.Billing.Commands.CancelSubscription;
-using Seed.Application.Billing.Commands.ChangePlan;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
@@ -46,20 +45,6 @@ public class BillingController(ISender sender) : ControllerBase
 
     [HttpPost("portal")]
     public async Task<IActionResult> CreatePortalSession(CreatePortalSessionCommand command)
-    {
-        var enrichedCommand = command with
-        {
-            UserId = CurrentUserId,
-            IpAddress = IpAddress,
-            UserAgent = UserAgent
-        };
-
-        var result = await sender.Send(enrichedCommand);
-        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
-    }
-
-    [HttpPost("change-plan")]
-    public async Task<IActionResult> ChangePlan(ChangePlanCommand command)
     {
         var enrichedCommand = command with
         {
