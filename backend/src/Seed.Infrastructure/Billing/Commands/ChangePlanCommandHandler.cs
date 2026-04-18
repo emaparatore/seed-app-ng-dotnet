@@ -33,6 +33,8 @@ public sealed class ChangePlanCommandHandler(
         if (string.IsNullOrWhiteSpace(subscription.StripeSubscriptionId))
             return Result<bool>.Failure("Subscription has no payment provider reference.");
 
+        var currentBillingInterval = await ResolveCurrentBillingIntervalAsync(subscription, cancellationToken);
+
         var newPlan = await dbContext.SubscriptionPlans
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.PlanId, cancellationToken);
@@ -46,8 +48,8 @@ public sealed class ChangePlanCommandHandler(
         if (newPlan.IsFreeTier)
             return Result<bool>.Failure("Cannot change to a free tier plan. Cancel your subscription instead.");
 
-        if (subscription.PlanId == request.PlanId)
-            return Result<bool>.Failure("You are already on this plan.");
+        if (subscription.PlanId == request.PlanId && request.BillingInterval == currentBillingInterval)
+            return Result<bool>.Failure("You are already on this plan and billing interval.");
 
         var newPriceId = request.BillingInterval == BillingInterval.Monthly
             ? newPlan.StripePriceIdMonthly
@@ -57,7 +59,18 @@ public sealed class ChangePlanCommandHandler(
             return Result<bool>.Failure($"No price configured for {request.BillingInterval} billing interval.");
 
         var oldPlanId = subscription.PlanId;
-        var isUpgrade = newPlan.MonthlyPrice > subscription.Plan.MonthlyPrice;
+        var currentPeriodPrice = currentBillingInterval == BillingInterval.Monthly
+            ? subscription.Plan.MonthlyPrice
+            : subscription.Plan.YearlyPrice;
+        var targetPeriodPrice = request.BillingInterval == BillingInterval.Monthly
+            ? newPlan.MonthlyPrice
+            : newPlan.YearlyPrice;
+
+        var currentMonthlyEquivalent = ToMonthlyEquivalent(currentPeriodPrice, currentBillingInterval);
+        var targetMonthlyEquivalent = ToMonthlyEquivalent(targetPeriodPrice, request.BillingInterval);
+        var isDowngrade = targetMonthlyEquivalent < currentMonthlyEquivalent;
+        var isUpgrade = targetMonthlyEquivalent > currentMonthlyEquivalent;
+        var applyImmediately = !isDowngrade;
 
         // Cancel any existing scheduled downgrade before processing
         if (!string.IsNullOrWhiteSpace(subscription.StripeScheduleId))
@@ -67,9 +80,9 @@ public sealed class ChangePlanCommandHandler(
             subscription.StripeScheduleId = null;
         }
 
-        if (isUpgrade)
+        if (applyImmediately)
         {
-            // Upgrade: immediate with proration
+            // Upgrade/lateral change: immediate with proration
             var updated = await paymentGateway.UpdateSubscriptionPriceAsync(
                 subscription.StripeSubscriptionId, newPriceId, cancellationToken);
 
@@ -90,21 +103,76 @@ public sealed class ChangePlanCommandHandler(
         subscription.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var changeType = isUpgrade ? "Upgrade" : "Downgrade (scheduled)";
+        var changeType = isUpgrade
+            ? "Upgrade (immediate)"
+            : isDowngrade
+                ? "Downgrade (scheduled)"
+                : "Lateral change (immediate)";
+
         await auditService.LogAsync(
             AuditActions.SubscriptionPlanChanged,
             entityType: "UserSubscription",
             entityId: subscription.Id.ToString(),
-            details: $"{changeType} from plan {oldPlanId} to {request.PlanId} ({request.BillingInterval})",
+            details:
+            $"{changeType} from plan {oldPlanId} ({currentBillingInterval}, {currentPeriodPrice:0.00} EUR) " +
+            $"to {request.PlanId} ({request.BillingInterval}, {targetPeriodPrice:0.00} EUR). " +
+            $"Monthly equivalent: {currentMonthlyEquivalent:0.00} -> {targetMonthlyEquivalent:0.00} EUR",
             userId: request.UserId,
             ipAddress: request.IpAddress,
             userAgent: request.UserAgent,
             cancellationToken: cancellationToken);
 
         logger.LogInformation(
-            "Subscription {SubscriptionId} {ChangeType} from {OldPlan} to {NewPlan} for user {UserId}",
-            subscription.StripeSubscriptionId, changeType, oldPlanId, request.PlanId, request.UserId);
+            "Subscription {SubscriptionId} {ChangeType} from {OldPlan} ({OldInterval}, {OldMonthlyEq} EUR/mo) " +
+            "to {NewPlan} ({NewInterval}, {NewMonthlyEq} EUR/mo) for user {UserId}",
+            subscription.StripeSubscriptionId,
+            changeType,
+            oldPlanId,
+            currentBillingInterval,
+            currentMonthlyEquivalent,
+            request.PlanId,
+            request.BillingInterval,
+            targetMonthlyEquivalent,
+            request.UserId);
 
         return Result<bool>.Success(true);
+    }
+
+    private async Task<BillingInterval> ResolveCurrentBillingIntervalAsync(
+        Seed.Domain.Entities.UserSubscription subscription,
+        CancellationToken cancellationToken)
+    {
+        var stripeSubscription = await paymentGateway.GetSubscriptionAsync(
+            subscription.StripeSubscriptionId!,
+            cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(stripeSubscription?.PriceId))
+        {
+            if (string.Equals(stripeSubscription.PriceId, subscription.Plan.StripePriceIdMonthly, StringComparison.Ordinal))
+            {
+                return BillingInterval.Monthly;
+            }
+
+            if (string.Equals(stripeSubscription.PriceId, subscription.Plan.StripePriceIdYearly, StringComparison.Ordinal))
+            {
+                return BillingInterval.Yearly;
+            }
+        }
+
+        var periodLength = subscription.CurrentPeriodEnd - subscription.CurrentPeriodStart;
+        var inferred = periodLength.TotalDays >= 180 ? BillingInterval.Yearly : BillingInterval.Monthly;
+
+        logger.LogWarning(
+            "Unable to resolve current billing interval from Stripe price for subscription {SubscriptionId}. " +
+            "Falling back to period-length inference ({InferredInterval}).",
+            subscription.StripeSubscriptionId,
+            inferred);
+
+        return inferred;
+    }
+
+    private static decimal ToMonthlyEquivalent(decimal periodPrice, BillingInterval interval)
+    {
+        return interval == BillingInterval.Yearly ? periodPrice / 12m : periodPrice;
     }
 }

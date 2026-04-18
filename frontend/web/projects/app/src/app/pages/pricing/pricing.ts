@@ -5,10 +5,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from 'shared-auth';
 import { BillingService } from './billing.service';
 import { Plan, UserSubscription } from './billing.models';
+import { ConfirmDialog } from '../admin/users/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-pricing',
@@ -19,7 +21,14 @@ import { Plan, UserSubscription } from './billing.models';
 export class Pricing implements OnInit {
   private readonly billingService = inject(BillingService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
   protected readonly authService = inject(AuthService);
+  private readonly currencyFormatter = new Intl.NumberFormat('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   protected readonly loading = signal(true);
   protected readonly plans = signal<Plan[]>([]);
@@ -80,10 +89,28 @@ export class Pricing implements OnInit {
     const hasActiveSubscription = sub && !sub.isFreeTier;
 
     if (hasActiveSubscription) {
-      this.changePlan(plan);
+      this.confirmChangePlan(plan, sub);
     } else {
       this.checkout(plan);
     }
+  }
+
+  private confirmChangePlan(plan: Plan, subscription: UserSubscription): void {
+    const preview = this.getPlanChangePreview(plan, subscription);
+    const dialogRef = this.dialog.open(ConfirmDialog, {
+      width: '520px',
+      data: {
+        title: 'Conferma cambio piano',
+        message: this.buildChangePlanConfirmationMessage(plan, subscription, preview),
+        confirmText: 'Conferma cambio',
+        cancelText: 'Annulla',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
+      if (!confirmed) return;
+      this.changePlan(plan);
+    });
   }
 
   private changePlan(plan: Plan): void {
@@ -145,5 +172,89 @@ export class Pricing implements OnInit {
       next: (sub) => this.currentSubscription.set(sub),
       error: () => {},
     });
+  }
+
+  private buildChangePlanConfirmationMessage(
+    plan: Plan,
+    subscription: UserSubscription,
+    preview: { changeLabel: string; timingLabel: string; currentPrice: number; targetPrice: number },
+  ): string {
+    const currentIntervalLabel = this.getIntervalLabel(this.inferBillingInterval(subscription));
+    const targetIntervalLabel = this.getIntervalLabel(this.billingInterval());
+    const currentPrice = this.formatCurrency(preview.currentPrice);
+    const targetPrice = this.formatCurrency(preview.targetPrice);
+
+    return `Passerai da ${subscription.planName} (${currentPrice}/${currentIntervalLabel}) a ${plan.name} ` +
+      `(${targetPrice}/${targetIntervalLabel}). ` +
+      `Tipo cambio: ${preview.changeLabel}. ` +
+      `${preview.timingLabel}`;
+  }
+
+  private getPlanChangePreview(
+    plan: Plan,
+    subscription: UserSubscription,
+  ): { changeLabel: string; timingLabel: string; currentPrice: number; targetPrice: number } {
+    const currentInterval = this.inferBillingInterval(subscription);
+    const targetInterval = this.billingInterval();
+    const currentPrice = this.getSubscriptionPriceForInterval(subscription, currentInterval);
+    const targetPrice = this.getPrice(plan);
+    const currentMonthlyEquivalent = this.toMonthlyEquivalent(currentPrice, currentInterval);
+    const targetMonthlyEquivalent = this.toMonthlyEquivalent(targetPrice, targetInterval);
+
+    if (targetMonthlyEquivalent < currentMonthlyEquivalent) {
+      return {
+        changeLabel: 'Downgrade',
+        timingLabel: 'Il cambio verrà applicato alla fine del periodo corrente.',
+        currentPrice,
+        targetPrice,
+      };
+    }
+
+    if (targetMonthlyEquivalent > currentMonthlyEquivalent) {
+      return {
+        changeLabel: 'Upgrade',
+        timingLabel: 'Il cambio verrà applicato subito con eventuale pro-rata.',
+        currentPrice,
+        targetPrice,
+      };
+    }
+
+    return {
+      changeLabel: 'Cambio laterale',
+      timingLabel: 'Il cambio verrà applicato subito.',
+      currentPrice,
+      targetPrice,
+    };
+  }
+
+  private getSubscriptionPriceForInterval(
+    subscription: UserSubscription,
+    interval: 'monthly' | 'yearly',
+  ): number {
+    return interval === 'yearly' ? subscription.yearlyPrice : subscription.monthlyPrice;
+  }
+
+  private inferBillingInterval(subscription: UserSubscription): 'monthly' | 'yearly' {
+    const start = new Date(subscription.currentPeriodStart).getTime();
+    const end = new Date(subscription.currentPeriodEnd).getTime();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      return 'monthly';
+    }
+
+    const daysInPeriod = (end - start) / (1000 * 60 * 60 * 24);
+    return daysInPeriod >= 180 ? 'yearly' : 'monthly';
+  }
+
+  private toMonthlyEquivalent(price: number, interval: 'monthly' | 'yearly'): number {
+    return interval === 'yearly' ? price / 12 : price;
+  }
+
+  private formatCurrency(price: number): string {
+    return this.currencyFormatter.format(price);
+  }
+
+  private getIntervalLabel(interval: 'monthly' | 'yearly'): string {
+    return interval === 'yearly' ? 'anno' : 'mese';
   }
 }
