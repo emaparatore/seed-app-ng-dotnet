@@ -7,6 +7,8 @@ using Seed.Domain.Entities;
 using Seed.Domain.Enums;
 using Seed.Infrastructure.Persistence;
 using Stripe;
+using System.Globalization;
+using System.Text.Json;
 
 namespace Seed.Infrastructure.Services.Payments;
 
@@ -156,7 +158,7 @@ public sealed class StripeWebhookEventHandler(
         var invoice = stripeEvent.Data.Object as Invoice;
         if (invoice is null) return false;
 
-        var stripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
+        var stripeSubscriptionId = ResolveInvoiceSubscriptionId(invoice, jsonPayload);
         if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return false;
 
         var subscription = await dbContext.UserSubscriptions
@@ -168,10 +170,10 @@ public sealed class StripeWebhookEventHandler(
             return false;
         }
 
-        if (invoice.PeriodStart != default)
-            subscription.CurrentPeriodStart = invoice.PeriodStart;
-        if (invoice.PeriodEnd != default)
-            subscription.CurrentPeriodEnd = invoice.PeriodEnd;
+        if (TryResolveInvoicePeriodStart(invoice, jsonPayload, out var periodStart))
+            subscription.CurrentPeriodStart = periodStart;
+        if (TryResolveInvoicePeriodEnd(invoice, jsonPayload, out var periodEnd))
+            subscription.CurrentPeriodEnd = periodEnd;
 
         if (subscription.Status == SubscriptionStatus.PastDue)
             subscription.Status = SubscriptionStatus.Active;
@@ -197,7 +199,7 @@ public sealed class StripeWebhookEventHandler(
         var invoice = stripeEvent.Data.Object as Invoice;
         if (invoice is null) return false;
 
-        var stripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
+        var stripeSubscriptionId = ResolveInvoiceSubscriptionId(invoice, jsonPayload);
         if (string.IsNullOrWhiteSpace(stripeSubscriptionId)) return false;
 
         var subscription = await dbContext.UserSubscriptions
@@ -223,6 +225,115 @@ public sealed class StripeWebhookEventHandler(
 
         logger.LogWarning("Payment failed for subscription {SubscriptionId}", stripeSubscriptionId);
         return true;
+    }
+
+    private static string? ResolveInvoiceSubscriptionId(Invoice invoice, string jsonPayload)
+    {
+        if (!string.IsNullOrWhiteSpace(invoice.Parent?.SubscriptionDetails?.SubscriptionId))
+            return invoice.Parent.SubscriptionDetails.SubscriptionId;
+
+        return TryReadInvoiceStringField(jsonPayload, "subscription")
+            ?? TryReadInvoiceStringField(jsonPayload, "subscription_id")
+            ?? TryReadInvoiceParentSubscriptionDetailsId(jsonPayload);
+    }
+
+    private static bool TryResolveInvoicePeriodStart(Invoice invoice, string jsonPayload, out DateTime periodStart)
+    {
+        if (invoice.PeriodStart != default)
+        {
+            periodStart = invoice.PeriodStart;
+            return true;
+        }
+
+        return TryReadInvoiceUnixField(jsonPayload, "period_start", out periodStart);
+    }
+
+    private static bool TryResolveInvoicePeriodEnd(Invoice invoice, string jsonPayload, out DateTime periodEnd)
+    {
+        if (invoice.PeriodEnd != default)
+        {
+            periodEnd = invoice.PeriodEnd;
+            return true;
+        }
+
+        return TryReadInvoiceUnixField(jsonPayload, "period_end", out periodEnd);
+    }
+
+    private static string? TryReadInvoiceStringField(string jsonPayload, string fieldName)
+    {
+        if (!TryGetInvoiceJsonObject(jsonPayload, out var invoiceObject))
+            return null;
+
+        if (!invoiceObject.TryGetProperty(fieldName, out var value))
+            return null;
+
+        return value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+    }
+
+    private static string? TryReadInvoiceParentSubscriptionDetailsId(string jsonPayload)
+    {
+        if (!TryGetInvoiceJsonObject(jsonPayload, out var invoiceObject))
+            return null;
+
+        if (!invoiceObject.TryGetProperty("parent", out var parentObject) || parentObject.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (!parentObject.TryGetProperty("subscription_details", out var subscriptionDetailsObject) || subscriptionDetailsObject.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (!subscriptionDetailsObject.TryGetProperty("subscription", out var subscriptionValue) || subscriptionValue.ValueKind != JsonValueKind.String)
+            return null;
+
+        return subscriptionValue.GetString();
+    }
+
+    private static bool TryReadInvoiceUnixField(string jsonPayload, string fieldName, out DateTime value)
+    {
+        value = default;
+        if (!TryGetInvoiceJsonObject(jsonPayload, out var invoiceObject))
+            return false;
+
+        if (!invoiceObject.TryGetProperty(fieldName, out var field))
+            return false;
+
+        long unixValue;
+        switch (field.ValueKind)
+        {
+            case JsonValueKind.Number when field.TryGetInt64(out var numberValue):
+                unixValue = numberValue;
+                break;
+            case JsonValueKind.String when long.TryParse(field.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stringValue):
+                unixValue = stringValue;
+                break;
+            default:
+                return false;
+        }
+
+        value = DateTimeOffset.FromUnixTimeSeconds(unixValue).UtcDateTime;
+        return true;
+    }
+
+    private static bool TryGetInvoiceJsonObject(string jsonPayload, out JsonElement invoiceObject)
+    {
+        invoiceObject = default;
+        try
+        {
+            using var document = JsonDocument.Parse(jsonPayload);
+            if (!document.RootElement.TryGetProperty("data", out var dataObject) || dataObject.ValueKind != JsonValueKind.Object)
+                return false;
+
+            if (!dataObject.TryGetProperty("object", out var payloadObject) || payloadObject.ValueKind != JsonValueKind.Object)
+                return false;
+
+            invoiceObject = payloadObject.Clone();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private async Task<bool> HandleSubscriptionUpdatedAsync(string jsonPayload, CancellationToken ct)
