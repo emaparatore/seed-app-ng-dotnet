@@ -259,9 +259,9 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **Acceptance Criteria:**
 - [x] Dalla pagina del proprio abbonamento, l'utente può cliccare "Cambia piano"
 - [x] Viene mostrata la lista dei piani disponibili con il piano attuale evidenziato
-- [ ] L'upgrade è immediato, con proration calcolata da Stripe
-- [ ] Il downgrade diventa effettivo alla fine del periodo di billing corrente (Stripe Subscription Schedules)
-- [ ] L'audit log registra il cambio piano
+- [x] L'upgrade è immediato, con proration calcolata da Stripe
+- [x] Il downgrade diventa effettivo alla fine del periodo di billing corrente (Stripe Subscription Schedules)
+- [x] L'audit log registra il cambio piano
 
 #### US-006: Trial period
 
@@ -284,12 +284,12 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa definire l'offerta commerciale dell'applicazione.
 
 **Acceptance Criteria:**
-- [ ] Nell'area admin esiste una sezione "Piani" con la lista di tutti i piani
-- [ ] L'admin può creare un nuovo piano: nome, descrizione, prezzo mensile/annuale, trial days, feature list
-- [ ] L'admin può modificare un piano esistente (nome, descrizione, feature; il prezzo richiede nuovo Price su Stripe)
-- [ ] L'admin può archiviare un piano (non è più selezionabile da nuovi utenti, quelli esistenti restano)
-- [ ] La creazione/modifica sincronizza automaticamente Product e Price su Stripe
-- [ ] L'admin può vedere quanti utenti sono abbonati a ciascun piano
+- [x] Nell'area admin esiste una sezione "Piani" con la lista di tutti i piani
+- [x] L'admin può creare un nuovo piano: nome, descrizione, prezzo mensile/annuale, trial days, feature list
+- [x] L'admin può modificare un piano esistente (nome, descrizione, feature; il prezzo richiede nuovo Price su Stripe)
+- [x] L'admin può archiviare un piano (non è più selezionabile da nuovi utenti, quelli esistenti restano)
+- [x] La creazione/modifica sincronizza automaticamente Product e Price su Stripe
+- [x] L'admin può vedere quanti utenti sono abbonati a ciascun piano
 
 #### US-008: Admin — dashboard abbonamenti
 
