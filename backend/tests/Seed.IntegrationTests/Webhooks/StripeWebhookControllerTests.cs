@@ -43,6 +43,7 @@ public class StripeWebhookControllerTests : IClassFixture<WebhookWebApplicationF
     private static string BuildMinimalEventJson()
     {
         var epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var apiVersion = StripeConfiguration.ApiVersion ?? "2024-12-18.acacia";
         return $$"""
         {
             "id": "evt_test_valid",
@@ -51,7 +52,7 @@ public class StripeWebhookControllerTests : IClassFixture<WebhookWebApplicationF
             "created": {{epoch}},
             "livemode": false,
             "pending_webhooks": 0,
-            "api_version": "2024-12-18.acacia",
+            "api_version": "{{apiVersion}}",
             "request": { "id": null, "idempotency_key": null },
             "data": {
                 "object": {}
