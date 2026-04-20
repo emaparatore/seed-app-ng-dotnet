@@ -1,0 +1,159 @@
+<div class="subscription-container">
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-progress-spinner mode="indeterminate" diameter="48" />
+    </div>
+  } @else if (error()) {
+    <mat-card class="subscription-card">
+      <mat-card-content>
+        <div class="error-state">
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <p>{{ error() }}</p>
+          <button mat-flat-button color="primary" (click)="loadSubscription()">Riprova</button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else if (!subscription() || subscription()?.isFreeTier) {
+    <mat-card class="subscription-card">
+      <mat-card-header>
+        <mat-card-title>Il tuo abbonamento</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="free-state">
+          <mat-icon class="info-icon">stars</mat-icon>
+          <p>Stai utilizzando il piano gratuito.</p>
+          <p class="secondary-text">Passa a un piano a pagamento per sbloccare tutte le funzionalità.</p>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button color="primary" (click)="goToPricing()">
+          <mat-icon>upgrade</mat-icon>
+          Vedi piani
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  } @else {
+    <mat-card class="subscription-card">
+      <mat-card-header>
+        <mat-card-title>
+          {{ subscription()?.planName }}
+          <mat-chip-set class="status-chip-set">
+            <mat-chip [class]="'status-chip status-' + subscription()?.status?.toLowerCase()">
+              {{ subscription()?.status }}
+            </mat-chip>
+          </mat-chip-set>
+        </mat-card-title>
+        @if (subscription()?.planDescription) {
+          <mat-card-subtitle>{{ subscription()?.planDescription }}</mat-card-subtitle>
+        }
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="subscription-details">
+          <div class="detail-row">
+            <mat-icon>euro</mat-icon>
+            <span>{{ subscription()?.monthlyPrice | number:'1.2-2' }} € / mese &nbsp;·&nbsp; {{ subscription()?.yearlyPrice | number:'1.2-2' }} € / anno</span>
+          </div>
+
+          @if (!isCanceled()) {
+            <div class="detail-row">
+              <mat-icon>event</mat-icon>
+              <span>Prossimo rinnovo: {{ subscription()?.currentPeriodEnd | date:'dd/MM/yyyy' }}</span>
+            </div>
+          } @else {
+            <div class="detail-row">
+              <mat-icon>event_busy</mat-icon>
+              <span>Cancellato il: {{ subscription()?.canceledAt | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="detail-row">
+              <mat-icon>event</mat-icon>
+              <span>Accesso attivo fino al: {{ subscription()?.currentPeriodEnd | date:'dd/MM/yyyy' }}</span>
+            </div>
+          }
+
+          @if (isTrialing() && subscription()?.trialEnd) {
+            <div class="detail-row trial-info">
+              <mat-icon>hourglass_top</mat-icon>
+              <span>
+                Trial attivo — scade il {{ subscription()?.trialEnd | date:'dd/MM/yyyy' }}
+                @if (trialDaysRemaining() !== null) {
+                  ({{ trialDaysRemaining() }} giorni rimanenti)
+                }
+              </span>
+            </div>
+          }
+
+          @if (subscription()?.scheduledPlanName) {
+            <div class="detail-row scheduled-downgrade-info">
+              <mat-icon>schedule</mat-icon>
+              <span>
+                Downgrade al piano <strong>{{ subscription()?.scheduledPlanName }}</strong>
+                pianificato per il {{ subscription()?.scheduledChangeDate | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+          }
+
+          @if (subscription()?.features?.length) {
+            <div class="features-section">
+              <h3 class="features-title">Funzionalità incluse</h3>
+              <ul class="features-list">
+                @for (feature of subscription()?.features; track feature.id) {
+                  <li>
+                    <mat-icon class="feature-icon">check_circle</mat-icon>
+                    <span>
+                      {{ feature.description }}
+                      @if (feature.limitValue) {
+                        <span class="feature-limit">({{ feature.limitValue }})</span>
+                      }
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+
+        @if (error()) {
+          <p class="error-text">{{ error() }}</p>
+        }
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button (click)="goToPricing()">
+          <mat-icon>swap_horiz</mat-icon>
+          Cambia piano
+        </button>
+        <button mat-button routerLink="/billing/invoice-requests">
+          <mat-icon>receipt_long</mat-icon>
+          Storico fatture
+        </button>
+        @if (!isCanceled()) {
+          <button mat-button (click)="openInvoiceRequest()" [disabled]="requestingInvoice()">
+            @if (requestingInvoice()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else {
+              <mat-icon>request_quote</mat-icon>
+            }
+            Richiedi fattura
+          </button>
+          <button mat-button (click)="openPortal()" [disabled]="portalLoading()">
+            @if (portalLoading()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else {
+              <mat-icon>credit_card</mat-icon>
+            }
+            Gestisci Abbonamento
+          </button>
+          <button mat-flat-button color="warn" (click)="openPortal()" [disabled]="portalLoading()">
+            @if (portalLoading()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else {
+              <mat-icon>cancel</mat-icon>
+            }
+            Cancella abbonamento
+          </button>
+        }
+      </mat-card-actions>
+    </mat-card>
+  }
+</div>

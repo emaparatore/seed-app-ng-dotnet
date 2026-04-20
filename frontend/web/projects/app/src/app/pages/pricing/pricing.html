@@ -1,0 +1,138 @@
+<div class="pricing-header">
+  <h1 class="pricing-title">Scegli il piano giusto per te</h1>
+  <p class="pricing-subtitle">Inizia gratis, upgrada quando vuoi.</p>
+  @if (authService.isAuthenticated() && hasPaidSubscription()) {
+    <p class="pricing-subtitle">Hai già un abbonamento a pagamento: per cambiare piano usa il portale Stripe.</p>
+  }
+
+  <mat-button-toggle-group
+    class="interval-toggle"
+    [value]="billingInterval()"
+    (change)="billingInterval.set($event.value)"
+    aria-label="Periodicità fatturazione"
+  >
+    <mat-button-toggle value="monthly">Mensile</mat-button-toggle>
+    <mat-button-toggle value="yearly">
+      Annuale
+      <span class="toggle-badge">Risparmia</span>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
+</div>
+
+@if (loading()) {
+  <div class="plans-grid">
+    @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton-card">
+        <div class="skeleton-name"></div>
+        <div class="skeleton-price"></div>
+        <div class="skeleton-features">
+          @for (j of [1, 2, 3, 4]; track j) {
+            <div class="skeleton-feature"></div>
+          }
+        </div>
+        <div class="skeleton-button"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else {
+  <div class="plans-grid">
+    @for (plan of sortedPlans(); track plan.id) {
+      <mat-card class="plan-card" [class.popular]="plan.isPopular" [class.active]="isActivePlan(plan)">
+        @if (isActivePlan(plan)) {
+          <div class="active-badge">
+            <mat-icon>check_circle</mat-icon>
+            Piano attuale
+          </div>
+        } @else if (isScheduledPlan(plan)) {
+          <div class="scheduled-badge">
+            <mat-icon>schedule</mat-icon>
+            Cambio pianificato
+          </div>
+        } @else if (plan.isPopular) {
+          <div class="popular-badge">Più popolare</div>
+        }
+
+        <mat-card-header>
+          <mat-card-title>{{ plan.name }}</mat-card-title>
+          @if (plan.description) {
+            <mat-card-subtitle>{{ plan.description }}</mat-card-subtitle>
+          }
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="price-block">
+            @if (plan.isFreeTier) {
+              <span class="price-amount">Gratis</span>
+            } @else {
+              <span class="price-amount">{{ getPrice(plan) | currency: 'EUR' : 'symbol' : '1.0-0' }}</span>
+              <span class="price-period">/ {{ billingInterval() === 'yearly' ? 'anno' : 'mese' }}</span>
+              @if (billingInterval() === 'yearly' && getYearlyDiscount(plan) > 0) {
+                <span class="discount-badge">-{{ getYearlyDiscount(plan) }}%</span>
+              }
+            }
+          </div>
+
+          @if (plan.trialDays > 0) {
+            <p class="trial-info">
+              <mat-icon>schedule</mat-icon>
+              Prova gratis per {{ plan.trialDays }} giorni
+            </p>
+          }
+
+          @if (plan.features.length > 0) {
+            <ul class="feature-list">
+              @for (feature of plan.features; track feature.id) {
+                <li class="feature-item">
+                  <mat-icon class="feature-icon">check_circle</mat-icon>
+                  <span>
+                    {{ feature.description }}
+                    @if (feature.limitValue) {
+                      <span class="feature-limit">({{ feature.limitValue }})</span>
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button
+            mat-flat-button
+            class="cta-button"
+            [color]="plan.isPopular ? 'primary' : undefined"
+            [disabled]="checkoutLoading() || portalLoading() || isActivePlan(plan) || isScheduledPlan(plan)"
+            (click)="onCtaClick(plan)"
+          >
+            @if (isActivePlan(plan)) {
+              Piano attuale
+            } @else if (isScheduledPlan(plan)) {
+              Cambio pianificato
+            } @else if ((checkoutLoading() || portalLoading()) && authService.isAuthenticated() && !plan.isFreeTier) {
+              <mat-spinner diameter="20" />
+            } @else if (authService.isAuthenticated() && hasPaidSubscription()) {
+              Aggiorna abbonamento
+            } @else if (plan.isFreeTier) {
+              Inizia gratis
+            } @else if (!authService.isAuthenticated()) {
+              Scegli piano
+            } @else if (plan.trialDays > 0) {
+              Prova gratis per {{ plan.trialDays }} giorni
+            } @else {
+              Scegli piano
+            }
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    }
+  </div>
+}

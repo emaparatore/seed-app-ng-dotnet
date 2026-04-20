@@ -1,0 +1,127 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Modifica piano' : 'Nuovo piano' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form" (ngSubmit)="onSubmit()">
+
+    @if (isEdit) {
+      <div class="price-warning">
+        <mat-icon>warning</mat-icon>
+        <span>La modifica del prezzo creerà un nuovo Price su Stripe. I subscriber esistenti non saranno migrati automaticamente.</span>
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Il nome è obbligatorio</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descrizione</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <div class="price-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Prezzo mensile (€)</mat-label>
+        <input matInput type="number" formControlName="monthlyPrice" min="0" step="0.01" />
+        @if (form.controls.monthlyPrice.hasError('required')) {
+          <mat-error>Obbligatorio</mat-error>
+        } @else if (form.controls.monthlyPrice.hasError('min')) {
+          <mat-error>Minimo 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Prezzo annuale (€)</mat-label>
+        <input matInput type="number" formControlName="yearlyPrice" min="0" step="0.01" />
+        @if (form.controls.yearlyPrice.hasError('required')) {
+          <mat-error>Obbligatorio</mat-error>
+        } @else if (form.controls.yearlyPrice.hasError('min')) {
+          <mat-error>Minimo 0</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="price-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Giorni di trial</mat-label>
+        <input matInput type="number" formControlName="trialDays" min="0" />
+        @if (form.controls.trialDays.hasError('min')) {
+          <mat-error>Minimo 0</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Ordinamento</mat-label>
+        <input matInput type="number" formControlName="sortOrder" min="0" />
+        @if (form.controls.sortOrder.hasError('required')) {
+          <mat-error>Obbligatorio</mat-error>
+        } @else if (form.controls.sortOrder.hasError('min')) {
+          <mat-error>Minimo 0</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="flags-row">
+      <mat-checkbox formControlName="isFreeTier">Free tier</mat-checkbox>
+      <mat-checkbox formControlName="isDefault">Default</mat-checkbox>
+      <mat-checkbox formControlName="isPopular">Popolare</mat-checkbox>
+    </div>
+
+    <!-- Features -->
+    <div class="features-section">
+      <div class="features-header">
+        <h4>Feature ({{ featuresArray.length }})</h4>
+        <button mat-stroked-button type="button" (click)="addFeature()">
+          <mat-icon>add</mat-icon>
+          Aggiungi feature
+        </button>
+      </div>
+
+      @for (featureGroup of featuresArray.controls; track $index) {
+        <div class="feature-row" [formGroup]="$any(featureGroup)">
+          <mat-form-field appearance="outline">
+            <mat-label>Key</mat-label>
+            <input matInput formControlName="key" />
+            @if ($any(featureGroup).controls.key.hasError('required')) {
+              <mat-error>Obbligatoria</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Descrizione</mat-label>
+            <input matInput formControlName="description" />
+            @if ($any(featureGroup).controls.description.hasError('required')) {
+              <mat-error>Obbligatoria</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Limite</mat-label>
+            <input matInput formControlName="limitValue" placeholder="es. 100 o illimitato" />
+          </mat-form-field>
+
+          <button mat-icon-button type="button" class="remove-btn" matTooltip="Rimuovi" (click)="removeFeature($index)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annulla</button>
+  <button mat-flat-button (click)="onSubmit()" [disabled]="saving()">
+    @if (saving()) {
+      Salvataggio...
+    } @else {
+      {{ isEdit ? 'Salva' : 'Crea piano' }}
+    }
+  </button>
+</mat-dialog-actions>

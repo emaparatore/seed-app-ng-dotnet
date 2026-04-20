@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, mustChangePasswordGuard, adminGuard } from 'shared-auth';
+import { paymentsEnabledGuard } from './guards/payments-enabled.guard';
 
 export const routes: Routes = [
   {
@@ -56,6 +57,31 @@ export const routes: Routes = [
   {
     path: 'terms-of-service',
     loadComponent: () => import('./pages/terms-of-service/terms-of-service').then((m) => m.TermsOfService),
+  },
+  {
+    path: 'pricing',
+    loadComponent: () => import('./pages/pricing/pricing').then((m) => m.Pricing),
+    canActivate: [paymentsEnabledGuard],
+  },
+  {
+    path: 'billing/success',
+    loadComponent: () => import('./pages/billing/checkout-success/checkout-success').then((m) => m.CheckoutSuccess),
+    canActivate: [authGuard, paymentsEnabledGuard],
+  },
+  {
+    path: 'billing/cancel',
+    loadComponent: () => import('./pages/billing/checkout-cancel/checkout-cancel').then((m) => m.CheckoutCancel),
+    canActivate: [authGuard, paymentsEnabledGuard],
+  },
+  {
+    path: 'billing/subscription',
+    loadComponent: () => import('./pages/billing/subscription/subscription').then((m) => m.Subscription),
+    canActivate: [authGuard, paymentsEnabledGuard],
+  },
+  {
+    path: 'billing/invoice-requests',
+    loadComponent: () => import('./pages/billing/invoice-requests/invoice-requests').then((m) => m.InvoiceRequests),
+    canActivate: [authGuard, paymentsEnabledGuard],
   },
   { path: '**', redirectTo: '' },
 ];

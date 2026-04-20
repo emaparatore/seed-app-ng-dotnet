@@ -27,4 +27,13 @@ export const PERMISSIONS = {
   SystemHealth: {
     Read: 'SystemHealth.Read',
   },
+  Plans: {
+    Read: 'Plans.Read',
+    Create: 'Plans.Create',
+    Update: 'Plans.Update',
+  },
+  Subscriptions: {
+    Read: 'Subscriptions.Read',
+    Manage: 'Subscriptions.Manage',
+  },
 } as const;

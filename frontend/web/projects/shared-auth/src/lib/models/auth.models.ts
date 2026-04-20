@@ -1,3 +1,10 @@
+export interface SubscriptionInfo {
+  currentPlan: string;
+  planFeatures: string[];
+  subscriptionStatus: string;
+  trialEndsAt: string | null;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -5,6 +12,7 @@ export interface User {
   lastName: string;
   roles: string[];
   permissions: string[];
+  subscription?: SubscriptionInfo | null;
 }
 
 export interface LoginRequest {

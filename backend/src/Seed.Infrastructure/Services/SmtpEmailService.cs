@@ -80,4 +80,86 @@ public sealed class SmtpEmailService(
 
         logger.LogInformation("Email verification link sent to {Email}", toEmail);
     }
+
+    public async Task SendSubscriptionConfirmationAsync(string toEmail, string planName, CancellationToken ct = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Subscription Confirmed";
+        message.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Subscription Confirmed</h2>
+                <p>Thank you! Your subscription to the <strong>{planName}</strong> plan has been activated.</p>
+                <p>You can manage your subscription from your account settings.</p>
+                """
+        };
+
+        var socketOptions = Enum.Parse<SecureSocketOptions>(_settings.Security, ignoreCase: true);
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.Host, _settings.Port, socketOptions, ct);
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, ct);
+        await client.SendAsync(message, ct);
+        await client.DisconnectAsync(true, ct);
+
+        logger.LogInformation("Subscription confirmation email sent to {Email}", toEmail);
+    }
+
+    public async Task SendTrialEndingNotificationAsync(string toEmail, string planName, int daysRemaining, CancellationToken ct = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = $"Your trial ends in {daysRemaining} day(s)";
+        message.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Trial Ending Soon</h2>
+                <p>Your trial for the <strong>{planName}</strong> plan will end in <strong>{daysRemaining} day(s)</strong>.</p>
+                <p>To continue using all features, please ensure your payment method is up to date in your account settings.</p>
+                """
+        };
+
+        var socketOptions = Enum.Parse<SecureSocketOptions>(_settings.Security, ignoreCase: true);
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.Host, _settings.Port, socketOptions, ct);
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, ct);
+        await client.SendAsync(message, ct);
+        await client.DisconnectAsync(true, ct);
+
+        logger.LogInformation("Trial ending notification sent to {Email} ({DaysRemaining} days remaining)", toEmail, daysRemaining);
+    }
+
+    public async Task SendSubscriptionCanceledAsync(string toEmail, string planName, DateTime endDate, CancellationToken ct = default)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Subscription Canceled";
+        message.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Subscription Canceled</h2>
+                <p>Your subscription to the <strong>{planName}</strong> plan has been canceled.</p>
+                <p>You will continue to have access until <strong>{endDate:MMMM d, yyyy}</strong>.</p>
+                <p>You can resubscribe at any time from your account settings.</p>
+                """
+        };
+
+        var socketOptions = Enum.Parse<SecureSocketOptions>(_settings.Security, ignoreCase: true);
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.Host, _settings.Port, socketOptions, ct);
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, ct);
+        await client.SendAsync(message, ct);
+        await client.DisconnectAsync(true, ct);
+
+        logger.LogInformation("Subscription canceled email sent to {Email}", toEmail);
+    }
 }

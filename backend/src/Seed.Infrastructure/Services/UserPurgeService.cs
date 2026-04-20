@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Entities;
+using Seed.Domain.Enums;
 using Seed.Infrastructure.Persistence;
 
 namespace Seed.Infrastructure.Services;
@@ -10,6 +12,7 @@ namespace Seed.Infrastructure.Services;
 public sealed class UserPurgeService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
+    IServiceProvider serviceProvider,
     ILogger<UserPurgeService> logger) : IUserPurgeService
 {
     public async Task PurgeUserAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -43,6 +46,74 @@ public sealed class UserPurgeService(
         await dbContext.RefreshTokens
             .Where(r => r.UserId == userId)
             .ExecuteDeleteAsync(cancellationToken);
+
+        // 2a. Cancel active Stripe subscriptions, delete Stripe customer, and anonymize subscription records
+        var paymentGateway = serviceProvider.GetService<IPaymentGateway>();
+        if (paymentGateway is not null)
+        {
+            var subscriptions = await dbContext.UserSubscriptions
+                .Where(s => s.UserId == userId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var sub in subscriptions)
+            {
+                if (!string.IsNullOrWhiteSpace(sub.StripeSubscriptionId)
+                    && (sub.Status == SubscriptionStatus.Active || sub.Status == SubscriptionStatus.Trialing))
+                {
+                    try
+                    {
+                        await paymentGateway.CancelSubscriptionAsync(sub.StripeSubscriptionId, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to cancel Stripe subscription {SubscriptionId}", sub.StripeSubscriptionId);
+                    }
+                }
+
+                sub.UserId = null;
+                sub.Status = SubscriptionStatus.Canceled;
+                sub.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var stripeCustomerId = subscriptions
+                .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.StripeCustomerId))
+                ?.StripeCustomerId;
+
+            if (!string.IsNullOrWhiteSpace(stripeCustomerId))
+            {
+                try
+                {
+                    await paymentGateway.DeleteCustomerAsync(stripeCustomerId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to delete Stripe customer {CustomerId}", stripeCustomerId);
+                }
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            // 2b. Anonymize invoice requests (retain for fiscal compliance, remove personal data)
+            var invoiceRequests = await dbContext.InvoiceRequests
+                .Where(i => i.UserId == userId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var ir in invoiceRequests)
+            {
+                ir.UserId = null;
+                ir.FullName = "ANONYMIZED";
+                ir.CompanyName = ir.CompanyName is not null ? "ANONYMIZED" : null;
+                ir.Address = "ANONYMIZED";
+                ir.City = "ANONYMIZED";
+                ir.PostalCode = "ANONYMIZED";
+                ir.PecEmail = null;
+                // Keep: Country (aggregate stats), FiscalCode, VatNumber, SdiCode (fiscal compliance),
+                //        StripePaymentIntentId, CustomerType, Status, ProcessedAt, CreatedAt, UpdatedAt
+                ir.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         // 3. Delete the user record via UserManager (bypassing query filter for soft-deleted users)
         var user = await dbContext.Users

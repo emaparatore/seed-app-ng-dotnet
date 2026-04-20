@@ -11,6 +11,7 @@ import {
   RegisterRequest,
   ResendConfirmationEmailRequest,
   ResetPasswordRequest,
+  SubscriptionInfo,
   User,
 } from '../models/auth.models';
 import { AUTH_CONFIG } from '../auth.config';
@@ -26,6 +27,7 @@ export class AuthService {
   private readonly _mustChangePassword = signal(false);
   private readonly _consentUpdateRequired = signal(false);
   private readonly _permissions = signal<string[]>([]);
+  private readonly _subscription = signal<SubscriptionInfo | null>(null);
   private _refreshInProgress: Observable<AuthResponse> | null = null;
 
   readonly currentUser = this._currentUser.asReadonly();
@@ -34,6 +36,7 @@ export class AuthService {
   readonly mustChangePassword = this._mustChangePassword.asReadonly();
   readonly consentUpdateRequired = this._consentUpdateRequired.asReadonly();
   readonly permissions = this._permissions.asReadonly();
+  readonly subscription = this._subscription.asReadonly();
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
@@ -139,6 +142,7 @@ export class AuthService {
       tap((user) => {
         this._currentUser.set(user);
         this._permissions.set(user.permissions ?? []);
+        this._subscription.set(user.subscription ?? null);
       }),
     );
   }
@@ -166,6 +170,7 @@ export class AuthService {
     this._mustChangePassword.set(false);
     this._consentUpdateRequired.set(false);
     this._permissions.set([]);
+    this._subscription.set(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');

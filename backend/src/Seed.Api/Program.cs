@@ -18,6 +18,8 @@ using Seed.Infrastructure.Persistence;
 using Seed.Infrastructure.Persistence.Seeders;
 using Serilog;
 using Seed.Shared.Configuration;
+using Seed.Shared.Extensions;
+using Seed.Api.Conventions;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +33,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    if (!builder.Configuration.IsPaymentsModuleEnabled())
+        options.Conventions.Add(new PaymentsModuleConvention());
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
 builder.Services
@@ -81,6 +91,8 @@ builder.Services
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, RequiresPlanAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, RequiresFeatureAuthorizationHandler>();
 
 builder.Services
     .AddApiVersioning(options =>
