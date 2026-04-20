@@ -3,3 +3,4 @@
 **/tests/
 **/.git/
 **/.vs/
+**/appsettings.Development.json
