@@ -364,7 +364,7 @@ public class StripeWebhookEventHandlerTests : IDisposable
             "created": {{epoch}},
             "livemode": false,
             "pending_webhooks": 0,
-            "api_version": "2024-12-18.acacia",
+            "api_version": "2026-03-25.dahlia",
             "request": { "id": null, "idempotency_key": null },
             "data": {
                 "object": {
@@ -396,7 +396,7 @@ public class StripeWebhookEventHandlerTests : IDisposable
             "created": {{epoch}},
             "livemode": false,
             "pending_webhooks": 0,
-            "api_version": "2024-12-18.acacia",
+            "api_version": "2026-03-25.dahlia",
             "request": { "id": null, "idempotency_key": null },
             "data": {
                 "object": {
@@ -424,7 +424,7 @@ public class StripeWebhookEventHandlerTests : IDisposable
             "created": {{epoch}},
             "livemode": false,
             "pending_webhooks": 0,
-            "api_version": "2024-12-18.acacia",
+            "api_version": "2026-03-25.dahlia",
             "request": { "id": null, "idempotency_key": null },
             "data": {
                 "object": {
@@ -456,7 +456,7 @@ public class StripeWebhookEventHandlerTests : IDisposable
             "created": {{epoch}},
             "livemode": false,
             "pending_webhooks": 0,
-            "api_version": "2024-12-18.acacia",
+            "api_version": "2026-03-25.dahlia",
             "request": { "id": null, "idempotency_key": null },
             "data": {
                 "object": {
