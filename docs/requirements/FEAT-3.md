@@ -308,12 +308,12 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** lo stato delle subscription nel database sia sempre sincronizzato con Stripe.
 
 **Acceptance Criteria:**
-- [ ] Esiste un endpoint `POST /webhooks/stripe` pubblico (no auth, validazione firma)
-- [ ] L'endpoint valida la firma Stripe e rifiuta eventi con firma non valida (HTTP 400)
-- [ ] Gli eventi supportati vengono processati e aggiornano lo stato della subscription locale
-- [ ] Gli eventi duplicati vengono ignorati (deduplicazione su event ID)
-- [ ] Tutti gli eventi ricevuti vengono loggati (tipo, ID, timestamp)
-- [ ] Gli eventi non supportati vengono loggati e ignorati (HTTP 200, senza errore)
+- [x] Esiste un endpoint `POST /webhooks/stripe` pubblico (no auth, validazione firma)
+- [x] L'endpoint valida la firma Stripe e rifiuta eventi con firma non valida (HTTP 400)
+- [x] Gli eventi supportati vengono processati e aggiornano lo stato della subscription locale
+- [x] Gli eventi duplicati vengono ignorati (deduplicazione su event ID)
+- [x] Tutti gli eventi ricevuti vengono loggati (tipo, ID, timestamp)
+- [x] Gli eventi non supportati vengono loggati e ignorati (HTTP 200, senza errore)
 
 #### US-010: Subscription guard su endpoint
 
