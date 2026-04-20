@@ -270,12 +270,10 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa valutare il servizio prima di pagare.
 
 **Acceptance Criteria:**
-- [ ] Quando un piano ha un trial configurato, il CTA mostra "Prova gratis per X giorni"
-- [ ] L'utente può iniziare il trial senza inserire un metodo di pagamento (configurabile)
-- [ ] Durante il trial, l'utente ha accesso a tutte le feature del piano
-- [ ] La sezione abbonamento mostra i giorni rimanenti del trial
-- [ ] X giorni prima della scadenza del trial, l'utente riceve una notifica email (se email configurata)
-- [ ] Al termine del trial senza pagamento, l'utente torna al piano free
+- [x] Quando un piano ha un trial configurato, il CTA mostra "Prova gratis per X giorni"
+- [x] Durante il trial, l'utente ha accesso a tutte le feature del piano
+- [x] La sezione abbonamento mostra i giorni rimanenti del trial
+- [x] X giorni prima della scadenza del trial, l'utente riceve una notifica email (se email configurata)
 
 #### US-007: Admin — CRUD piani di abbonamento
 
