@@ -322,11 +322,11 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** solo gli utenti con il piano appropriato possano accedere a determinate funzionalità.
 
 **Acceptance Criteria:**
-- [ ] Esiste un attributo `[RequiresPlan("Pro", "Enterprise")]` applicabile a controller/action
-- [ ] Esiste un attributo `[RequiresFeature("feature-key")]` per controllo granulare
-- [ ] Se l'utente non ha il piano richiesto, l'endpoint restituisce HTTP 403 con messaggio chiaro
-- [ ] Se il modulo Payments è disabilitato, i guard passano sempre (nessuna restrizione)
-- [ ] I guard verificano che la subscription sia in stato attivo (non scaduta/cancellata)
+- [x] Esiste un attributo `[RequiresPlan("Pro", "Enterprise")]` applicabile a controller/action
+- [x] Esiste un attributo `[RequiresFeature("feature-key")]` per controllo granulare
+- [x] Se l'utente non ha il piano richiesto, l'endpoint restituisce HTTP 403 con messaggio chiaro
+- [x] Se il modulo Payments è disabilitato, i guard passano sempre (nessuna restrizione)
+- [x] I guard verificano che la subscription sia in stato attivo (non scaduta/cancellata)
 
 #### US-011: Feature gating frontend
 
@@ -335,11 +335,11 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** l'interfaccia rifletta le feature disponibili per il piano attuale.
 
 **Acceptance Criteria:**
-- [ ] Esiste una directive/pipe Angular `*requiresPlan="'Pro'"` per conditional rendering
-- [ ] Esiste un service `SubscriptionService` che espone il piano attuale come signal
-- [ ] Le route protette da piano hanno un guard Angular che reindirizza alla pricing page
-- [ ] Quando il modulo Payments è disabilitato, tutte le feature sono visibili (nessun gating)
-- [ ] Il piano dell'utente viene incluso nella risposta di `/auth/me` (o endpoint dedicato)
+- [x] Esiste una directive/pipe Angular `*requiresPlan="'Pro'"` per conditional rendering
+- [x] Esiste un service `SubscriptionService` che espone il piano attuale come signal
+- [x] Le route protette da piano hanno un guard Angular che reindirizza alla pricing page
+- [x] Quando il modulo Payments è disabilitato, tutte le feature sono visibili (nessun gating)
+- [x] Il piano dell'utente viene incluso nella risposta di `/auth/me` (o endpoint dedicato)
 
 #### US-012: Richiesta fattura manuale
 
@@ -348,12 +348,12 @@ Il modulo Payments deve avere dipendenze minime con il resto dell'applicazione:
 **So that** possa avere documentazione fiscale per le mie spese.
 
 **Acceptance Criteria:**
-- [ ] Nella sezione abbonamento del profilo, è presente un pulsante "Richiedi fattura"
-- [ ] Il form richiede: tipo (persona fisica / azienda), nome/ragione sociale, indirizzo completo, codice fiscale e/o P.IVA, codice SDI/PEC (opzionali)
-- [ ] I dati fiscali vengono salvati nel profilo utente per riutilizzo futuro
-- [ ] La richiesta viene salvata con riferimento al pagamento Stripe
-- [ ] L'admin riceve una notifica (audit log + eventuale email) della richiesta
-- [ ] L'utente può vedere lo storico delle proprie richieste di fattura e il loro stato (richiesta, in lavorazione, emessa)
+- [x] Nella sezione abbonamento del profilo, è presente un pulsante "Richiedi fattura"
+- [x] Il form richiede: tipo (persona fisica / azienda), nome/ragione sociale, indirizzo completo, codice fiscale e/o P.IVA, codice SDI/PEC (opzionali)
+- [x] I dati fiscali vengono salvati nel profilo utente per riutilizzo futuro
+- [x] La richiesta viene salvata con riferimento al pagamento Stripe
+- [x] L'admin riceve una notifica (audit log + eventuale email) della richiesta
+- [x] L'utente può vedere lo storico delle proprie richieste di fattura e il loro stato (richiesta, in lavorazione, emessa)
 
 ## Dipendenze tra User Stories
 
