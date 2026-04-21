@@ -28,6 +28,7 @@ RUN dotnet publish src/Seed.Bootstrap/Seed.Bootstrap.csproj \
 # Build EF Core migration bundle
 RUN dotnet tool install --global dotnet-ef --version 10.0.*
 ENV PATH="$PATH:/root/.dotnet/tools"
+ENV ConnectionStrings__DefaultConnection="Host=localhost;Database=placeholder;Username=placeholder;Password=placeholder"
 RUN dotnet ef migrations bundle \
     --project src/Seed.Infrastructure \
     --startup-project src/Seed.Api \
