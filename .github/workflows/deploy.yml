@@ -264,7 +264,7 @@ jobs:
             docker compose -f "$COMPOSE_FILE" up -d --force-recreate nginx
 
             echo "Starting monitoring stack..."
-            docker compose -f "$COMPOSE_FILE" up -d --no-deps prometheus grafana cadvisor node-exporter
+            docker compose -f "$COMPOSE_FILE" up -d --force-recreate prometheus grafana cadvisor node-exporter
 
             docker image prune -f
 
