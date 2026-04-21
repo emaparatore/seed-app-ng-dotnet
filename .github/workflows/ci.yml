@@ -74,6 +74,7 @@ jobs:
         working-directory: backend
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__DefaultConnection: "Host=localhost;Database=placeholder;Username=placeholder;Password=placeholder"
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.*
           set +e
@@ -102,6 +103,7 @@ jobs:
         working-directory: backend
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__DefaultConnection: "Host=localhost;Database=placeholder;Username=placeholder;Password=placeholder"
         run: |
           dotnet ef migrations bundle \
             --project src/Seed.Infrastructure \
