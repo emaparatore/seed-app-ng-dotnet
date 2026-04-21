@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { permissionGuard } from 'shared-auth';
+import { paymentsEnabledGuard } from '../../guards/payments-enabled.guard';
 
 export const adminRoutes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -40,6 +41,24 @@ export const adminRoutes: Routes = [
         data: { title: 'Dettaglio ruolo' },
       },
     ],
+  },
+  {
+    path: 'plans',
+    loadComponent: () => import('./plans/plan-list/plan-list').then((m) => m.PlanList),
+    canActivate: [permissionGuard('Plans.Read'), paymentsEnabledGuard],
+    data: { title: 'Piani' },
+  },
+  {
+    path: 'subscriptions',
+    loadComponent: () => import('./subscriptions/subscription-list/subscription-list').then((m) => m.SubscriptionList),
+    canActivate: [permissionGuard('Subscriptions.Read'), paymentsEnabledGuard],
+    data: { title: 'Abbonamenti' },
+  },
+  {
+    path: 'invoice-requests',
+    loadComponent: () => import('./invoice-requests/invoice-request-list/invoice-request-list').then((m) => m.InvoiceRequestList),
+    canActivate: [permissionGuard('Subscriptions.Read'), paymentsEnabledGuard],
+    data: { title: 'Richieste fattura' },
   },
   {
     path: 'audit-log',

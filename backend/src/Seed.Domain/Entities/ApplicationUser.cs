@@ -18,4 +18,6 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? ConsentVersion { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<UserSubscription> Subscriptions { get; set; } = [];
+    public ICollection<InvoiceRequest> InvoiceRequests { get; set; } = [];
 }

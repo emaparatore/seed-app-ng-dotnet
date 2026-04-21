@@ -1,0 +1,114 @@
+<div class="page-header">
+  <h1>Richieste fattura</h1>
+</div>
+
+<div class="filters-bar">
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Stato</mat-label>
+    <mat-select [formControl]="statusFilterControl" (selectionChange)="onFilterChange()">
+      <mat-option value="">Tutti</mat-option>
+      @for (opt of statusOptions; track opt.value) {
+        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (loading()) {
+  <div class="skeleton-table">
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="skeleton-row">
+        <div class="skeleton-cell wide"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell small"></div>
+        <div class="skeleton-cell medium"></div>
+        <div class="skeleton-cell small"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="reload()">
+      <mat-icon>refresh</mat-icon>
+      Riprova
+    </button>
+  </div>
+} @else if (requests().length === 0) {
+  <div class="empty-state">
+    <mat-icon>receipt_long</mat-icon>
+    <p>Nessuna richiesta fattura trovata.</p>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="requests()">
+      <ng-container matColumnDef="userEmail">
+        <th mat-header-cell *matHeaderCellDef>Utente</th>
+        <td mat-cell *matCellDef="let req">
+          <div class="user-info">
+            <span class="email-text">{{ req.userEmail }}</span>
+            <span class="name-text">{{ req.userFullName }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nome / Ragione sociale</th>
+        <td mat-cell *matCellDef="let req">
+          {{ req.customerType === 'Company' && req.companyName ? req.companyName : req.fullName }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="customerType">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let req">
+          {{ req.customerType === 'Individual' ? 'Persona fisica' : 'Azienda' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let req">
+          <span class="status-badge" [class]="statusClass(req.status)">
+            {{ statusLabel(req.status) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Data richiesta</th>
+        <td mat-cell *matCellDef="let req">
+          <span class="date-text">{{ req.createdAt | date:'dd/MM/yyyy' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Aggiorna stato</th>
+        <td mat-cell *matCellDef="let req">
+          <mat-form-field appearance="outline" class="status-select">
+            <mat-select [value]="req.status" (selectionChange)="updateStatus(req, $event.value)"
+                        [disabled]="updatingId() === req.id">
+              @for (opt of statusOptions; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    [length]="totalCount()"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[5, 10, 25, 50]"
+    (page)="onPageChange($event)"
+    showFirstLastButtons
+  />
+}

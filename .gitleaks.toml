@@ -12,4 +12,5 @@ useDefault = true
   paths = [
     '''backend/src/Seed\.Api/appsettings\.json''',
     '''backend/src/Seed\.Api/appsettings\.Development\.json''',
+    '''docs/plans/tasks/''',
   ]

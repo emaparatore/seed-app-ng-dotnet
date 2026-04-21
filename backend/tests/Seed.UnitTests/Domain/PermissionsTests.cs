@@ -7,9 +7,9 @@ namespace Seed.UnitTests.Domain;
 public class PermissionsTests
 {
     [Fact]
-    public void GetAll_Should_Return_16_Permissions()
+    public void GetAll_Should_Return_19_Permissions()
     {
-        Permissions.GetAll().Should().HaveCount(16);
+        Permissions.GetAll().Should().HaveCount(21);
     }
 
     [Fact]
@@ -45,7 +45,9 @@ public class PermissionsTests
         categories.Should().Contain("Settings");
         categories.Should().Contain("Dashboard");
         categories.Should().Contain("SystemHealth");
-        categories.Should().HaveCount(6);
+        categories.Should().Contain("Plans");
+        categories.Should().Contain("Subscriptions");
+        categories.Should().HaveCount(8);
     }
 
     [Fact]
@@ -69,5 +71,9 @@ public class PermissionsTests
         all.Should().Contain(Permissions.Settings.Manage);
         all.Should().Contain(Permissions.Dashboard.ViewStats);
         all.Should().Contain(Permissions.SystemHealth.Read);
+        all.Should().Contain(Permissions.Plans.Read);
+        all.Should().Contain(Permissions.Plans.Create);
+        all.Should().Contain(Permissions.Plans.Update);
+        all.Should().Contain(Permissions.Subscriptions.Read);
     }
 }

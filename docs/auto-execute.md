@@ -49,7 +49,7 @@ git checkout -b feature/nome-feature
 ./scripts/auto-execute.sh --model sonnet --effort high review
 ```
 
-Se un parametro non viene passato da CLI, lo script mostra un menu interattivo per selezionarlo.
+Se un parametro non viene passato da CLI, lo script mostra un menu interattivo per selezionarlo. I menu supportano navigazione con frecce `↑↓`, tasti `j`/`k` (vim) o `w`/`s` (WASD), selezione diretta per numero (`1`-`9`), e conferma con `Enter`.
 
 ## Struttura attesa del piano
 
@@ -92,11 +92,16 @@ Claude pianifica e esegue ogni task senza intervento. Usa `claude -p` (prompt mo
 
 ### Review
 
-Dopo ogni mini-plan, lo script mostra il contenuto del piano e chiede conferma:
+Due gate di conferma per ogni task:
 
-- **y** → approva ed esegue il task
-- **n** → salta il task e passa al prossimo
-- **q** → interrompe lo script
+1. **Prima dell'esecuzione** — lo script mostra il contenuto del mini-plan e chiede conferma:
+   - **y** → approva ed esegue il task
+   - **n** → salta il task e passa al prossimo
+   - **q** → interrompe lo script
+
+2. **Dopo il commit** — lo script chiede se continuare col task successivo:
+   - **y** → prosegui
+   - **q** → ferma l'esecuzione
 
 Consigliato per task con dipendenze dove vuoi verificare il piano prima dell'esecuzione.
 
@@ -112,25 +117,78 @@ Combina YOLO (nessuna restrizione sui permessi) con il review gate (approvi ogni
 
 ## Come funziona
 
-Ogni iterazione si compone di due fasi, ognuna in una sessione Claude separata con contesto fresco.
+Ogni iterazione passa per quattro fasi, ognuna in una sessione Claude separata con contesto fresco. Modello e phase sono scelti per ottimizzare il costo: i task meccanici (update piano, commit message) vanno su haiku, quelli che richiedono ragionamento restano sul modello scelto dall'utente.
 
-### Fase 1: Planning
+### Fase 1: Planning (modello utente)
 
-Claude legge il piano principale, identifica il primo task `pending`, esplora il codice esistente e genera un mini-plan dettagliato nella cartella `tasks/`. Il mini-plan contiene:
+Claude legge il piano principale, identifica il primo task `pending`, esplora il codice rilevante (con un budget indicativo di ~6-8 file) e genera un mini-plan nella cartella `tasks/`. Il mini-plan contiene file da toccare, approccio step-by-step, test da scrivere, criteri di completamento.
 
-- Contesto e stato attuale del codice
-- Dipendenze e vincoli
-- Piano di esecuzione step-by-step con path esatti
-- Test da scrivere o verificare
-- Criteri di completamento
+Il mini-plan e' pensato per essere **self-contained**: la fase di execution non rileggera' il piano principale, quindi tutto il contesto necessario deve essere nel mini-plan.
 
-Permessi limitati: solo lettura del codice e scrittura del mini-plan.
+Permessi: lettura, scrittura del mini-plan, `WebFetch` (per consultare URL referenziati dal piano), ricerca con `find`/`grep`/`ls`. Cap turni: 20.
 
-### Fase 2: Execution
+### Fase 2: Execution (modello utente)
 
-Una nuova sessione Claude legge il mini-plan appena generato, esegue le modifiche, aggiorna lo stato nel piano principale a `done`, e committa tutto. In fondo al mini-plan aggiunge una sezione con il risultato effettivo, le scelte implementative, e eventuali deviazioni.
+Una nuova sessione Claude legge il mini-plan appena generato ed esegue le modifiche. Aggiunge in fondo al mini-plan una sezione `## Risultato` con file modificati, scelte chiave ed eventuali deviazioni dal piano.
 
-Permessi completi: lettura, scrittura, edit, git, build tools.
+**Disciplina test/build**: il prompt istruisce Claude a non entrare in loop iterativi di build/test — puo' fare verifiche puntuali per validare un'assunzione ma non deve "over-verificare", perche' la verifica finale (build + test) la fa lo script nella fase successiva. Se l'esecuzione fallisce la verifica, parte un retry con contesto pulito e gli errori in input.
+
+Permessi: lettura, scrittura, edit, `WebFetch`, git, build tools (dotnet, npm, ng), comandi di filesystem. Cap turni: 40.
+
+### Fase 3: Verify (script, no Claude)
+
+Lo script esegue `dotnet build` + `dotnet test` e/o `npm run build` in base ai path modificati (se nessun path corrisponde a backend o frontend, esegue entrambi). Se tutto passa, si procede alla fase 4. Altrimenti gli errori vengono catturati e Claude riparte in fase **Fix**: modello `sonnet+high`, stessa whitelist di exec, cap turni 25, prompt che forza Claude a partire dagli errori reali invece di ri-esplorare. Sono concessi fino a `MAX_RETRIES` (default 4) cicli fix+verify prima di dichiarare il task fallito.
+
+Se il task fallisce dopo tutti i retry, lo script mostra un menu di recupero interattivo con quattro opzioni:
+
+- **Riprova** — resetta i contatori e riprova il task da capo (nuova fase Plan)
+- **Fix manuale** — lo script si mette in pausa; l'utente corregge il codice, poi premi Enter per rieseguire la verifica
+- **Salta** — segna il task come fallito e passa al successivo
+- **Esci** — interrompe l'esecuzione
+
+### Fase 4: Update piano + Commit (haiku)
+
+Dopo la verifica ok, lo script controlla se Claude ha creato commit durante l'esecuzione (nonostante le istruzioni esplicite di non farlo). Se sì, esegue un `git reset --soft` per annullare quei commit mantenendo le modifiche su disco, poi consolida tutto in un unico commit gestito dallo script.
+
+Quindi due chiamate rapide su **haiku** (non sul modello scelto dall'utente, perché sono task meccanici):
+
+1. **Update piano**: aggiorna lo stato del task nel piano principale (`[ ]` → `[x]`), spunta le checkbox della Definition of Done e aggiunge Implementation Notes dal Risultato del mini-plan.
+2. **Commit message**: genera un commit Conventional Commits dal diff staged.
+
+Lo script poi esegue il `git commit`. Queste due chiamate insieme costano ~$0.05 per task invece dei ~$0.27 che costerebbero su opus.
+
+In modalità **Review**, dopo ogni commit lo script chiede conferma prima di passare al task successivo (secondo gate): `y` per continuare, `q` per fermarsi.
+
+### Rate limit handling
+
+Lo script rileva automaticamente i rate limit della Claude API durante tutte le fasi. Vengono riconosciuti due pattern:
+
+- **Quota utente**: messaggio `"You've hit your limit · resets ..."` nel testo risultato
+- **Errori API strutturati**: `rate_limit_error` o `overloaded_error` nel JSONL grezzo
+
+Quando viene rilevato un rate limit, lo script prova a estrarre l'orario di reset dal messaggio (es. `"resets 3pm (UTC)"`) per calcolare l'attesa esatta con 60 secondi di margine.
+
+**In YOLO mode:** l'attesa è automatica con countdown visuale. Se l'orario di reset è noto aspetta fino a quello, altrimenti aspetta 10 minuti.
+
+**In modalità interattiva:** viene mostrato un menu con tre opzioni:
+
+- **Riparti alle `HH:mm (TZ)`** — attende fino all'orario di reset e riprova (opzione disponibile solo se l'orario è stato estratto)
+- **Attendi** — l'utente specifica quanti minuti aspettare
+- **Esci** — ferma lo script
+
+Il rate limit durante planning o exec interrompe lo script (`exit 1`). Durante l'update piano o la generazione del commit message, il rate limit viene loggato e lo script usa un messaggio di commit di fallback invece di uscire.
+
+### Circuit-breaker: `--max-turns`
+
+Ogni sessione Claude ha un cap di turni (un "turno" = Claude parla/chiama tool → lo script esegue → Claude riceve il risultato). Il cap non è una protezione da impalli veri, è un **limite economico**: quando Claude entra in esplorazione iterativa (tipico caso: 10 `dotnet test` in fila per capire perché un'API di libreria si comporta in modo inatteso) il cache-read esplode senza che il beneficio cresca in modo lineare. Il cap forza a interrompere e lasciare che il ciclo esterno (verify → fix con contesto pulito) faccia il lavoro in modo più economico.
+
+**Comportamento per fase exec:** se la sessione raggiunge il cap, lo script tenta fino a 2 **continuazioni automatiche** (3 invocazioni totali = 120 turni). Ogni continuazione riparte con un prompt che dice a Claude di rileggere il mini-plan, verificare i file già modificati e completare solo il lavoro rimanente senza rifare ciò che è già fatto. Se le continuazioni si esauriscono, lo script mostra un prompt interattivo: `r` per riprovare da capo (reset continuazioni), `q` per uscire.
+
+Per plan e fix, se il cap viene raggiunto lo script tratta la sessione come non riuscita e procede al normale ciclo retry/fallimento.
+
+Non si perde lavoro: le modifiche già scritte su disco restano, il retry legge lo stato attuale.
+
+Valori default: plan 20, exec 40, fix 25, update/commit 15.
 
 ## Struttura file generata
 
@@ -151,25 +209,59 @@ scripts/logs/
 
 ## Personalizzazione allowedTools
 
-Lo script pre-configura i tool permessi per un tipico stack .NET + Angular. Per personalizzare, modifica le liste `--allowedTools` nelle due fasi:
+Lo script pre-configura i tool permessi per un tipico stack .NET + Angular. Per personalizzare, modifica le liste in `run_claude_cmd`.
 
-**Fase PLAN** (solo lettura):
+**Fase PLAN** (solo lettura + WebFetch):
 
 ```bash
---allowedTools "Read" "Write" "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)"
+--allowedTools "Read" "Write" "WebFetch" \
+  "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" "Bash(mkdir*)"
 ```
 
-**Fase EXECUTE** (operativa):
+**Fase EXECUTE / FIX** (operativa, stessa whitelist):
 
 ```bash
---allowedTools "Read" "Write" "Edit" \
+--allowedTools "Read" "Write" "Edit" "WebFetch" \
   "Bash(git*)" "Bash(dotnet*)" "Bash(npm*)" "Bash(ng*)" \
   "Bash(find*)" "Bash(grep*)" "Bash(cat*)" "Bash(ls*)" \
   "Bash(mkdir*)" "Bash(cp*)" "Bash(mv*)" "Bash(rm*)" \
   "Bash(cd*)" "Bash(echo*)" "Bash(sed*)" "Bash(docker*)"
 ```
 
-Se durante un'esecuzione un task fallisce per permessi mancanti, aggiungi il tool alla lista ed esegui di nuovo.
+**Fase UPDATE piano** (haiku, read-only + write sul piano):
+
+```bash
+--allowedTools "Read" "Write" "Edit"
+```
+
+### YOLO mode + disallowedTools
+
+In YOLO lo script usa `--dangerously-skip-permissions` (nessun prompt di conferma) ma combinato con un `--disallowedTools` mirato per evitare costi nascosti:
+
+```bash
+--disallowedTools "Task" "Agent" "WebSearch" "TodoWrite"
+```
+
+Perche' questi tool sono bloccati anche in YOLO:
+
+- **`Task` / `Agent`**: spawnano sub-sessioni Claude figlie. Ogni sub-agente e' una sessione completa con il suo costo, che si somma al totale in modo difficile da prevedere. In un workflow dove lo script e' gia' l'orchestratore, non ha senso che Claude biforchi ulteriormente.
+- **`WebSearch`**: ricerca broad con 10+ risultati, ogni risultato e' uno snippet da qualche kB. Rumoroso e imprevedibile in termini di context inflation. Per documentarsi su API esterne usa `WebFetch` su un URL specifico referenziato dal piano.
+- **`TodoWrite`**: utile in sessioni lunghe e interattive, inutile in sessioni brevi e monotematiche come quelle dell'auto-execute.
+- **`WebFetch`** resta **abilitato** per consultazione mirata: Claude lo usa se il mini-plan contiene URL di doc ufficiali o se ha bisogno di un riferimento preciso.
+
+Se durante un'esecuzione un task fallisce per permessi mancanti, aggiungi il tool alla whitelist corrispondente. Se un comportamento costa piu' del previsto, aggiungi il tool a `--disallowedTools` in YOLO.
+
+### Modelli per fase
+
+| Fase | Modello | Effort | Motivo |
+|---|---|---|---|
+| Plan | `claude-sonnet-4-6` (fisso) | medium (fisso) | Il piano principale ha già path, firme, pattern espliciti — sonnet è sufficiente per la trascrizione contestualizzata |
+| Exec | utente (default opus) | utente | Richiede implementazione |
+| Fix | `claude-sonnet-4-6` (fisso) | high (fisso) | Gli errori sono già in input; reasoning migliore riduce i retry a catena, che costano più del delta medium→high |
+| Update piano | `claude-haiku-4-5` | low | Task meccanico: flip checkbox, scrivere 3-5 bullet dal Risultato |
+| Commit msg | `claude-haiku-4-5` | low | Task meccanico: generare Conventional Commit dal diff |
+
+Solo la fase Exec usa il modello e l'effort scelti dall'utente. Plan e Fix hanno modello e effort hardcoded per ottimizzare costo/qualità. L'hardcoding di haiku per update e commit evita di pagare opus per task che qualsiasi modello piccolo gestisce bene.
 
 ## Logging
 

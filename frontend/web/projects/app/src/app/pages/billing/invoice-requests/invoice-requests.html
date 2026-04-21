@@ -1,0 +1,84 @@
+<div class="page-header">
+  <h1>Richieste fattura</h1>
+  <div class="header-actions">
+    <a mat-button routerLink="/billing/subscription">
+      <mat-icon>arrow_back</mat-icon>
+      Abbonamento
+    </a>
+    <button mat-flat-button color="primary" (click)="openNewRequest()" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-progress-spinner diameter="18" mode="indeterminate" />
+      } @else {
+        <mat-icon>add</mat-icon>
+      }
+      Nuova richiesta
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-state">
+    <mat-progress-spinner mode="indeterminate" diameter="48" />
+  </div>
+} @else if (error()) {
+  <mat-card>
+    <mat-card-content>
+      <div class="error-state">
+        <mat-icon>error_outline</mat-icon>
+        <p>{{ error() }}</p>
+        <button mat-flat-button color="primary" (click)="loadRequests()">Riprova</button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+} @else if (requests().length === 0) {
+  <div class="empty-state">
+    <mat-icon>receipt_long</mat-icon>
+    <p>Nessuna richiesta fattura ancora inviata.</p>
+    <button mat-flat-button color="primary" (click)="openNewRequest()">
+      <mat-icon>add</mat-icon>
+      Nuova richiesta
+    </button>
+  </div>
+} @else {
+  <div class="table-container">
+    <table mat-table [dataSource]="requests()">
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Data richiesta</th>
+        <td mat-cell *matCellDef="let req">{{ req.createdAt | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="customerType">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let req">
+          {{ req.customerType === 'Individual' ? 'Persona fisica' : 'Azienda' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nome / Ragione sociale</th>
+        <td mat-cell *matCellDef="let req">
+          {{ req.customerType === 'Company' && req.companyName ? req.companyName : req.fullName }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Stato</th>
+        <td mat-cell *matCellDef="let req">
+          <span class="status-badge" [class]="statusClass(req.status)">
+            {{ statusLabel(req.status) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="processedAt">
+        <th mat-header-cell *matHeaderCellDef>Data emissione</th>
+        <td mat-cell *matCellDef="let req">
+          {{ req.processedAt ? (req.processedAt | date:'dd/MM/yyyy') : '—' }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+}
