@@ -23,6 +23,11 @@ export interface CheckoutSessionResponse {
   checkoutUrl: string;
 }
 
+export interface CheckoutConfirmationResponse {
+  confirmed: boolean;
+  status: string;
+}
+
 export interface CreateCheckoutRequest {
   planId: string;
   billingInterval: 'Monthly' | 'Yearly';

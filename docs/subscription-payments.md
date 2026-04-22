@@ -13,9 +13,12 @@ User → Checkout → Stripe → Webhook → StripeWebhookController
                                              ↓
                                    StripeWebhookEventHandler
                                              ↓
-                                   DB update (UserSubscription)
+                                    DB update (UserSubscription)
                                              ↓
-                                   Email notification (fire-and-forget)
+                                    Email notification (fire-and-forget)
+
+Fallback path (if webhook is delayed/failing):
+User → Checkout success page (`session_id`) → `POST /billing/checkout/confirm` → Stripe API verification → DB update
 ```
 
 **Backend layers:**
@@ -42,6 +45,11 @@ User → Checkout → Stripe → Webhook → StripeWebhookController
 | `customer.subscription.trial_will_end` | Send trial-ending notification email |
 
 Webhook events are **idempotent**: each `eventId` is cached for 24 hours to prevent duplicate processing. Email sending is **fire-and-forget**: SMTP failures are logged but never block webhook processing.
+
+Checkout sessions are now persisted in `CheckoutSessionAttempts` with statuses (`Pending`, `Completed`, `Failed`, `Expired`). This enables:
+- prevention of duplicate checkout starts while a recent pending checkout exists,
+- server-side fallback confirmation from the success page,
+- admin monitoring of stale pending checkouts and recent webhook failures.
 
 **Frontend:**
 
@@ -279,6 +287,8 @@ Application-level logs (Serilog / Seq) include structured entries for every proc
 2. Check the webhook delivery history in the Stripe Dashboard — look for a failed delivery.
 3. Search app logs for `invoice.payment_succeeded` — if the log line is missing, the event was not received.
 4. Check that `StripeSubscriptionId` in the `UserSubscriptions` table matches the Stripe subscription ID in the invoice.
+
+If the checkout success page receives `session_id`, the frontend calls `POST /api/v1.0/billing/checkout/confirm` as a fallback reconciliation. This endpoint validates the Stripe session server-side and synchronizes `UserSubscription` if the webhook has not updated the DB yet.
 
 ---
 

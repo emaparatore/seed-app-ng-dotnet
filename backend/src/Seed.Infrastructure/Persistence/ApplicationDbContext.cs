@@ -16,6 +16,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<PlanFeature> PlanFeatures => Set<PlanFeature>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<CheckoutSessionAttempt> CheckoutSessionAttempts => Set<CheckoutSessionAttempt>();
     public DbSet<InvoiceRequest> InvoiceRequests => Set<InvoiceRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)

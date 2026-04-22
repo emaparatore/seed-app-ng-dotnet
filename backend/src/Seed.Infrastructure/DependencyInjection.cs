@@ -17,6 +17,7 @@ using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionDetail;
 using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionMetrics;
 using Seed.Application.Admin.Subscriptions.Queries.GetSubscriptionsList;
 using Seed.Application.Billing.Commands.CreateCheckoutSession;
+using Seed.Application.Billing.Commands.ConfirmCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
 using Seed.Application.Billing.Models;
@@ -84,6 +85,7 @@ public static class DependencyInjection
         {
             services.AddScoped<ISubscriptionAccessService, SubscriptionAccessService>();
             services.AddScoped<ISubscriptionInfoService, SubscriptionInfoService>();
+            services.AddScoped<IPaymentsHealthService, PaymentsHealthService>();
 
             services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
 
@@ -105,6 +107,7 @@ public static class DependencyInjection
             services.AddScoped<IWebhookEventHandler, StripeWebhookEventHandler>();
             services.AddScoped<IRequestHandler<GetPlansQuery, Result<IReadOnlyList<PlanDto>>>, GetPlansQueryHandler>();
             services.AddScoped<IRequestHandler<CreateCheckoutSessionCommand, Result<CheckoutSessionResponse>>, CreateCheckoutSessionCommandHandler>();
+            services.AddScoped<IRequestHandler<ConfirmCheckoutSessionCommand, Result<CheckoutConfirmationResponse>>, ConfirmCheckoutSessionCommandHandler>();
             services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
             services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
 
@@ -127,6 +130,7 @@ public static class DependencyInjection
         {
             services.AddScoped<ISubscriptionAccessService, AlwaysAllowSubscriptionAccessService>();
             services.AddScoped<ISubscriptionInfoService, NullSubscriptionInfoService>();
+            services.AddScoped<IPaymentsHealthService, NullPaymentsHealthService>();
         }
 
         var smtpSection = configuration.GetSection(SmtpSettings.SectionName);

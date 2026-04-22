@@ -385,6 +385,7 @@ Accessibile da `/admin/system-health`. Richiede il permesso `SystemHealth.Read`.
 |------------|-----------|--------|
 | Database | Verde/Giallo/Rosso | Healthy / Degraded / Unhealthy |
 | Servizio Email | Verde/Giallo | Configured / NotConfigured |
+| Webhook pagamenti | Verde/Giallo/Rosso | Healthy / Degraded / Unhealthy |
 
 ### Informazioni mostrate
 
@@ -392,6 +393,7 @@ Accessibile da `/admin/system-health`. Richiede il permesso `SystemHealth.Read`.
 - Ambiente di esecuzione (Development/Staging/Production)
 - Uptime del server (tempo dall'avvio del processo)
 - Utilizzo memoria (Working Set e GC allocated)
+- Stato webhook pagamenti con ultimo evento ricevuto, ultimo errore, checkout pending e checkout pending "stale"
 
 Il pulsante "Ricontrolla" aggiorna i dati senza ricaricare la pagina.
 

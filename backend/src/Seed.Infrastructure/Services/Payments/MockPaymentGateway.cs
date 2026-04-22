@@ -13,12 +13,28 @@ public sealed class MockPaymentGateway(ILogger<MockPaymentGateway> logger) : IPa
         return Task.FromResult(customerId);
     }
 
-    public Task<string> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default)
+    public Task<CheckoutSessionCreationResult> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default)
     {
+        var sessionId = $"mock_cs_{Guid.NewGuid():N}";
         var url = $"https://mock-checkout.example.com/session/{Guid.NewGuid():N}";
         logger.LogWarning("MockPaymentGateway - CreateCheckoutSession: PriceId={PriceId}, Email={Email} -> {Url}",
             request.PriceId, request.CustomerEmail, url);
-        return Task.FromResult(url);
+        return Task.FromResult(new CheckoutSessionCreationResult(sessionId, url));
+    }
+
+    public Task<CheckoutSessionDetails?> GetCheckoutSessionAsync(string sessionId, CancellationToken ct = default)
+    {
+        var metadata = new Dictionary<string, string>();
+        var details = new CheckoutSessionDetails(
+            SessionId: sessionId,
+            Status: "complete",
+            PaymentStatus: "paid",
+            SubscriptionId: $"mock_sub_{Guid.NewGuid():N}",
+            CustomerId: "mock_cus_default",
+            Metadata: metadata);
+
+        logger.LogWarning("MockPaymentGateway - GetCheckoutSession: {SessionId} -> mock details", sessionId);
+        return Task.FromResult<CheckoutSessionDetails?>(details);
     }
 
     public Task<string> CreateCustomerPortalSessionAsync(string stripeCustomerId, string returnUrl, CancellationToken ct = default)

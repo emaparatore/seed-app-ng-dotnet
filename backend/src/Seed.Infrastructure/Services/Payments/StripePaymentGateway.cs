@@ -28,7 +28,7 @@ public sealed class StripePaymentGateway(
         return customer.Id;
     }
 
-    public async Task<string> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default)
+    public async Task<CheckoutSessionCreationResult> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default)
     {
         var service = new Stripe.Checkout.SessionService(_client);
         var options = new Stripe.Checkout.SessionCreateOptions
@@ -66,7 +66,30 @@ public sealed class StripePaymentGateway(
 
         var session = await service.CreateAsync(options, cancellationToken: ct);
         logger.LogInformation("Stripe checkout session created: {SessionId}", session.Id);
-        return session.Url;
+        return new CheckoutSessionCreationResult(session.Id, session.Url ?? string.Empty);
+    }
+
+    public async Task<CheckoutSessionDetails?> GetCheckoutSessionAsync(string sessionId, CancellationToken ct = default)
+    {
+        var service = new Stripe.Checkout.SessionService(_client);
+
+        try
+        {
+            var session = await service.GetAsync(sessionId, cancellationToken: ct);
+            return new CheckoutSessionDetails(
+                SessionId: session.Id,
+                Status: session.Status ?? string.Empty,
+                PaymentStatus: session.PaymentStatus ?? string.Empty,
+                SubscriptionId: session.SubscriptionId,
+                CustomerId: session.CustomerId,
+                Metadata: session.Metadata ?? new Dictionary<string, string>());
+        }
+        catch (StripeException ex) when (ex.StripeError?.Type == "invalid_request_error"
+                                         && ex.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            logger.LogWarning("Stripe checkout session {SessionId} not found", sessionId);
+            return null;
+        }
     }
 
     public async Task<string> CreateCustomerPortalSessionAsync(string stripeCustomerId, string returnUrl, CancellationToken ct = default)

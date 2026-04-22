@@ -85,6 +85,7 @@ public class AdminSystemHealthEndpointsTests(CustomWebApplicationFactory factory
         health.Should().NotBeNull();
         health!.Database.Should().NotBeNull();
         health.Email.Should().NotBeNull();
+        health.PaymentsWebhook.Should().NotBeNull();
         health.Version.Should().NotBeNullOrEmpty();
         health.Environment.Should().NotBeNullOrEmpty();
         health.Uptime.Should().NotBeNull();
@@ -155,6 +156,7 @@ public class AdminSystemHealthEndpointsTests(CustomWebApplicationFactory factory
     private record SystemHealthResponseDto(
         ComponentStatusResponseDto Database,
         ComponentStatusResponseDto Email,
+        ComponentStatusResponseDto PaymentsWebhook,
         string Version,
         string Environment,
         UptimeResponseDto Uptime,

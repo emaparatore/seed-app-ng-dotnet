@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,7 +9,7 @@ import { SystemHealth } from './system-health.models';
 
 @Component({
   selector: 'app-system-health',
-  imports: [DecimalPipe, MatCardModule, MatButtonModule, MatIconModule, MatProgressBarModule],
+  imports: [DatePipe, DecimalPipe, MatCardModule, MatButtonModule, MatIconModule, MatProgressBarModule],
   template: `
     <div class="health-page">
       <div class="page-header">
@@ -106,6 +106,37 @@ import { SystemHealth } from './system-health.models';
                   <span class="value">{{ health.email.description }}</span>
                 </div>
               }
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="health-card">
+            <mat-card-header>
+              <mat-card-title>
+                <div class="card-title-row">
+                  <span class="status-indicator" [class]="getStatusClass(health.paymentsWebhook.status)"></span>
+                  Webhook pagamenti
+                </div>
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="status-row">
+                <span class="label">Stato</span>
+                <span class="value" [class]="'status-text ' + getStatusClass(health.paymentsWebhook.status)">
+                  {{ health.paymentsWebhook.status }}
+                </span>
+              </div>
+              <div class="status-row">
+                <span class="label">Dettagli</span>
+                <span class="value">{{ health.paymentsWebhook.description }}</span>
+              </div>
+              <div class="status-row">
+                <span class="label">Webhook ricevuto (ultimo)</span>
+                <span class="value">{{ health.paymentsWebhook.lastWebhookReceivedAt ? (health.paymentsWebhook.lastWebhookReceivedAt | date: 'dd/MM/yyyy HH:mm:ss') : '-' }}</span>
+              </div>
+              <div class="status-row">
+                <span class="label">Ultimo errore</span>
+                <span class="value">{{ health.paymentsWebhook.lastFailureAt ? (health.paymentsWebhook.lastFailureAt | date: 'dd/MM/yyyy HH:mm:ss') : '-' }}</span>
+              </div>
             </mat-card-content>
           </mat-card>
 
