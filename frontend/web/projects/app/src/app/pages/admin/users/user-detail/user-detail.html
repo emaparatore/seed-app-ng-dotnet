@@ -155,6 +155,38 @@
       </mat-card-content>
     </mat-card>
 
+    @if (canViewSubscriptionInfo()) {
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Piano attivo</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (user()!.subscription; as subscription) {
+            <div class="info-list">
+              <div class="info-item">
+                <span class="info-label">Piano</span>
+                <span class="info-value">{{ subscription.currentPlan }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Stato</span>
+                <span class="info-value">
+                  <span class="status-badge subscription-status">{{ getSubscriptionStatusLabel(subscription.subscriptionStatus) }}</span>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Fine prova</span>
+                <span class="info-value">
+                  {{ subscription.trialEndsAt ? (subscription.trialEndsAt | date: 'dd/MM/yyyy HH:mm') : 'N/A' }}
+                </span>
+              </div>
+            </div>
+          } @else {
+            <p class="empty-state">Nessun piano attivo.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
     <!-- Actions -->
     <mat-card>
       <mat-card-header>

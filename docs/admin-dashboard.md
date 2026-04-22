@@ -218,6 +218,7 @@ Accessibile da `/admin/users`. Richiede il permesso `Users.Read` per la visualiz
 - **Lista**: tabella paginata lato server con ricerca per nome/email, filtri per ruolo/stato/periodo, ordinamento per qualsiasi colonna
 - **Creazione**: form con nome, cognome, email, password (con auto-generazione), selezione ruoli iniziali. Il flag `MustChangePassword` è sempre attivo
 - **Modifica**: dati personali, gestione ruoli, azioni su password
+- **Piano attivo (condizionale)**: nel dettaglio utente viene mostrata la card con piano/stato/fine trial solo se il modulo pagamenti è attivo (`Modules:Payments:Enabled`) e l'admin ha il permesso `Subscriptions.Read`
 - **Eliminazione**: soft delete (flag `IsDeleted`), con dialog di conferma. L'utente non è più visibile ma i dati restano per audit
 - **Toggle stato**: attivazione/disattivazione inline dalla lista. L'utente disattivato non può effettuare il login
 

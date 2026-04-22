@@ -19,6 +19,13 @@ export interface AdminUserDetail {
   updatedAt: string;
   mustChangePassword: boolean;
   emailConfirmed: boolean;
+  subscription: AdminUserSubscription | null;
+}
+
+export interface AdminUserSubscription {
+  currentPlan: string;
+  subscriptionStatus: string;
+  trialEndsAt: string | null;
 }
 
 export interface PagedResult<T> {

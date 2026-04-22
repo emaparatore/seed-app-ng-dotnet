@@ -173,6 +173,7 @@ public class AdminUsersEndpointsTests(CustomWebApplicationFactory factory)
         body.Should().NotBeNull();
         body!.Email.Should().Be("detail-target@example.com");
         body.EmailConfirmed.Should().BeTrue();
+        body.Subscription.Should().BeNull();
     }
 
     [Fact]
@@ -332,5 +333,9 @@ public class AdminUsersEndpointsTests(CustomWebApplicationFactory factory)
     private record AdminUserDetailResponseDto(
         Guid Id, string Email, string FirstName, string LastName,
         bool IsActive, List<string> Roles, DateTime CreatedAt,
-        DateTime UpdatedAt, bool MustChangePassword, bool EmailConfirmed);
+        DateTime UpdatedAt, bool MustChangePassword, bool EmailConfirmed,
+        AdminUserSubscriptionResponseDto? Subscription);
+
+    private record AdminUserSubscriptionResponseDto(
+        string CurrentPlan, string SubscriptionStatus, DateTime? TrialEndsAt);
 }
