@@ -7,6 +7,7 @@ using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.ConfirmCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
+using Seed.Application.Billing.Commands.SyncMySubscription;
 using Seed.Application.Billing.Queries.GetMyInvoiceRequests;
 using Seed.Application.Billing.Queries.GetMySubscription;
 
@@ -55,6 +56,19 @@ public class BillingController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(new GetMySubscriptionQuery(CurrentUserId));
         return result.Succeeded ? new JsonResult(result.Data) : BadRequest(new { errors = result.Errors });
+    }
+
+    [HttpPost("subscription/sync")]
+    public async Task<IActionResult> SyncMySubscription()
+    {
+        var result = await sender.Send(new SyncMySubscriptionCommand
+        {
+            UserId = CurrentUserId,
+            IpAddress = IpAddress,
+            UserAgent = UserAgent
+        });
+
+        return result.Succeeded ? Ok(result.Data) : BadRequest(new { errors = result.Errors });
     }
 
     [HttpPost("portal")]

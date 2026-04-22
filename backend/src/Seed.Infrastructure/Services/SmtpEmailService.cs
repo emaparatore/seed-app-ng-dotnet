@@ -162,4 +162,31 @@ public sealed class SmtpEmailService(
 
         logger.LogInformation("Subscription canceled email sent to {Email}", toEmail);
     }
+
+    public async Task SendOperationalAlertAsync(string toEmail, string subject, string message, CancellationToken ct = default)
+    {
+        var email = new MimeMessage();
+        email.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+        email.To.Add(MailboxAddress.Parse(toEmail));
+        email.Subject = subject;
+        email.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Operational Alert</h2>
+                <p>{message}</p>
+                <p>Generated at: <strong>{DateTime.UtcNow:u}</strong></p>
+                """
+        };
+
+        var socketOptions = Enum.Parse<SecureSocketOptions>(_settings.Security, ignoreCase: true);
+
+        using var client = new SmtpClient();
+        await client.ConnectAsync(_settings.Host, _settings.Port, socketOptions, ct);
+        if (!string.IsNullOrEmpty(_settings.Username))
+            await client.AuthenticateAsync(_settings.Username, _settings.Password, ct);
+        await client.SendAsync(email, ct);
+        await client.DisconnectAsync(true, ct);
+
+        logger.LogInformation("Operational alert email sent to {Email}", toEmail);
+    }
 }

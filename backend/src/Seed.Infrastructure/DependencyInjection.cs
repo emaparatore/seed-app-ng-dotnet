@@ -20,6 +20,7 @@ using Seed.Application.Billing.Commands.CreateCheckoutSession;
 using Seed.Application.Billing.Commands.ConfirmCheckoutSession;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Billing.Commands.CreatePortalSession;
+using Seed.Application.Billing.Commands.SyncMySubscription;
 using Seed.Application.Billing.Models;
 using Seed.Application.Billing.Queries.GetMyInvoiceRequests;
 using Seed.Application.Billing.Queries.GetMySubscription;
@@ -72,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IDataCleanupService, DataCleanupService>();
         services.AddHostedService<DataRetentionBackgroundService>();
+        services.AddHostedService<PaymentsHealthAlertBackgroundService>();
         services.AddScoped<IAuditLogReader, AuditLogReader>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.Configure<SuperAdminSettings>(configuration.GetSection(SuperAdminSettings.SectionName));
@@ -110,6 +112,7 @@ public static class DependencyInjection
             services.AddScoped<IRequestHandler<ConfirmCheckoutSessionCommand, Result<CheckoutConfirmationResponse>>, ConfirmCheckoutSessionCommandHandler>();
             services.AddScoped<IRequestHandler<GetMySubscriptionQuery, Result<UserSubscriptionDto?>>, GetMySubscriptionQueryHandler>();
             services.AddScoped<IRequestHandler<CreatePortalSessionCommand, Result<PortalSessionResponse>>, CreatePortalSessionCommandHandler>();
+            services.AddScoped<IRequestHandler<SyncMySubscriptionCommand, Result<SyncSubscriptionResponse>>, SyncMySubscriptionCommandHandler>();
 
             services.AddScoped<IRequestHandler<CreatePlanCommand, Result<Guid>>, CreatePlanCommandHandler>();
             services.AddScoped<IRequestHandler<UpdatePlanCommand, Result<bool>>, UpdatePlanCommandHandler>();

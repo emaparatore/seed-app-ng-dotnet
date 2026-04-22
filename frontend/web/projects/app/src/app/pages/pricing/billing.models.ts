@@ -28,6 +28,12 @@ export interface CheckoutConfirmationResponse {
   status: string;
 }
 
+export interface SyncSubscriptionResponse {
+  synced: boolean;
+  status: string;
+  planName: string | null;
+}
+
 export interface CreateCheckoutRequest {
   planId: string;
   billingInterval: 'Monthly' | 'Yearly';

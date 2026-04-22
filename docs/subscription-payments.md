@@ -44,7 +44,7 @@ User → Checkout success page (`session_id`) → `POST /billing/checkout/confir
 | `customer.subscription.deleted` | Set status to `Canceled`, send cancellation email |
 | `customer.subscription.trial_will_end` | Send trial-ending notification email |
 
-Webhook events are **idempotent**: each `eventId` is cached for 24 hours to prevent duplicate processing. Email sending is **fire-and-forget**: SMTP failures are logged but never block webhook processing.
+Webhook events are **idempotent**: each `eventId` is now persisted in `ProcessedWebhookEvents` (DB unique index) and also cached in memory for fast duplicate skips. Email sending is **fire-and-forget**: SMTP failures are logged but never block webhook processing.
 
 Checkout sessions are now persisted in `CheckoutSessionAttempts` with statuses (`Pending`, `Completed`, `Failed`, `Expired`). This enables:
 - prevention of duplicate checkout starts while a recent pending checkout exists,
@@ -289,6 +289,8 @@ Application-level logs (Serilog / Seq) include structured entries for every proc
 4. Check that `StripeSubscriptionId` in the `UserSubscriptions` table matches the Stripe subscription ID in the invoice.
 
 If the checkout success page receives `session_id`, the frontend calls `POST /api/v1.0/billing/checkout/confirm` as a fallback reconciliation. This endpoint validates the Stripe session server-side and synchronizes `UserSubscription` if the webhook has not updated the DB yet.
+
+For Stripe Customer Portal changes (plan switch/cancel), the billing UI can call `POST /api/v1.0/billing/subscription/sync` to force a user-scoped reconciliation from Stripe before rendering current subscription details.
 
 ---
 

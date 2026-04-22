@@ -397,6 +397,8 @@ Accessibile da `/admin/system-health`. Richiede il permesso `SystemHealth.Read`.
 
 Il pulsante "Ricontrolla" aggiorna i dati senza ricaricare la pagina.
 
+Quando lo stato webhook pagamenti passa a `Degraded` o `Unhealthy`, il backend invia anche un alert operativo ai SuperAdmin (con throttling per evitare spam) e registra l'evento in audit log (`PaymentsHealthAlertTriggered`).
+
 ---
 
 ## Navigazione e accesso condizionale

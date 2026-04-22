@@ -40,6 +40,7 @@ public static class AuditActions
     public const string CheckoutSessionCreated = "CheckoutSessionCreated";
     public const string CheckoutSessionConfirmationSucceeded = "CheckoutSessionConfirmationSucceeded";
     public const string CheckoutSessionConfirmationFailed = "CheckoutSessionConfirmationFailed";
+    public const string PaymentsHealthAlertTriggered = "PaymentsHealthAlertTriggered";
     public const string SubscriptionPlanChanged = "SubscriptionPlanChanged";
 
     // Plan management

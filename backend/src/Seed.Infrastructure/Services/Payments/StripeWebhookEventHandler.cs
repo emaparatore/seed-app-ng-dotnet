@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
@@ -30,16 +31,51 @@ public sealed class StripeWebhookEventHandler(
             return true;
         }
 
-        var processed = eventType switch
+        var trackedEvent = new ProcessedWebhookEvent
         {
-            EventTypes.CheckoutSessionCompleted => await HandleCheckoutSessionCompletedAsync(jsonPayload, ct),
-            EventTypes.InvoicePaymentSucceeded => await HandleInvoicePaymentSucceededAsync(jsonPayload, ct),
-            EventTypes.InvoicePaymentFailed => await HandleInvoicePaymentFailedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionUpdated => await HandleSubscriptionUpdatedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionDeleted => await HandleSubscriptionDeletedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionTrialWillEnd => await HandleTrialWillEndAsync(jsonPayload, ct),
-            _ => false,
+            Id = Guid.NewGuid(),
+            EventId = eventId,
+            EventType = eventType,
+            ReceivedAt = DateTime.UtcNow,
+            IsProcessed = false,
         };
+
+        dbContext.ProcessedWebhookEvents.Add(trackedEvent);
+        try
+        {
+            await dbContext.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            logger.LogInformation("Duplicate webhook event {EventId} skipped (db idempotency)", eventId);
+            cache.Set(cacheKey, true, IdempotencyCacheDuration);
+            return true;
+        }
+
+        bool processed;
+        try
+        {
+            processed = eventType switch
+            {
+                EventTypes.CheckoutSessionCompleted => await HandleCheckoutSessionCompletedAsync(jsonPayload, ct),
+                EventTypes.InvoicePaymentSucceeded => await HandleInvoicePaymentSucceededAsync(jsonPayload, ct),
+                EventTypes.InvoicePaymentFailed => await HandleInvoicePaymentFailedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionUpdated => await HandleSubscriptionUpdatedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionDeleted => await HandleSubscriptionDeletedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionTrialWillEnd => await HandleTrialWillEndAsync(jsonPayload, ct),
+                _ => false,
+            };
+        }
+        catch
+        {
+            dbContext.ProcessedWebhookEvents.Remove(trackedEvent);
+            await dbContext.SaveChangesAsync(ct);
+            throw;
+        }
+
+        trackedEvent.IsProcessed = processed;
+        trackedEvent.ProcessedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(ct);
 
         if (processed)
         {

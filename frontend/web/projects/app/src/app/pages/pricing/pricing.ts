@@ -136,7 +136,7 @@ export class Pricing implements OnInit {
 
   private openPortal(): void {
     this.portalLoading.set(true);
-    this.billingService.createPortalSession(window.location.origin + '/billing/subscription').subscribe({
+    this.billingService.createPortalSession(window.location.origin + '/billing/subscription?sync=1').subscribe({
       next: (response) => {
         window.location.href = response.portalUrl;
       },

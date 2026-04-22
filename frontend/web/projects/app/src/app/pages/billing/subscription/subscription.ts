@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -30,6 +30,7 @@ import { InvoiceRequestDialog } from './invoice-request-dialog';
 export class Subscription implements OnInit {
   private readonly billingService = inject(BillingService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -63,7 +64,21 @@ export class Subscription implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadSubscription();
+    const shouldSync = this.route.snapshot.queryParamMap.get('sync') === '1';
+    if (!shouldSync) {
+      this.loadSubscription();
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+    this.billingService.syncMySubscription().subscribe({
+      next: () => this.loadSubscription(),
+      error: () => {
+        this.snackBar.open('Sincronizzazione con Stripe non riuscita. Mostro i dati locali.', 'Chiudi', { duration: 5000 });
+        this.loadSubscription();
+      },
+    });
   }
 
   protected loadSubscription(): void {
@@ -83,7 +98,7 @@ export class Subscription implements OnInit {
 
   openPortal(): void {
     this.portalLoading.set(true);
-    this.billingService.createPortalSession(window.location.href).subscribe({
+    this.billingService.createPortalSession(window.location.origin + '/billing/subscription?sync=1').subscribe({
       next: (response) => {
         window.location.href = response.portalUrl;
       },

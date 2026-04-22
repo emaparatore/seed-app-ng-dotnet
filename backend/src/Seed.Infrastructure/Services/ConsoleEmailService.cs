@@ -61,4 +61,16 @@ public sealed class ConsoleEmailService(ILogger<ConsoleEmailService> logger) : I
 
         return Task.CompletedTask;
     }
+
+    public Task SendOperationalAlertAsync(string toEmail, string subject, string message, CancellationToken ct = default)
+    {
+        logger.LogWarning("SMTP not configured — logging email to console");
+        logger.LogInformation(
+            "Operational Alert → To: {Email}, Subject: {Subject}, Message: {Message}",
+            toEmail,
+            subject,
+            message);
+
+        return Task.CompletedTask;
+    }
 }
