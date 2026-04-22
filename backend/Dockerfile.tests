@@ -8,6 +8,7 @@ COPY src/Seed.Application/Seed.Application.csproj src/Seed.Application/
 COPY src/Seed.Domain/Seed.Domain.csproj src/Seed.Domain/
 COPY src/Seed.Infrastructure/Seed.Infrastructure.csproj src/Seed.Infrastructure/
 COPY src/Seed.Shared/Seed.Shared.csproj src/Seed.Shared/
+COPY src/Seed.Bootstrap/Seed.Bootstrap.csproj src/Seed.Bootstrap/
 COPY tests/Seed.UnitTests/Seed.UnitTests.csproj tests/Seed.UnitTests/
 COPY tests/Seed.IntegrationTests/Seed.IntegrationTests.csproj tests/Seed.IntegrationTests/
 

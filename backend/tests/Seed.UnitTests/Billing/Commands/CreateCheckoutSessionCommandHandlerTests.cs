@@ -187,6 +187,7 @@ public class CreateCheckoutSessionCommandHandlerTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = TestUserId,
             PlanId = plan.Id,
+            Status = SubscriptionStatus.Canceled,
             StripeCustomerId = "cus_existing_456",
             CurrentPeriodStart = DateTime.UtcNow,
             CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1)
