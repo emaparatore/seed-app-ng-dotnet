@@ -248,6 +248,26 @@ Per abilitare i pagamenti in Docker dev:
 - Server con Docker e Docker Compose installati
 - Chiavi Stripe **test** (consigliato per staging) o **live** (se si vuole testare in produzione simulata)
 
+> **Cloudflare Access — bypass per webhook Stripe:** Lo staging è protetto da Cloudflare Access (vedi [vps-setup-guide.md — sezione 7b](vps-setup-guide.md)), che richiede autenticazione OTP per accedere al dominio. Stripe non può autenticarsi, quindi le sue richieste POST a `/webhooks/stripe` verrebbero bloccate.
+>
+> Per ovviare, creare una **reusable policy** con action `Bypass` e una **applicazione Cloudflare Access** (Self-hosted) dedicata al solo path del webhook che usa quella policy:
+>
+> **Step 1 — Creare la reusable policy:**
+> 1. Cloudflare Dashboard → **Zero Trust** → **Access** → **Access controls** → **Policies** → **Add a policy**
+> 2. **Policy name**: `stripe`
+> 3. **Action**: `Bypass`
+> 4. In **Rules**: aggiungere una regola `Everyone` (o lasciare vuoto — Bypass si applica a tutti)
+> 5. Salva
+>
+> **Step 2 — Creare l'applicazione:**
+> 1. **Zero Trust** → **Access** → **Applications** → **Add an application** → **Self-hosted**
+> 2. **Application name**: `staging` (o simile)
+> 3. **Public hostname**: Subdomain `staging`, Domain `tuodominio.com`, Path `webhooks/stripe`
+> 4. Nella sezione **Policies**: aggiungere la policy `stripe` (action `Bypass`)
+> 5. Salva
+>
+> Cloudflare Access bypassa il challenge per tutte le richieste verso `staging.tuodominio.com/webhooks/stripe`, mentre il resto del dominio rimane protetto dall'autenticazione OTP.
+
 ### 1. Configurare le variabili d'ambiente
 
 Copiare il file template e configurare:
