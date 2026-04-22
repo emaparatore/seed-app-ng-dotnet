@@ -45,7 +45,7 @@ public class CreateCheckoutSessionCommandHandlerTests : IDisposable
 
         _userManager.FindByIdAsync(TestUserId.ToString()).Returns(TestUser);
         _paymentGateway.CreateCheckoutSessionAsync(Arg.Any<CreateCheckoutRequest>(), Arg.Any<CancellationToken>())
-            .Returns("https://checkout.stripe.com/test-session");
+            .Returns(new CheckoutSessionCreationResult("cs_test_123", "https://checkout.stripe.com/test-session"));
         _paymentGateway.CreateCustomerAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns("cus_new_123");
 
@@ -187,6 +187,7 @@ public class CreateCheckoutSessionCommandHandlerTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = TestUserId,
             PlanId = plan.Id,
+            Status = SubscriptionStatus.Canceled,
             StripeCustomerId = "cus_existing_456",
             CurrentPeriodStart = DateTime.UtcNow,
             CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1)
@@ -215,6 +216,65 @@ public class CreateCheckoutSessionCommandHandlerTests : IDisposable
         result.Succeeded.Should().BeTrue();
         await _paymentGateway.Received(1).CreateCheckoutSessionAsync(
             Arg.Is<CreateCheckoutRequest>(r => r.TrialDays == 14),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_User_Already_Has_Active_Subscription()
+    {
+        var plan = CreatePlan();
+        _dbContext.SubscriptionPlans.Add(plan);
+        _dbContext.UserSubscriptions.Add(new UserSubscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            PlanId = plan.Id,
+            Status = SubscriptionStatus.Active,
+            CurrentPeriodStart = DateTime.UtcNow,
+            CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1)
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _handler.Handle(CreateCommand(plan.Id), CancellationToken.None);
+
+        result.Succeeded.Should().BeFalse();
+        result.Errors.Should().Contain("User already has an active subscription.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_Checkout_Is_Already_Pending()
+    {
+        var plan = CreatePlan();
+        _dbContext.SubscriptionPlans.Add(plan);
+        _dbContext.CheckoutSessionAttempts.Add(new CheckoutSessionAttempt
+        {
+            Id = Guid.NewGuid(),
+            UserId = TestUserId,
+            PlanId = plan.Id,
+            Status = CheckoutSessionAttemptStatus.Pending,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-5)
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _handler.Handle(CreateCommand(plan.Id), CancellationToken.None);
+
+        result.Succeeded.Should().BeFalse();
+        result.Errors.Should().Contain("A checkout session is already in progress. Please complete it before trying again.");
+    }
+
+    [Fact]
+    public async Task Should_Include_AttemptId_In_Metadata()
+    {
+        var plan = CreatePlan();
+        _dbContext.SubscriptionPlans.Add(plan);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _handler.Handle(CreateCommand(plan.Id), CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        await _paymentGateway.Received(1).CreateCheckoutSessionAsync(
+            Arg.Is<CreateCheckoutRequest>(r => r.Metadata != null && r.Metadata.ContainsKey("attemptId")),
             Arg.Any<CancellationToken>());
     }
 

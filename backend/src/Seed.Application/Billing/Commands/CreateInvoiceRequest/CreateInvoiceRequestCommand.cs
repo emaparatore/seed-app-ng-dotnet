@@ -17,6 +17,7 @@ public sealed record CreateInvoiceRequestCommand(
     string? VatNumber,
     string? SdiCode,
     string? PecEmail,
+    Guid UserSubscriptionId,
     string? StripePaymentIntentId) : IRequest<Result<Guid>>
 {
     [JsonIgnore]

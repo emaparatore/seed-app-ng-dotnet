@@ -1,4 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,9 +8,22 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { CreateInvoiceRequest } from '../../pricing/billing.models';
 
+export interface InvoiceRequestPurchaseContext {
+  userSubscriptionId: string;
+  serviceName: string;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface InvoiceRequestDialogData {
+  prefill?: Partial<CreateInvoiceRequest>;
+  purchaseContext?: InvoiceRequestPurchaseContext;
+}
+
 @Component({
   selector: 'app-invoice-request-dialog',
   imports: [
+    DatePipe,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -21,6 +35,14 @@ import { CreateInvoiceRequest } from '../../pricing/billing.models';
     <h2 mat-dialog-title>Richiedi fattura</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="invoice-form">
+        @if (purchaseContext) {
+          <div class="purchase-context">
+            <p class="context-title">Riferimento acquisto</p>
+            <p><strong>Servizio:</strong> {{ purchaseContext.serviceName }}</p>
+            <p><strong>Periodo:</strong> {{ purchaseContext.periodStart | date:'dd/MM/yyyy' }} - {{ purchaseContext.periodEnd | date:'dd/MM/yyyy' }}</p>
+          </div>
+        }
+
         <div class="customer-type-toggle">
           <mat-button-toggle-group formControlName="customerType" (change)="onCustomerTypeChange()">
             <mat-button-toggle value="Individual">Persona fisica</mat-button-toggle>
@@ -119,6 +141,23 @@ import { CreateInvoiceRequest } from '../../pricing/billing.models';
       min-width: 400px;
       padding-top: 8px;
     }
+    .purchase-context {
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+
+      p {
+        margin: 0;
+        color: rgba(0, 0, 0, 0.75);
+        font-size: 13px;
+      }
+
+      .context-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+    }
     .customer-type-toggle {
       margin-bottom: 12px;
     }
@@ -139,23 +178,31 @@ import { CreateInvoiceRequest } from '../../pricing/billing.models';
 export class InvoiceRequestDialog implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<InvoiceRequestDialog>);
-  readonly data: Partial<CreateInvoiceRequest> | null = inject(MAT_DIALOG_DATA, { optional: true });
+  readonly data: InvoiceRequestDialogData | null = inject(MAT_DIALOG_DATA, { optional: true });
 
   protected form!: FormGroup;
+  protected purchaseContext: InvoiceRequestPurchaseContext | null = null;
 
   ngOnInit(): void {
+    this.purchaseContext = this.data?.purchaseContext ?? null;
+    const prefill = this.data?.prefill;
+
     this.form = this.fb.group({
-      customerType: [this.data?.customerType ?? 'Individual'],
-      fullName: [this.data?.fullName ?? '', Validators.required],
-      companyName: [this.data?.companyName ?? ''],
-      address: [this.data?.address ?? '', Validators.required],
-      city: [this.data?.city ?? '', Validators.required],
-      postalCode: [this.data?.postalCode ?? '', Validators.required],
-      country: [this.data?.country ?? 'Italia', Validators.required],
-      fiscalCode: [this.data?.fiscalCode ?? ''],
-      vatNumber: [this.data?.vatNumber ?? ''],
-      sdiCode: [this.data?.sdiCode ?? ''],
-      pecEmail: [this.data?.pecEmail ?? ''],
+      customerType: [prefill?.customerType ?? 'Individual'],
+      fullName: [prefill?.fullName ?? '', Validators.required],
+      companyName: [prefill?.companyName ?? ''],
+      address: [prefill?.address ?? '', Validators.required],
+      city: [prefill?.city ?? '', Validators.required],
+      postalCode: [prefill?.postalCode ?? '', Validators.required],
+      country: [prefill?.country ?? 'Italia', Validators.required],
+      fiscalCode: [prefill?.fiscalCode ?? ''],
+      vatNumber: [prefill?.vatNumber ?? ''],
+      sdiCode: [prefill?.sdiCode ?? ''],
+      pecEmail: [prefill?.pecEmail ?? ''],
+      userSubscriptionId: [
+        prefill?.userSubscriptionId ?? this.purchaseContext?.userSubscriptionId ?? '',
+        Validators.required,
+      ],
     });
     this.updateCompanyValidators();
   }
@@ -178,6 +225,7 @@ export class InvoiceRequestDialog implements OnInit {
       city: value.city,
       postalCode: value.postalCode,
       country: value.country,
+      userSubscriptionId: value.userSubscriptionId,
     };
     if (value.companyName) request.companyName = value.companyName;
     if (value.fiscalCode) request.fiscalCode = value.fiscalCode;

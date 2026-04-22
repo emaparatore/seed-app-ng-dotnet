@@ -37,9 +37,30 @@ public class GetMyInvoiceRequestsQueryHandlerTests : IDisposable
         PostalCode = "20100",
         Country = "IT",
         Status = InvoiceRequestStatus.Requested,
+        UserSubscriptionId = Guid.NewGuid(),
+        ServiceName = "Pro",
+        ServicePeriodStart = DateTime.UtcNow.AddDays(-5),
+        ServicePeriodEnd = DateTime.UtcNow.AddDays(25),
         CreatedAt = createdAt ?? DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
+
+    [Fact]
+    public async Task Should_Map_Service_Reference_Fields()
+    {
+        var request = CreateInvoiceRequest(TestUserId);
+        _dbContext.InvoiceRequests.Add(request);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _handler.Handle(new GetMyInvoiceRequestsQuery(TestUserId), CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        result.Data.Should().HaveCount(1);
+        result.Data[0].UserSubscriptionId.Should().Be(request.UserSubscriptionId);
+        result.Data[0].ServiceName.Should().Be("Pro");
+        result.Data[0].ServicePeriodStart.Should().NotBeNull();
+        result.Data[0].ServicePeriodEnd.Should().NotBeNull();
+    }
 
     [Fact]
     public async Task Should_Return_Empty_List_When_No_Requests()

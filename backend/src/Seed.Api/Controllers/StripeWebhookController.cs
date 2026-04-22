@@ -47,7 +47,30 @@ public class StripeWebhookController(
             $"Type: {stripeEvent.Type}",
             cancellationToken: ct);
 
-        await webhookHandler.ProcessEventAsync(stripeEvent.Id, stripeEvent.Type, json, ct);
+        try
+        {
+            var processed = await webhookHandler.ProcessEventAsync(stripeEvent.Id, stripeEvent.Type, json, ct);
+            if (!processed)
+            {
+                await auditService.LogAsync(
+                    AuditActions.WebhookProcessingFailed,
+                    "Webhook",
+                    stripeEvent.Id,
+                    $"Type: {stripeEvent.Type} - event ignored or incomplete",
+                    cancellationToken: ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Stripe webhook processing failed for event {EventId}", stripeEvent.Id);
+            await auditService.LogAsync(
+                AuditActions.WebhookProcessingFailed,
+                "Webhook",
+                stripeEvent.Id,
+                $"Type: {stripeEvent.Type} - exception during processing",
+                cancellationToken: ct);
+            throw;
+        }
 
         return Ok();
     }

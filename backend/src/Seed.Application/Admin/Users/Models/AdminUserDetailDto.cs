@@ -10,4 +10,5 @@ public sealed record AdminUserDetailDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     bool MustChangePassword,
-    bool EmailConfirmed);
+    bool EmailConfirmed,
+    AdminUserSubscriptionDto? Subscription);

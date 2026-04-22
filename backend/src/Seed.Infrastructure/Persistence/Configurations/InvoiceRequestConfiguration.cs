@@ -22,14 +22,33 @@ public sealed class InvoiceRequestConfiguration : IEntityTypeConfiguration<Invoi
         builder.Property(i => i.VatNumber).HasMaxLength(20);
         builder.Property(i => i.SdiCode).HasMaxLength(10);
         builder.Property(i => i.PecEmail).HasMaxLength(200);
+        builder.Property(i => i.StripeInvoiceId).HasMaxLength(100);
         builder.Property(i => i.StripePaymentIntentId).HasMaxLength(100);
+        builder.Property(i => i.ServiceName).HasMaxLength(200);
+        builder.Property(i => i.Currency).HasMaxLength(10);
+        builder.Property(i => i.BillingReason).HasMaxLength(50);
+        builder.Property(i => i.AmountSubtotal).HasPrecision(18, 2);
+        builder.Property(i => i.AmountTax).HasPrecision(18, 2);
+        builder.Property(i => i.AmountTotal).HasPrecision(18, 2);
+        builder.Property(i => i.AmountPaid).HasPrecision(18, 2);
+        builder.Property(i => i.ProrationAmount).HasPrecision(18, 2);
 
         builder.HasIndex(i => i.UserId);
+        builder.HasIndex(i => i.UserSubscriptionId);
         builder.HasIndex(i => i.Status);
+        builder.HasIndex(i => i.StripePaymentIntentId);
+        builder.HasIndex(i => i.StripeInvoiceId)
+            .IsUnique()
+            .HasFilter("\"StripeInvoiceId\" IS NOT NULL");
 
         builder.HasOne(i => i.User)
             .WithMany(u => u.InvoiceRequests)
             .HasForeignKey(i => i.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(i => i.UserSubscription)
+            .WithMany()
+            .HasForeignKey(i => i.UserSubscriptionId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

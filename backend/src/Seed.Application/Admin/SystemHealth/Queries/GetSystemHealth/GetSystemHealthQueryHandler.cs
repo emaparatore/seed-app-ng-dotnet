@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Seed.Application.Admin.SystemHealth.Models;
 using Seed.Application.Common;
+using Seed.Application.Common.Interfaces;
 using Seed.Shared.Configuration;
 
 namespace Seed.Application.Admin.SystemHealth.Queries.GetSystemHealth;
@@ -13,7 +14,8 @@ namespace Seed.Application.Admin.SystemHealth.Queries.GetSystemHealth;
 public sealed class GetSystemHealthQueryHandler(
     HealthCheckService healthCheckService,
     IOptions<SmtpSettings> smtpSettings,
-    IHostEnvironment hostEnvironment)
+    IHostEnvironment hostEnvironment,
+    IPaymentsHealthService paymentsHealthService)
     : IRequestHandler<GetSystemHealthQuery, Result<SystemHealthDto>>
 {
     public async Task<Result<SystemHealthDto>> Handle(
@@ -33,6 +35,8 @@ public sealed class GetSystemHealthQueryHandler(
         var emailStatus = new ComponentStatusDto(
             emailConfigured ? "Configured" : "NotConfigured",
             emailConfigured ? $"SMTP: {smtp.Host}:{smtp.Port}" : "Using console fallback");
+
+        var paymentsWebhook = await paymentsHealthService.GetWebhookStatusAsync(cancellationToken);
 
         // Version
         var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
@@ -55,7 +59,7 @@ public sealed class GetSystemHealthQueryHandler(
             Math.Round(workingSetMb, 2),
             Math.Round(gcAllocatedMb, 2));
 
-        var dto = new SystemHealthDto(dbStatus, emailStatus, version, environment, uptimeDto, memoryDto);
+        var dto = new SystemHealthDto(dbStatus, emailStatus, paymentsWebhook, version, environment, uptimeDto, memoryDto);
         return Result<SystemHealthDto>.Success(dto);
     }
 }

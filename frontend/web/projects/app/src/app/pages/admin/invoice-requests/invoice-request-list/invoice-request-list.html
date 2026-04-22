@@ -3,7 +3,7 @@
 </div>
 
 <div class="filters-bar">
-  <mat-form-field appearance="outline" class="filter-field">
+  <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
     <mat-label>Stato</mat-label>
     <mat-select [formControl]="statusFilterControl" (selectionChange)="onFilterChange()">
       <mat-option value="">Tutti</mat-option>
@@ -61,6 +61,28 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="service">
+        <th mat-header-cell *matHeaderCellDef>Servizio</th>
+        <td mat-cell *matCellDef="let req">
+          @if (req.serviceName) {
+            {{ req.serviceName }}
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="amountPaid">
+        <th mat-header-cell *matHeaderCellDef>Importo da fatturare</th>
+        <td mat-cell *matCellDef="let req">
+          @if (req.amountPaid !== null) {
+            {{ req.amountPaid | number: '1.2-2' }} {{ req.currency ?? '' }}
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="customerType">
         <th mat-header-cell *matHeaderCellDef>Tipo</th>
         <td mat-cell *matCellDef="let req">
@@ -84,10 +106,26 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="details">
+        <th mat-header-cell *matHeaderCellDef>Dettaglio</th>
+        <td mat-cell *matCellDef="let req">
+          <button
+            mat-icon-button
+            type="button"
+            class="details-button"
+            matTooltip="Visualizza dettagli"
+            aria-label="Visualizza dettagli richiesta"
+            (click)="openDetails(req)"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef>Aggiorna stato</th>
         <td mat-cell *matCellDef="let req">
-          <mat-form-field appearance="outline" class="status-select">
+          <mat-form-field appearance="outline" class="status-select" subscriptSizing="dynamic">
             <mat-select [value]="req.status" (selectionChange)="updateStatus(req, $event.value)"
                         [disabled]="updatingId() === req.id">
               @for (opt of statusOptions; track opt.value) {

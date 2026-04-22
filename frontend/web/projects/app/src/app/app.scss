@@ -26,35 +26,19 @@
   flex: 1 1 auto;
 }
 
-.user-name-link {
-  color: inherit;
-  text-decoration: none;
-  margin-right: 0.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.user-name-link:hover {
-  text-decoration: underline;
-}
-
 .user-icon-link {
-  display: none;
+  display: inline-flex;
+  align-items: center;
   color: inherit;
   line-height: 0;
+}
+
+.menu-trigger {
+  margin-left: 4px;
 }
 
 @media (max-width: 600px) {
   .top-nav {
     padding: 0 8px;
-  }
-
-  .user-name-link {
-    display: none;
-  }
-
-  .user-icon-link {
-    display: inline-flex;
-    align-items: center;
   }
 }

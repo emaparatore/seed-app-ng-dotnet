@@ -5,7 +5,7 @@
       <mat-icon>arrow_back</mat-icon>
       Abbonamento
     </a>
-    <button mat-flat-button color="primary" (click)="openNewRequest()" [disabled]="submitting()">
+    <button mat-flat-button color="primary" (click)="openNewRequest()" [disabled]="submitting() || !subscription()">
       @if (submitting()) {
         <mat-progress-spinner diameter="18" mode="indeterminate" />
       } @else {
@@ -47,6 +47,28 @@
         <td mat-cell *matCellDef="let req">{{ req.createdAt | date:'dd/MM/yyyy' }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="service">
+        <th mat-header-cell *matHeaderCellDef>Servizio</th>
+        <td mat-cell *matCellDef="let req">
+          @if (req.serviceName) {
+            {{ req.serviceName }}
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="amountPaid">
+        <th mat-header-cell *matHeaderCellDef>Importo</th>
+        <td mat-cell *matCellDef="let req">
+          @if (req.amountPaid !== null) {
+            {{ req.amountPaid | number: '1.2-2' }} {{ req.currency ?? '' }}
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="customerType">
         <th mat-header-cell *matHeaderCellDef>Tipo</th>
         <td mat-cell *matCellDef="let req">
@@ -74,6 +96,22 @@
         <th mat-header-cell *matHeaderCellDef>Data emissione</th>
         <td mat-cell *matCellDef="let req">
           {{ req.processedAt ? (req.processedAt | date:'dd/MM/yyyy') : '—' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Dettaglio</th>
+        <td mat-cell *matCellDef="let req">
+          <button
+            mat-icon-button
+            type="button"
+            class="details-button"
+            matTooltip="Visualizza dettagli"
+            aria-label="Visualizza dettagli richiesta"
+            (click)="openDetails(req)"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
         </td>
       </ng-container>
 

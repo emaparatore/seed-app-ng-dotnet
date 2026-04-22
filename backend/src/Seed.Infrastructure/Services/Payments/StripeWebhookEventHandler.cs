@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Seed.Application.Common.Interfaces;
 using Seed.Domain.Authorization;
 using Seed.Domain.Entities;
@@ -30,16 +31,51 @@ public sealed class StripeWebhookEventHandler(
             return true;
         }
 
-        var processed = eventType switch
+        var trackedEvent = new ProcessedWebhookEvent
         {
-            EventTypes.CheckoutSessionCompleted => await HandleCheckoutSessionCompletedAsync(jsonPayload, ct),
-            EventTypes.InvoicePaymentSucceeded => await HandleInvoicePaymentSucceededAsync(jsonPayload, ct),
-            EventTypes.InvoicePaymentFailed => await HandleInvoicePaymentFailedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionUpdated => await HandleSubscriptionUpdatedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionDeleted => await HandleSubscriptionDeletedAsync(jsonPayload, ct),
-            EventTypes.CustomerSubscriptionTrialWillEnd => await HandleTrialWillEndAsync(jsonPayload, ct),
-            _ => false,
+            Id = Guid.NewGuid(),
+            EventId = eventId,
+            EventType = eventType,
+            ReceivedAt = DateTime.UtcNow,
+            IsProcessed = false,
         };
+
+        dbContext.ProcessedWebhookEvents.Add(trackedEvent);
+        try
+        {
+            await dbContext.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            logger.LogInformation("Duplicate webhook event {EventId} skipped (db idempotency)", eventId);
+            cache.Set(cacheKey, true, IdempotencyCacheDuration);
+            return true;
+        }
+
+        bool processed;
+        try
+        {
+            processed = eventType switch
+            {
+                EventTypes.CheckoutSessionCompleted => await HandleCheckoutSessionCompletedAsync(jsonPayload, ct),
+                EventTypes.InvoicePaymentSucceeded => await HandleInvoicePaymentSucceededAsync(jsonPayload, ct),
+                EventTypes.InvoicePaymentFailed => await HandleInvoicePaymentFailedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionUpdated => await HandleSubscriptionUpdatedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionDeleted => await HandleSubscriptionDeletedAsync(jsonPayload, ct),
+                EventTypes.CustomerSubscriptionTrialWillEnd => await HandleTrialWillEndAsync(jsonPayload, ct),
+                _ => false,
+            };
+        }
+        catch
+        {
+            dbContext.ProcessedWebhookEvents.Remove(trackedEvent);
+            await dbContext.SaveChangesAsync(ct);
+            throw;
+        }
+
+        trackedEvent.IsProcessed = processed;
+        trackedEvent.ProcessedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(ct);
 
         if (processed)
         {
@@ -91,9 +127,13 @@ public sealed class StripeWebhookEventHandler(
         var subscriptionId = session.SubscriptionId ?? session.Subscription?.Id;
         var customerId = session.CustomerId ?? session.Customer?.Id;
 
-        var status = session.Status == "complete"
-            ? (session.SubscriptionId is not null ? SubscriptionStatus.Active : SubscriptionStatus.Active)
-            : SubscriptionStatus.Active;
+        if (string.IsNullOrWhiteSpace(subscriptionId))
+        {
+            logger.LogWarning("checkout.session.completed missing subscription id for session {SessionId}", session.Id);
+            return false;
+        }
+
+        var status = SubscriptionStatus.Active;
 
         // Deactivate any existing active subscriptions for this user (safety net for plan changes)
         var existingSubscriptions = await dbContext.UserSubscriptions
@@ -110,21 +150,56 @@ public sealed class StripeWebhookEventHandler(
             logger.LogInformation("Deactivated old subscription {OldSubscriptionId} for user {UserId}", existing.StripeSubscriptionId, userGuid);
         }
 
-        var subscription = new UserSubscription
-        {
-            Id = Guid.NewGuid(),
-            UserId = userGuid,
-            PlanId = planGuid.Value,
-            Status = status,
-            StripeSubscriptionId = subscriptionId,
-            StripeCustomerId = customerId,
-            CurrentPeriodStart = DateTime.UtcNow,
-            CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
+        var subscription = await dbContext.UserSubscriptions
+            .FirstOrDefaultAsync(s => s.StripeSubscriptionId == subscriptionId, ct);
 
-        dbContext.UserSubscriptions.Add(subscription);
+        if (subscription is null)
+        {
+            subscription = new UserSubscription
+            {
+                Id = Guid.NewGuid(),
+                UserId = userGuid,
+                PlanId = planGuid.Value,
+                Status = status,
+                StripeSubscriptionId = subscriptionId,
+                StripeCustomerId = customerId,
+                CurrentPeriodStart = DateTime.UtcNow,
+                CurrentPeriodEnd = DateTime.UtcNow.AddMonths(1),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            dbContext.UserSubscriptions.Add(subscription);
+        }
+        else
+        {
+            subscription.UserId = userGuid;
+            subscription.PlanId = planGuid.Value;
+            subscription.Status = status;
+            subscription.StripeCustomerId = customerId;
+            subscription.UpdatedAt = DateTime.UtcNow;
+        }
+
+        var attemptIdRaw = session.Metadata?.GetValueOrDefault("attemptId");
+        CheckoutSessionAttempt? attempt = null;
+        if (!string.IsNullOrWhiteSpace(attemptIdRaw) && Guid.TryParse(attemptIdRaw, out var attemptId))
+        {
+            attempt = await dbContext.CheckoutSessionAttempts.FirstOrDefaultAsync(a => a.Id == attemptId, ct);
+        }
+
+        attempt ??= await dbContext.CheckoutSessionAttempts
+            .FirstOrDefaultAsync(a => a.StripeSessionId == session.Id, ct);
+
+        if (attempt is not null)
+        {
+            attempt.Status = CheckoutSessionAttemptStatus.Completed;
+            attempt.StripeSessionId = session.Id;
+            attempt.StripeSubscriptionId = subscriptionId;
+            attempt.StripeCustomerId = customerId;
+            attempt.CompletedAt = DateTime.UtcNow;
+            attempt.FailureReason = null;
+            attempt.UpdatedAt = DateTime.UtcNow;
+        }
+
         await dbContext.SaveChangesAsync(ct);
 
         await auditService.LogAsync(

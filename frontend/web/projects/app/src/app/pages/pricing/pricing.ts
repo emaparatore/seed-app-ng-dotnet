@@ -98,7 +98,7 @@ export class Pricing implements OnInit {
       .createCheckoutSession({
         planId: plan.id,
         billingInterval: this.billingInterval() === 'yearly' ? 'Yearly' : 'Monthly',
-        successUrl: window.location.origin + '/billing/success',
+        successUrl: window.location.origin + '/billing/success?session_id={CHECKOUT_SESSION_ID}',
         cancelUrl: window.location.origin + '/billing/cancel',
       })
       .subscribe({
@@ -136,7 +136,7 @@ export class Pricing implements OnInit {
 
   private openPortal(): void {
     this.portalLoading.set(true);
-    this.billingService.createPortalSession(window.location.origin + '/billing/subscription').subscribe({
+    this.billingService.createPortalSession(window.location.origin + '/billing/subscription?sync=1').subscribe({
       next: (response) => {
         window.location.href = response.portalUrl;
       },
