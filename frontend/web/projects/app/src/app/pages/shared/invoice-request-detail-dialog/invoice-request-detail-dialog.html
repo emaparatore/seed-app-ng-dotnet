@@ -1,0 +1,132 @@
+<h2 mat-dialog-title>Dettaglio richiesta fattura</h2>
+
+<mat-dialog-content>
+  <div class="detail-grid">
+    @if (data.userEmail || data.userFullName) {
+      <div class="detail-section">
+        <h4>Utente</h4>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Email</span>
+        @if (data.userEmail) {
+          <span class="detail-value">{{ data.userEmail }}</span>
+        } @else {
+          <span class="none-value">—</span>
+        }
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Nome completo</span>
+        @if (data.userFullName) {
+          <span class="detail-value">{{ data.userFullName }}</span>
+        } @else {
+          <span class="none-value">—</span>
+        }
+      </div>
+    }
+
+    <div class="detail-section">
+      <h4>Dati fatturazione</h4>
+    </div>
+
+    <div class="detail-item">
+      <span class="detail-label">Tipo cliente</span>
+      <span class="detail-value">{{ data.customerType === 'Individual' ? 'Persona fisica' : 'Azienda' }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Nome e cognome</span>
+      <span class="detail-value">{{ data.fullName }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Ragione sociale</span>
+      @if (data.companyName) {
+        <span class="detail-value">{{ data.companyName }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Codice fiscale</span>
+      @if (data.fiscalCode) {
+        <span class="detail-value">{{ data.fiscalCode }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Partita IVA</span>
+      @if (data.vatNumber) {
+        <span class="detail-value">{{ data.vatNumber }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Codice SDI</span>
+      @if (data.sdiCode) {
+        <span class="detail-value">{{ data.sdiCode }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">PEC</span>
+      @if (data.pecEmail) {
+        <span class="detail-value">{{ data.pecEmail }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Indirizzo</span>
+      <span class="detail-value">{{ data.address }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Citta</span>
+      <span class="detail-value">{{ data.city }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">CAP</span>
+      <span class="detail-value">{{ data.postalCode }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Paese</span>
+      <span class="detail-value">{{ data.country }}</span>
+    </div>
+
+    <div class="detail-section">
+      <h4>Stato richiesta</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Stato</span>
+      <span>
+        <span class="status-badge" [class]="statusClass(data.status)">
+          {{ statusLabel(data.status) }}
+        </span>
+      </span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Data richiesta</span>
+      <span class="detail-value">{{ data.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Data emissione</span>
+      @if (data.processedAt) {
+        <span class="detail-value">{{ data.processedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Stripe Payment Intent</span>
+      @if (data.stripePaymentIntentId) {
+        <span class="detail-value">{{ data.stripePaymentIntentId }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Chiudi</button>
+</mat-dialog-actions>

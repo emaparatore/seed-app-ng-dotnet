@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 import { BillingService } from '../../pricing/billing.service';
 import { CreateInvoiceRequest, InvoiceRequest } from '../../pricing/billing.models';
 import { InvoiceRequestDialog } from '../subscription/invoice-request-dialog';
+import { InvoiceRequestDetailDialog } from '../../shared/invoice-request-detail-dialog/invoice-request-detail-dialog';
 
 @Component({
   selector: 'app-invoice-requests',
@@ -38,7 +39,7 @@ export class InvoiceRequests implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
 
-  protected readonly displayedColumns = ['createdAt', 'customerType', 'name', 'status', 'processedAt'];
+  protected readonly displayedColumns = ['createdAt', 'customerType', 'name', 'status', 'processedAt', 'actions'];
 
   ngOnInit(): void {
     this.loadRequests();
@@ -95,6 +96,14 @@ export class InvoiceRequests implements OnInit {
           },
         });
       });
+  }
+
+  protected openDetails(req: InvoiceRequest): void {
+    this.dialog.open(InvoiceRequestDetailDialog, {
+      width: '720px',
+      maxWidth: '96vw',
+      data: req,
+    });
   }
 
   protected statusLabel(status: string): string {
