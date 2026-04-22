@@ -6,25 +6,63 @@
   <span class="spacer"></span>
 
   @if (authService.isAuthenticated()) {
-    @if (permissionService.isAdmin()) {
-      <a mat-button routerLink="/admin">Admin</a>
-    }
-    @if (configService.paymentsEnabled()) {
-      <a mat-icon-button routerLink="/billing/subscription" aria-label="Abbonamento">
-        <mat-icon>credit_card</mat-icon>
-      </a>
-    }
-    <a class="user-name-link" routerLink="/profile">
-      {{ authService.currentUser()?.firstName }} {{ authService.currentUser()?.lastName }}
-    </a>
-    <a class="user-icon-link" routerLink="/profile" aria-label="Profile">
+    <a class="user-icon-link" mat-icon-button routerLink="/profile" aria-label="Profile">
       <mat-icon>account_circle</mat-icon>
     </a>
-    <button mat-button type="button" (click)="authService.logout()">Logout</button>
   } @else {
-    <button mat-button type="button" routerLink="/login">Login</button>
-    <button mat-button type="button" routerLink="/register">Register</button>
+    @if (configService.paymentsEnabled()) {
+      <a mat-button routerLink="/pricing">Pricing</a>
+    }
+    <a mat-button routerLink="/login">Login</a>
   }
+
+  <button mat-icon-button [matMenuTriggerFor]="navMenu" aria-label="Apri menu di navigazione" class="menu-trigger">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <mat-menu #navMenu="matMenu">
+    <button mat-menu-item routerLink="/">
+      <mat-icon>home</mat-icon>
+      <span>Home</span>
+    </button>
+    @if (configService.paymentsEnabled()) {
+      <button mat-menu-item routerLink="/pricing">
+        <mat-icon>sell</mat-icon>
+        <span>Pricing</span>
+      </button>
+    }
+    @if (authService.isAuthenticated()) {
+      <button mat-menu-item routerLink="/profile">
+        <mat-icon>account_circle</mat-icon>
+        <span>Profilo</span>
+      </button>
+      @if (permissionService.isAdmin()) {
+        <button mat-menu-item routerLink="/admin">
+          <mat-icon>admin_panel_settings</mat-icon>
+          <span>Admin dashboard</span>
+        </button>
+      }
+      @if (configService.paymentsEnabled()) {
+        <button mat-menu-item routerLink="/billing/subscription">
+          <mat-icon>credit_card</mat-icon>
+          <span>Abbonamento</span>
+        </button>
+      }
+      <button mat-menu-item type="button" (click)="authService.logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    } @else {
+      <button mat-menu-item routerLink="/login">
+        <mat-icon>login</mat-icon>
+        <span>Login</span>
+      </button>
+      <button mat-menu-item routerLink="/register">
+        <mat-icon>person_add</mat-icon>
+        <span>Register</span>
+      </button>
+    }
+  </mat-menu>
 </mat-toolbar>
 
 <router-outlet />
