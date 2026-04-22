@@ -20,11 +20,15 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .filter-field {
   min-width: 180px;
+  max-width: 220px;
+  margin: 0;
+  --mat-form-field-container-height: 42px;
+  --mat-form-field-container-vertical-padding: 10px;
 }
 
 .table-container {
@@ -66,6 +70,7 @@ th.mat-mdc-header-cell {
 
 .mat-column-actions {
   flex: 1.2 0 160px;
+  vertical-align: middle;
 }
 
 .user-info {
@@ -85,6 +90,25 @@ th.mat-mdc-header-cell {
 .date-text {
   font-size: 13px;
   color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+}
+
+.details-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.18));
+  color: var(--mat-sys-primary, #1e3a8a);
+  background: transparent;
+
+  &:hover {
+    background: var(--mat-sys-primary-container, rgba(30, 58, 138, 0.08));
+    border-color: var(--mat-sys-outline, rgba(0, 0, 0, 0.28));
+  }
+
+  mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
 }
 
 .status-badge {
@@ -112,13 +136,28 @@ th.mat-mdc-header-cell {
 }
 
 .status-select {
-  font-size: 13px;
-  width: 150px;
+  font-size: 12px;
+  width: 138px;
+  margin: 0;
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mdc-outlined-text-field-container-shape: 10px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper,
+  ::ng-deep .mat-mdc-form-field-bottom-align::before {
+    display: none;
+  }
 
   ::ng-deep .mat-mdc-form-field-infix {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-    min-height: unset;
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  ::ng-deep .mat-mdc-select-trigger {
+    align-items: center;
   }
 }
 

@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { BillingService } from '../../pricing/billing.service';
 import { CreateInvoiceRequest, InvoiceRequest } from '../../pricing/billing.models';
@@ -25,6 +26,7 @@ import { InvoiceRequestDetailDialog } from '../../shared/invoice-request-detail-
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
+    MatTooltipModule,
   ],
   templateUrl: './invoice-requests.html',
   styleUrl: './invoice-requests.scss',

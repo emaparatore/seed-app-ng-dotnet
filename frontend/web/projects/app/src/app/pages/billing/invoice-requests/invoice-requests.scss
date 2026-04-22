@@ -78,8 +78,27 @@ table {
 }
 
 .mat-column-actions {
-  width: 130px;
+  width: 96px;
   white-space: nowrap;
+}
+
+.details-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.18));
+  color: var(--mat-sys-primary, #1e3a8a);
+  background: transparent;
+
+  &:hover {
+    background: var(--mat-sys-primary-container, rgba(30, 58, 138, 0.08));
+    border-color: var(--mat-sys-outline, rgba(0, 0, 0, 0.28));
+  }
+
+  mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
 }
 
 .status-badge {
