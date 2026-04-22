@@ -56,6 +56,27 @@ Checkout sessions are now persisted in `CheckoutSessionAttempts` with statuses (
 - `ConfigService` (`projects/app/src/app/services/config.service.ts`) loads `GET /api/v1.0/config` via `APP_INITIALIZER`, setting the `paymentsEnabled` signal before any route guard runs. Falls back to `false` on HTTP error.
 - `paymentsEnabledGuard` (`projects/app/src/app/guards/payments-enabled.guard.ts`) protects all billing and pricing routes — redirects to `/` when the module is disabled.
 
+### Invoice request workflow (manual invoice)
+
+Invoice requests are now always linked to a concrete subscription reference so the admin can issue documents without manual lookup.
+
+- Request payload includes `userSubscriptionId` (required).
+- Backend validates that the subscription belongs to the authenticated user.
+- Backend blocks duplicates for the same billing transaction (prefers `StripeInvoiceId`, falls back to `StripePaymentIntentId`).
+- On creation, backend stores a snapshot on `InvoiceRequest`:
+  - `serviceName` (plan name)
+  - `servicePeriodStart`
+  - `servicePeriodEnd`
+  - `userSubscriptionId`
+- Backend also stores payment snapshot details for admin invoicing:
+  - `stripeInvoiceId`, `stripePaymentIntentId`
+  - `currency`, `amountSubtotal`, `amountTax`, `amountTotal`, `amountPaid`
+  - proration metadata: `isProrationApplied`, `prorationAmount`, `billingReason`
+  - invoice period: `invoicePeriodStart`, `invoicePeriodEnd`
+- User and admin detail screens show this purchase reference in the invoice request detail dialog.
+
+This keeps the request auditable even if the subscription changes later.
+
 ---
 
 ## Come attivare il modulo

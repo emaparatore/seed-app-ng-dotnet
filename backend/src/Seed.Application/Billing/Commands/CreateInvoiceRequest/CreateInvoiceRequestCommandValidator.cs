@@ -25,6 +25,9 @@ public sealed class CreateInvoiceRequestCommandValidator : AbstractValidator<Cre
         RuleFor(x => x.Country)
             .NotEmpty();
 
+        RuleFor(x => x.UserSubscriptionId)
+            .NotEmpty();
+
         When(x => x.CustomerType == CustomerType.Company, () =>
         {
             RuleFor(x => x.CompanyName)

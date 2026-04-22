@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +18,7 @@ import { InvoiceRequestDetailDialog } from '../../../shared/invoice-request-deta
   selector: 'app-invoice-request-list',
   imports: [
     DatePipe,
+    DecimalPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -35,7 +36,7 @@ export class InvoiceRequestList implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly displayedColumns = ['userEmail', 'name', 'customerType', 'status', 'createdAt', 'details', 'actions'];
+  protected readonly displayedColumns = ['userEmail', 'service', 'amountPaid', 'name', 'customerType', 'status', 'createdAt', 'details', 'actions'];
 
   protected readonly loading = signal(true);
   protected readonly requests = signal<AdminInvoiceRequest[]>([]);

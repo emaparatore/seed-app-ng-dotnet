@@ -143,6 +143,53 @@ public sealed class StripePaymentGateway(
         }
     }
 
+    public async Task<InvoicePaymentDetails?> GetLatestPaidInvoiceAsync(string stripeSubscriptionId, CancellationToken ct = default)
+    {
+        var service = new InvoiceService(_client);
+        var options = new InvoiceListOptions
+        {
+            Subscription = stripeSubscriptionId,
+            Limit = 20,
+            Expand = ["data.lines.data"],
+        };
+
+        var invoices = await service.ListAsync(options, cancellationToken: ct);
+        var invoice = invoices.Data
+            .Where(i => string.Equals(i.Status, "paid", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(i => i.Created)
+            .FirstOrDefault();
+
+        if (invoice is null)
+            return null;
+
+        var subtotal = ToDecimal(invoice.Subtotal);
+        var total = ToDecimal(invoice.Total);
+        var amountPaid = ToDecimal(invoice.AmountPaid);
+        var taxInCents = TryGetLongProperty(invoice, "Tax") ?? Math.Max(0, invoice.Total - invoice.Subtotal);
+        var amountTax = ToDecimal(taxInCents);
+
+        var prorationInCents = invoice.Lines?.Data?
+            .Where(l => TryGetBoolProperty(l, "Proration") == true)
+            .Sum(l => l.Amount) ?? 0;
+
+        var paymentIntentId = TryGetStringProperty(invoice, "PaymentIntentId")
+            ?? TryGetNestedIdProperty(invoice, "PaymentIntent");
+
+        return new InvoicePaymentDetails(
+            StripeInvoiceId: invoice.Id,
+            StripePaymentIntentId: paymentIntentId,
+            InvoicePeriodStart: invoice.PeriodStart == default ? null : invoice.PeriodStart,
+            InvoicePeriodEnd: invoice.PeriodEnd == default ? null : invoice.PeriodEnd,
+            Currency: invoice.Currency?.ToUpperInvariant(),
+            AmountSubtotal: subtotal,
+            AmountTax: amountTax,
+            AmountTotal: total,
+            AmountPaid: amountPaid,
+            IsProrationApplied: prorationInCents != 0,
+            ProrationAmount: ToDecimal(prorationInCents),
+            BillingReason: invoice.BillingReason);
+    }
+
     public async Task<ProductSyncResult> SyncPlanToProviderAsync(SyncPlanRequest request, CancellationToken ct = default)
     {
         var productService = new ProductService(_client);
@@ -220,5 +267,61 @@ public sealed class StripePaymentGateway(
         logger.LogInformation("Stripe {Interval} price created: {PriceId} ({Amount} cents)",
             interval, price.Id, amountInCents);
         return price.Id;
+    }
+
+    private static decimal ToDecimal(long amountInCents)
+    {
+        return amountInCents / 100m;
+    }
+
+    private static long? TryGetLongProperty(object source, string propertyName)
+    {
+        var property = source.GetType().GetProperty(propertyName);
+        if (property is null)
+            return null;
+
+        var value = property.GetValue(source);
+        if (value is long longValue)
+            return longValue;
+        if (value is int intValue)
+            return intValue;
+
+        return null;
+    }
+
+    private static bool? TryGetBoolProperty(object source, string propertyName)
+    {
+        var property = source.GetType().GetProperty(propertyName);
+        if (property is null)
+            return null;
+
+        var value = property.GetValue(source);
+        if (value is bool boolValue)
+            return boolValue;
+
+        return null;
+    }
+
+    private static string? TryGetStringProperty(object source, string propertyName)
+    {
+        var property = source.GetType().GetProperty(propertyName);
+        if (property is null)
+            return null;
+
+        return property.GetValue(source) as string;
+    }
+
+    private static string? TryGetNestedIdProperty(object source, string propertyName)
+    {
+        var property = source.GetType().GetProperty(propertyName);
+        if (property is null)
+            return null;
+
+        var nested = property.GetValue(source);
+        if (nested is null)
+            return null;
+
+        var idProperty = nested.GetType().GetProperty("Id");
+        return idProperty?.GetValue(nested) as string;
     }
 }

@@ -68,6 +68,27 @@ public sealed class MockPaymentGateway(ILogger<MockPaymentGateway> logger) : IPa
         return Task.FromResult<SubscriptionDetails?>(details);
     }
 
+    public Task<InvoicePaymentDetails?> GetLatestPaidInvoiceAsync(string stripeSubscriptionId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var details = new InvoicePaymentDetails(
+            StripeInvoiceId: $"mock_in_{stripeSubscriptionId}",
+            StripePaymentIntentId: $"mock_pi_{stripeSubscriptionId}",
+            InvoicePeriodStart: now.AddDays(-15),
+            InvoicePeriodEnd: now.AddDays(15),
+            Currency: "EUR",
+            AmountSubtotal: 19m,
+            AmountTax: 4.18m,
+            AmountTotal: 23.18m,
+            AmountPaid: 23.18m,
+            IsProrationApplied: false,
+            ProrationAmount: 0m,
+            BillingReason: "subscription_cycle");
+
+        logger.LogWarning("MockPaymentGateway - GetLatestPaidInvoice: {SubscriptionId} -> mock invoice details", stripeSubscriptionId);
+        return Task.FromResult<InvoicePaymentDetails?>(details);
+    }
+
     public Task DeleteCustomerAsync(string stripeCustomerId, CancellationToken ct = default)
     {
         logger.LogWarning("MockPaymentGateway - DeleteCustomer: {CustomerId}", stripeCustomerId);

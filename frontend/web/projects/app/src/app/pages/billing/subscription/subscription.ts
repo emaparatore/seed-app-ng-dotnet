@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BillingService } from '../../pricing/billing.service';
 import { CreateInvoiceRequest, InvoiceRequest, UserSubscription } from '../../pricing/billing.models';
-import { InvoiceRequestDialog } from './invoice-request-dialog';
+import { InvoiceRequestDialog, InvoiceRequestDialogData } from './invoice-request-dialog';
 
 @Component({
   selector: 'app-subscription',
@@ -114,6 +114,12 @@ export class Subscription implements OnInit {
   }
 
   openInvoiceRequest(): void {
+    const currentSubscription = this.subscription();
+    if (!currentSubscription) {
+      this.snackBar.open('Nessun abbonamento trovato per collegare la richiesta fattura.', 'Chiudi', { duration: 5000 });
+      return;
+    }
+
     const prefill: Partial<CreateInvoiceRequest> | null = this.lastInvoiceRequest
       ? {
           customerType: this.lastInvoiceRequest.customerType as 'Individual' | 'Company',
@@ -127,12 +133,25 @@ export class Subscription implements OnInit {
           vatNumber: this.lastInvoiceRequest.vatNumber ?? undefined,
           sdiCode: this.lastInvoiceRequest.sdiCode ?? undefined,
           pecEmail: this.lastInvoiceRequest.pecEmail ?? undefined,
+          userSubscriptionId: this.lastInvoiceRequest.userSubscriptionId ?? currentSubscription.id,
         }
       : null;
 
+    const purchaseContext = {
+      userSubscriptionId: currentSubscription.id,
+      serviceName: currentSubscription.planName,
+      periodStart: currentSubscription.currentPeriodStart,
+      periodEnd: currentSubscription.currentPeriodEnd,
+    };
+
     const openDialog = (data: Partial<CreateInvoiceRequest> | null) => {
+      const dialogData: InvoiceRequestDialogData = {
+        prefill: data ?? undefined,
+        purchaseContext,
+      };
+
       this.dialog
-        .open(InvoiceRequestDialog, { width: '560px', maxWidth: '95vw', data })
+        .open(InvoiceRequestDialog, { width: '560px', maxWidth: '95vw', data: dialogData })
         .afterClosed()
         .subscribe((result: CreateInvoiceRequest | undefined) => {
           if (!result) return;
@@ -168,6 +187,7 @@ export class Subscription implements OnInit {
             vatNumber: this.lastInvoiceRequest.vatNumber ?? undefined,
             sdiCode: this.lastInvoiceRequest.sdiCode ?? undefined,
             pecEmail: this.lastInvoiceRequest.pecEmail ?? undefined,
+            userSubscriptionId: this.lastInvoiceRequest.userSubscriptionId ?? currentSubscription.id,
           } : null);
         },
         error: () => openDialog(null),

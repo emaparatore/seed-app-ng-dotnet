@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 
@@ -16,6 +16,21 @@ export interface InvoiceRequestDetailData {
   vatNumber: string | null;
   sdiCode: string | null;
   pecEmail: string | null;
+  userSubscriptionId: string | null;
+  stripeInvoiceId: string | null;
+  currency: string | null;
+  amountSubtotal: number | null;
+  amountTax: number | null;
+  amountTotal: number | null;
+  amountPaid: number | null;
+  isProrationApplied: boolean | null;
+  prorationAmount: number | null;
+  billingReason: string | null;
+  serviceName: string | null;
+  servicePeriodStart: string | null;
+  servicePeriodEnd: string | null;
+  invoicePeriodStart: string | null;
+  invoicePeriodEnd: string | null;
   stripePaymentIntentId: string | null;
   status: string;
   createdAt: string;
@@ -26,7 +41,7 @@ export interface InvoiceRequestDetailData {
 
 @Component({
   selector: 'app-invoice-request-detail-dialog',
-  imports: [DatePipe, MatDialogModule, MatButtonModule],
+  imports: [DatePipe, DecimalPipe, MatDialogModule, MatButtonModule],
   templateUrl: './invoice-request-detail-dialog.html',
   styles: `
     .detail-grid {

@@ -45,6 +45,10 @@ public class GetAdminInvoiceRequestsQueryHandlerTests : IDisposable
         PostalCode = "20100",
         Country = "IT",
         Status = status,
+        UserSubscriptionId = Guid.NewGuid(),
+        ServiceName = "Pro",
+        ServicePeriodStart = DateTime.UtcNow.AddDays(-10),
+        ServicePeriodEnd = DateTime.UtcNow.AddDays(20),
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
@@ -121,6 +125,7 @@ public class GetAdminInvoiceRequestsQueryHandlerTests : IDisposable
         result.Data!.Items.Should().HaveCount(1);
         result.Data.Items[0].UserEmail.Should().Be("info@company.com");
         result.Data.Items[0].UserFullName.Should().Be("Mario Rossi");
+        result.Data.Items[0].ServiceName.Should().Be("Pro");
     }
 
     public void Dispose()

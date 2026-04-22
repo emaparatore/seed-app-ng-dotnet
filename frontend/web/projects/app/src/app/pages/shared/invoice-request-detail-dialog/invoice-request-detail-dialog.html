@@ -94,6 +94,106 @@
     </div>
 
     <div class="detail-section">
+      <h4>Riferimento acquisto</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Servizio</span>
+      @if (data.serviceName) {
+        <span class="detail-value">{{ data.serviceName }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Subscription ID</span>
+      @if (data.userSubscriptionId) {
+        <span class="detail-value">{{ data.userSubscriptionId }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Periodo servizio</span>
+      @if (data.servicePeriodStart && data.servicePeriodEnd) {
+        <span class="detail-value">{{ data.servicePeriodStart | date: 'dd/MM/yyyy' }} - {{ data.servicePeriodEnd | date: 'dd/MM/yyyy' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+
+    <div class="detail-section">
+      <h4>Dati pagamento</h4>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Totale pagato</span>
+      @if (data.amountPaid !== null) {
+        <span class="detail-value">{{ data.amountPaid | number: '1.2-2' }} {{ data.currency ?? '' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Imponibile</span>
+      @if (data.amountSubtotal !== null) {
+        <span class="detail-value">{{ data.amountSubtotal | number: '1.2-2' }} {{ data.currency ?? '' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">IVA</span>
+      @if (data.amountTax !== null) {
+        <span class="detail-value">{{ data.amountTax | number: '1.2-2' }} {{ data.currency ?? '' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Totale documento</span>
+      @if (data.amountTotal !== null) {
+        <span class="detail-value">{{ data.amountTotal | number: '1.2-2' }} {{ data.currency ?? '' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Policy upgrade/proration</span>
+      @if (data.isProrationApplied === true) {
+        <span class="detail-value">
+          Applicata ({{ data.prorationAmount | number: '1.2-2' }} {{ data.currency ?? '' }})
+        </span>
+      } @else if (data.isProrationApplied === false) {
+        <span class="detail-value">Non applicata</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Billing reason</span>
+      @if (data.billingReason) {
+        <span class="detail-value">{{ data.billingReason }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Stripe Invoice</span>
+      @if (data.stripeInvoiceId) {
+        <span class="detail-value">{{ data.stripeInvoiceId }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Periodo invoice</span>
+      @if (data.invoicePeriodStart && data.invoicePeriodEnd) {
+        <span class="detail-value">{{ data.invoicePeriodStart | date: 'dd/MM/yyyy' }} - {{ data.invoicePeriodEnd | date: 'dd/MM/yyyy' }}</span>
+      } @else {
+        <span class="none-value">—</span>
+      }
+    </div>
+
+    <div class="detail-section">
       <h4>Stato richiesta</h4>
     </div>
     <div class="detail-item">

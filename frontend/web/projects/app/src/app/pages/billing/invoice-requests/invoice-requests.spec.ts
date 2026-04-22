@@ -14,6 +14,7 @@ describe('InvoiceRequests', () => {
   let fixture: ComponentFixture<InvoiceRequests>;
   let billingService: {
     getMyInvoiceRequests: ReturnType<typeof vi.fn>;
+    getMySubscription: ReturnType<typeof vi.fn>;
     createInvoiceRequest: ReturnType<typeof vi.fn>;
   };
   let dialog: { open: ReturnType<typeof vi.fn> };
@@ -31,6 +32,21 @@ describe('InvoiceRequests', () => {
     vatNumber: 'IT12345678901',
     sdiCode: 'ABC1234',
     pecEmail: 'amministrazione@rossipec.it',
+    userSubscriptionId: 'sub-1',
+    stripeInvoiceId: 'in_1',
+    currency: 'EUR',
+    amountSubtotal: 19,
+    amountTax: 4.18,
+    amountTotal: 23.18,
+    amountPaid: 23.18,
+    isProrationApplied: false,
+    prorationAmount: 0,
+    billingReason: 'subscription_cycle',
+    serviceName: 'Pro',
+    servicePeriodStart: '2026-04-01T00:00:00Z',
+    servicePeriodEnd: '2026-05-01T00:00:00Z',
+    invoicePeriodStart: '2026-04-01T00:00:00Z',
+    invoicePeriodEnd: '2026-05-01T00:00:00Z',
     stripePaymentIntentId: null,
     status: 'Requested',
     createdAt: '2026-04-22T08:30:00Z',
@@ -40,6 +56,22 @@ describe('InvoiceRequests', () => {
   beforeEach(async () => {
     billingService = {
       getMyInvoiceRequests: vi.fn().mockReturnValue(of([mockRequest])),
+      getMySubscription: vi.fn().mockReturnValue(of({
+        id: 'sub-1',
+        planName: 'Pro',
+        planDescription: null,
+        status: 'Active',
+        monthlyPrice: 19,
+        yearlyPrice: 190,
+        currentPeriodStart: '2026-04-01T00:00:00Z',
+        currentPeriodEnd: '2026-05-01T00:00:00Z',
+        trialEnd: null,
+        canceledAt: null,
+        isFreeTier: false,
+        features: [],
+        scheduledPlanName: null,
+        scheduledChangeDate: null,
+      })),
       createInvoiceRequest: vi.fn().mockReturnValue(of('req-2')),
     };
 
@@ -70,6 +102,7 @@ describe('InvoiceRequests', () => {
     fixture.detectChanges();
 
     expect(billingService.getMyInvoiceRequests).toHaveBeenCalled();
+    expect(billingService.getMySubscription).toHaveBeenCalled();
     expect(component['requests']()).toEqual([mockRequest]);
   });
 
