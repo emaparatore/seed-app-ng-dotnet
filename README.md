@@ -226,6 +226,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [GDPR Compliance Checklist](docs/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
 | [Subscription Payments](docs/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
+| [Mobile App Essentials](docs/requirements/FEAT-4.md) | 8 infrastruttura essenziali per app mobile prod-ready: auth, secure storage, SQLite, sync, connectivity, force update, push notifications, crash reporting |
 
 ## Tech stack
 
