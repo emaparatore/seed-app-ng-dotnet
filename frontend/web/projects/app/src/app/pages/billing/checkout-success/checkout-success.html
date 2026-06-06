@@ -1,12 +1,28 @@
 <div class="auth-container">
   <mat-card class="auth-card">
     <mat-card-header>
-      <mat-card-title>Abbonamento attivato!</mat-card-title>
+      <mat-card-title>
+        @if (loading()) {
+          Conferma pagamento in corso
+        } @else if (confirmed()) {
+          Abbonamento attivato!
+        } @else {
+          Conferma non completata
+        }
+      </mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <div class="status-content">
-        <mat-icon class="success-icon">check_circle</mat-icon>
-        <p>Il tuo abbonamento è stato attivato con successo.</p>
+        @if (loading()) {
+          <mat-spinner diameter="48" />
+          <p>Sto verificando il pagamento con Stripe...</p>
+        } @else if (confirmed()) {
+          <mat-icon class="success-icon">check_circle</mat-icon>
+          <p>Il tuo abbonamento è stato attivato con successo.</p>
+        } @else {
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <p>{{ error() }}</p>
+        }
       </div>
     </mat-card-content>
     <mat-card-actions align="end">

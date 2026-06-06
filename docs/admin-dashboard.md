@@ -218,6 +218,7 @@ Accessibile da `/admin/users`. Richiede il permesso `Users.Read` per la visualiz
 - **Lista**: tabella paginata lato server con ricerca per nome/email, filtri per ruolo/stato/periodo, ordinamento per qualsiasi colonna
 - **Creazione**: form con nome, cognome, email, password (con auto-generazione), selezione ruoli iniziali. Il flag `MustChangePassword` è sempre attivo
 - **Modifica**: dati personali, gestione ruoli, azioni su password
+- **Piano attivo (condizionale)**: nel dettaglio utente viene mostrata la card con piano/stato/fine trial solo se il modulo pagamenti è attivo (`Modules:Payments:Enabled`) e l'admin ha il permesso `Subscriptions.Read`
 - **Eliminazione**: soft delete (flag `IsDeleted`), con dialog di conferma. L'utente non è più visibile ma i dati restano per audit
 - **Toggle stato**: attivazione/disattivazione inline dalla lista. L'utente disattivato non può effettuare il login
 
@@ -385,6 +386,7 @@ Accessibile da `/admin/system-health`. Richiede il permesso `SystemHealth.Read`.
 |------------|-----------|--------|
 | Database | Verde/Giallo/Rosso | Healthy / Degraded / Unhealthy |
 | Servizio Email | Verde/Giallo | Configured / NotConfigured |
+| Webhook pagamenti | Verde/Giallo/Rosso | Healthy / Degraded / Unhealthy |
 
 ### Informazioni mostrate
 
@@ -392,8 +394,11 @@ Accessibile da `/admin/system-health`. Richiede il permesso `SystemHealth.Read`.
 - Ambiente di esecuzione (Development/Staging/Production)
 - Uptime del server (tempo dall'avvio del processo)
 - Utilizzo memoria (Working Set e GC allocated)
+- Stato webhook pagamenti con ultimo evento ricevuto, ultimo errore, checkout pending e checkout pending "stale"
 
 Il pulsante "Ricontrolla" aggiorna i dati senza ricaricare la pagina.
+
+Quando lo stato webhook pagamenti passa a `Degraded` o `Unhealthy`, il backend invia anche un alert operativo ai SuperAdmin (con throttling per evitare spam) e registra l'evento in audit log (`PaymentsHealthAlertTriggered`).
 
 ---
 

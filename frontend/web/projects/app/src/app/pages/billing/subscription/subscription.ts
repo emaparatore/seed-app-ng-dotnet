@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BillingService } from '../../pricing/billing.service';
 import { CreateInvoiceRequest, InvoiceRequest, UserSubscription } from '../../pricing/billing.models';
-import { InvoiceRequestDialog } from './invoice-request-dialog';
+import { InvoiceRequestDialog, InvoiceRequestDialogData } from './invoice-request-dialog';
 
 @Component({
   selector: 'app-subscription',
@@ -30,6 +30,7 @@ import { InvoiceRequestDialog } from './invoice-request-dialog';
 export class Subscription implements OnInit {
   private readonly billingService = inject(BillingService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -63,7 +64,21 @@ export class Subscription implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadSubscription();
+    const shouldSync = this.route.snapshot.queryParamMap.get('sync') === '1';
+    if (!shouldSync) {
+      this.loadSubscription();
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+    this.billingService.syncMySubscription().subscribe({
+      next: () => this.loadSubscription(),
+      error: () => {
+        this.snackBar.open('Sincronizzazione con Stripe non riuscita. Mostro i dati locali.', 'Chiudi', { duration: 5000 });
+        this.loadSubscription();
+      },
+    });
   }
 
   protected loadSubscription(): void {
@@ -83,7 +98,7 @@ export class Subscription implements OnInit {
 
   openPortal(): void {
     this.portalLoading.set(true);
-    this.billingService.createPortalSession(window.location.href).subscribe({
+    this.billingService.createPortalSession(window.location.origin + '/billing/subscription?sync=1').subscribe({
       next: (response) => {
         window.location.href = response.portalUrl;
       },
@@ -99,6 +114,12 @@ export class Subscription implements OnInit {
   }
 
   openInvoiceRequest(): void {
+    const currentSubscription = this.subscription();
+    if (!currentSubscription) {
+      this.snackBar.open('Nessun abbonamento trovato per collegare la richiesta fattura.', 'Chiudi', { duration: 5000 });
+      return;
+    }
+
     const prefill: Partial<CreateInvoiceRequest> | null = this.lastInvoiceRequest
       ? {
           customerType: this.lastInvoiceRequest.customerType as 'Individual' | 'Company',
@@ -112,12 +133,25 @@ export class Subscription implements OnInit {
           vatNumber: this.lastInvoiceRequest.vatNumber ?? undefined,
           sdiCode: this.lastInvoiceRequest.sdiCode ?? undefined,
           pecEmail: this.lastInvoiceRequest.pecEmail ?? undefined,
+          userSubscriptionId: this.lastInvoiceRequest.userSubscriptionId ?? currentSubscription.id,
         }
       : null;
 
+    const purchaseContext = {
+      userSubscriptionId: currentSubscription.id,
+      serviceName: currentSubscription.planName,
+      periodStart: currentSubscription.currentPeriodStart,
+      periodEnd: currentSubscription.currentPeriodEnd,
+    };
+
     const openDialog = (data: Partial<CreateInvoiceRequest> | null) => {
+      const dialogData: InvoiceRequestDialogData = {
+        prefill: data ?? undefined,
+        purchaseContext,
+      };
+
       this.dialog
-        .open(InvoiceRequestDialog, { width: '560px', maxWidth: '95vw', data })
+        .open(InvoiceRequestDialog, { width: '560px', maxWidth: '95vw', data: dialogData })
         .afterClosed()
         .subscribe((result: CreateInvoiceRequest | undefined) => {
           if (!result) return;
@@ -153,6 +187,7 @@ export class Subscription implements OnInit {
             vatNumber: this.lastInvoiceRequest.vatNumber ?? undefined,
             sdiCode: this.lastInvoiceRequest.sdiCode ?? undefined,
             pecEmail: this.lastInvoiceRequest.pecEmail ?? undefined,
+            userSubscriptionId: this.lastInvoiceRequest.userSubscriptionId ?? currentSubscription.id,
           } : null);
         },
         error: () => openDialog(null),

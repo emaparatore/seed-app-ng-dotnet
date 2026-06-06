@@ -21,6 +21,7 @@ public class CreateInvoiceRequestCommandValidatorTests
             VatNumber: null,
             SdiCode: null,
             PecEmail: null,
+            UserSubscriptionId: Guid.NewGuid(),
             StripePaymentIntentId: null);
 
     private static CreateInvoiceRequestCommand ValidCompanyCommand() =>
@@ -36,7 +37,17 @@ public class CreateInvoiceRequestCommandValidatorTests
             VatNumber: "IT12345678901",
             SdiCode: null,
             PecEmail: null,
+            UserSubscriptionId: Guid.NewGuid(),
             StripePaymentIntentId: null);
+
+    [Fact]
+    public async Task Should_Fail_When_UserSubscriptionId_Is_Empty()
+    {
+        var command = ValidIndividualCommand() with { UserSubscriptionId = Guid.Empty };
+        var result = await _validator.ValidateAsync(command);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "UserSubscriptionId");
+    }
 
     [Fact]
     public async Task Should_Pass_For_Valid_Individual_Command()

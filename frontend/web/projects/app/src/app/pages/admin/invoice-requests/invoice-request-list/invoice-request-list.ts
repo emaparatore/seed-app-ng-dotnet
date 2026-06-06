@@ -1,9 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -11,11 +12,13 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminInvoiceRequestsService } from '../admin-invoice-requests.service';
 import { AdminInvoiceRequest } from '../admin-invoice-requests.models';
+import { InvoiceRequestDetailDialog } from '../../../shared/invoice-request-detail-dialog/invoice-request-detail-dialog';
 
 @Component({
   selector: 'app-invoice-request-list',
   imports: [
     DatePipe,
+    DecimalPipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -30,9 +33,10 @@ import { AdminInvoiceRequest } from '../admin-invoice-requests.models';
 })
 export class InvoiceRequestList implements OnInit {
   private readonly service = inject(AdminInvoiceRequestsService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly displayedColumns = ['userEmail', 'name', 'customerType', 'status', 'createdAt', 'actions'];
+  protected readonly displayedColumns = ['userEmail', 'service', 'amountPaid', 'name', 'customerType', 'status', 'createdAt', 'details', 'actions'];
 
   protected readonly loading = signal(true);
   protected readonly requests = signal<AdminInvoiceRequest[]>([]);
@@ -84,6 +88,14 @@ export class InvoiceRequestList implements OnInit {
 
   protected reload(): void {
     this.loadRequests();
+  }
+
+  protected openDetails(req: AdminInvoiceRequest): void {
+    this.dialog.open(InvoiceRequestDetailDialog, {
+      width: '720px',
+      maxWidth: '96vw',
+      data: req,
+    });
   }
 
   protected statusLabel(status: string): string {

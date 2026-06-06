@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Seed.Application.Billing.Commands.CreateInvoiceRequest;
 using Seed.Application.Common.Interfaces;
+using Seed.Application.Common.Models;
 using Seed.Domain.Authorization;
+using Seed.Domain.Entities;
 using Seed.Domain.Enums;
 using Seed.Infrastructure.Billing.Commands;
 using Seed.Infrastructure.Persistence;
@@ -14,9 +16,11 @@ public class CreateInvoiceRequestCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditService _auditService;
+    private readonly IPaymentGateway _paymentGateway;
     private readonly CreateInvoiceRequestCommandHandler _handler;
 
     private static readonly Guid TestUserId = Guid.NewGuid();
+    private readonly Guid _subscriptionId;
 
     public CreateInvoiceRequestCommandHandlerTests()
     {
@@ -26,10 +30,61 @@ public class CreateInvoiceRequestCommandHandlerTests : IDisposable
 
         _dbContext = new ApplicationDbContext(options);
         _auditService = Substitute.For<IAuditService>();
-        _handler = new CreateInvoiceRequestCommandHandler(_dbContext, _auditService);
+        _paymentGateway = Substitute.For<IPaymentGateway>();
+        _handler = new CreateInvoiceRequestCommandHandler(_dbContext, _paymentGateway, _auditService);
+
+        var planId = Guid.NewGuid();
+        _subscriptionId = Guid.NewGuid();
+
+        _dbContext.SubscriptionPlans.Add(new SubscriptionPlan
+        {
+            Id = planId,
+            Name = "Pro",
+            MonthlyPrice = 19,
+            YearlyPrice = 190,
+            TrialDays = 0,
+            IsFreeTier = false,
+            IsDefault = false,
+            IsPopular = false,
+            Status = PlanStatus.Active,
+            SortOrder = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        _dbContext.UserSubscriptions.Add(new UserSubscription
+        {
+            Id = _subscriptionId,
+            UserId = TestUserId,
+            PlanId = planId,
+            Status = SubscriptionStatus.Active,
+            StripeSubscriptionId = "sub_test_123",
+            CurrentPeriodStart = DateTime.UtcNow.AddDays(-5),
+            CurrentPeriodEnd = DateTime.UtcNow.AddDays(25),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        _dbContext.SaveChanges();
+
+        _paymentGateway
+            .GetLatestPaidInvoiceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new InvoicePaymentDetails(
+                StripeInvoiceId: "in_test_123",
+                StripePaymentIntentId: "pi_test_123",
+                InvoicePeriodStart: DateTime.UtcNow.AddDays(-5),
+                InvoicePeriodEnd: DateTime.UtcNow.AddDays(25),
+                Currency: "EUR",
+                AmountSubtotal: 19m,
+                AmountTax: 4.18m,
+                AmountTotal: 23.18m,
+                AmountPaid: 23.18m,
+                IsProrationApplied: false,
+                ProrationAmount: 0m,
+                BillingReason: "subscription_cycle"));
     }
 
-    private static CreateInvoiceRequestCommand CreateCommand(CustomerType customerType = CustomerType.Individual) =>
+    private CreateInvoiceRequestCommand CreateCommand(CustomerType customerType = CustomerType.Individual) =>
         new(
             CustomerType: customerType,
             FullName: "Mario Rossi",
@@ -42,6 +97,7 @@ public class CreateInvoiceRequestCommandHandlerTests : IDisposable
             VatNumber: customerType == CustomerType.Company ? "IT12345678901" : null,
             SdiCode: null,
             PecEmail: null,
+            UserSubscriptionId: _subscriptionId,
             StripePaymentIntentId: "pi_test_123")
         {
             UserId = TestUserId,
@@ -73,7 +129,37 @@ public class CreateInvoiceRequestCommandHandlerTests : IDisposable
         saved.Country.Should().Be("IT");
         saved.CustomerType.Should().Be(CustomerType.Individual);
         saved.StripePaymentIntentId.Should().Be("pi_test_123");
+        saved.StripeInvoiceId.Should().Be("in_test_123");
+        saved.UserSubscriptionId.Should().Be(_subscriptionId);
+        saved.ServiceName.Should().Be("Pro");
+        saved.ServicePeriodStart.Should().NotBeNull();
+        saved.ServicePeriodEnd.Should().NotBeNull();
+        saved.AmountPaid.Should().Be(23.18m);
+        saved.Currency.Should().Be("EUR");
         saved.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_Subscription_Does_Not_Belong_To_User()
+    {
+        var command = CreateCommand() with { UserSubscriptionId = Guid.NewGuid() };
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Succeeded.Should().BeFalse();
+        result.Errors.Should().Contain("Subscription reference not found for this user.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_Request_Already_Exists_For_Same_Billing_Transaction()
+    {
+        var command = CreateCommand();
+
+        var firstResult = await _handler.Handle(command, CancellationToken.None);
+        var secondResult = await _handler.Handle(command, CancellationToken.None);
+
+        firstResult.Succeeded.Should().BeTrue();
+        secondResult.Succeeded.Should().BeFalse();
+        secondResult.Errors.Should().Contain("An invoice request already exists for this billing transaction.");
     }
 
     [Fact]

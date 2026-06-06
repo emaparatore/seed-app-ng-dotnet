@@ -7,6 +7,7 @@ import { PermissionService } from 'shared-auth';
 import { UserDetail } from './user-detail';
 import { AdminUsersService } from '../users.service';
 import { AdminUserDetail } from '../models/user.models';
+import { ConfigService } from '../../../../services/config.service';
 
 const mockUser: AdminUserDetail = {
   id: '1',
@@ -19,6 +20,7 @@ const mockUser: AdminUserDetail = {
   updatedAt: '2026-03-20T10:00:00Z',
   mustChangePassword: false,
   emailConfirmed: true,
+  subscription: null,
 };
 
 describe('UserDetail', () => {
@@ -30,6 +32,7 @@ describe('UserDetail', () => {
     updateUser: ReturnType<typeof vi.fn>;
   };
   let permissionService: { hasPermission: ReturnType<typeof vi.fn>; permissions: ReturnType<typeof vi.fn> };
+  let configService: { paymentsEnabled: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     usersService = {
@@ -49,6 +52,10 @@ describe('UserDetail', () => {
       ]),
     };
 
+    configService = {
+      paymentsEnabled: vi.fn().mockReturnValue(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [UserDetail],
       providers: [
@@ -56,6 +63,7 @@ describe('UserDetail', () => {
         provideNoopAnimations(),
         { provide: AdminUsersService, useValue: usersService },
         { provide: PermissionService, useValue: permissionService },
+        { provide: ConfigService, useValue: configService },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { params: { id: '1' } } },
@@ -132,5 +140,36 @@ describe('UserDetail', () => {
     const el: HTMLElement = fixture.nativeElement;
     const backBtn = el.querySelector('.page-header button');
     expect(backBtn).toBeTruthy();
+  });
+
+  it('should show subscription info when payments are enabled', async () => {
+    usersService.getUserById.mockReturnValue(
+      of({
+        ...mockUser,
+        subscription: {
+          currentPlan: 'Pro',
+          subscriptionStatus: 'Active',
+          trialEndsAt: '2026-04-30T10:00:00Z',
+        },
+      }),
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Piano attivo');
+    expect(el.textContent).toContain('Pro');
+    expect(el.textContent).toContain('Attivo');
+  });
+
+  it('should hide subscription info when payments are disabled', async () => {
+    configService.paymentsEnabled.mockReturnValue(false);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Piano attivo');
   });
 });

@@ -38,7 +38,8 @@ public class MockPaymentGatewayTests
 
         var result = await _gateway.CreateCheckoutSessionAsync(request);
 
-        result.Should().StartWith("https://mock-checkout.example.com/session/");
+        result.SessionId.Should().StartWith("mock_cs_");
+        result.CheckoutUrl.Should().StartWith("https://mock-checkout.example.com/session/");
     }
 
     [Fact]

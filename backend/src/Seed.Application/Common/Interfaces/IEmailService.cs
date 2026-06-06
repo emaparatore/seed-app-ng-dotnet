@@ -7,4 +7,5 @@ public interface IEmailService
     Task SendSubscriptionConfirmationAsync(string toEmail, string planName, CancellationToken ct = default);
     Task SendTrialEndingNotificationAsync(string toEmail, string planName, int daysRemaining, CancellationToken ct = default);
     Task SendSubscriptionCanceledAsync(string toEmail, string planName, DateTime endDate, CancellationToken ct = default);
+    Task SendOperationalAlertAsync(string toEmail, string subject, string message, CancellationToken ct = default);
 }

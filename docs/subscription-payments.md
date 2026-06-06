@@ -13,9 +13,12 @@ User → Checkout → Stripe → Webhook → StripeWebhookController
                                              ↓
                                    StripeWebhookEventHandler
                                              ↓
-                                   DB update (UserSubscription)
+                                    DB update (UserSubscription)
                                              ↓
-                                   Email notification (fire-and-forget)
+                                    Email notification (fire-and-forget)
+
+Fallback path (if webhook is delayed/failing):
+User → Checkout success page (`session_id`) → `POST /billing/checkout/confirm` → Stripe API verification → DB update
 ```
 
 **Backend layers:**
@@ -41,12 +44,38 @@ User → Checkout → Stripe → Webhook → StripeWebhookController
 | `customer.subscription.deleted` | Set status to `Canceled`, send cancellation email |
 | `customer.subscription.trial_will_end` | Send trial-ending notification email |
 
-Webhook events are **idempotent**: each `eventId` is cached for 24 hours to prevent duplicate processing. Email sending is **fire-and-forget**: SMTP failures are logged but never block webhook processing.
+Webhook events are **idempotent**: each `eventId` is now persisted in `ProcessedWebhookEvents` (DB unique index) and also cached in memory for fast duplicate skips. Email sending is **fire-and-forget**: SMTP failures are logged but never block webhook processing.
+
+Checkout sessions are now persisted in `CheckoutSessionAttempts` with statuses (`Pending`, `Completed`, `Failed`, `Expired`). This enables:
+- prevention of duplicate checkout starts while a recent pending checkout exists,
+- server-side fallback confirmation from the success page,
+- admin monitoring of stale pending checkouts and recent webhook failures.
 
 **Frontend:**
 
 - `ConfigService` (`projects/app/src/app/services/config.service.ts`) loads `GET /api/v1.0/config` via `APP_INITIALIZER`, setting the `paymentsEnabled` signal before any route guard runs. Falls back to `false` on HTTP error.
 - `paymentsEnabledGuard` (`projects/app/src/app/guards/payments-enabled.guard.ts`) protects all billing and pricing routes — redirects to `/` when the module is disabled.
+
+### Invoice request workflow (manual invoice)
+
+Invoice requests are now always linked to a concrete subscription reference so the admin can issue documents without manual lookup.
+
+- Request payload includes `userSubscriptionId` (required).
+- Backend validates that the subscription belongs to the authenticated user.
+- Backend blocks duplicates for the same billing transaction (prefers `StripeInvoiceId`, falls back to `StripePaymentIntentId`).
+- On creation, backend stores a snapshot on `InvoiceRequest`:
+  - `serviceName` (plan name)
+  - `servicePeriodStart`
+  - `servicePeriodEnd`
+  - `userSubscriptionId`
+- Backend also stores payment snapshot details for admin invoicing:
+  - `stripeInvoiceId`, `stripePaymentIntentId`
+  - `currency`, `amountSubtotal`, `amountTax`, `amountTotal`, `amountPaid`
+  - proration metadata: `isProrationApplied`, `prorationAmount`, `billingReason`
+  - invoice period: `invoicePeriodStart`, `invoicePeriodEnd`
+- User and admin detail screens show this purchase reference in the invoice request detail dialog.
+
+This keeps the request auditable even if the subscription changes later.
 
 ---
 
@@ -279,6 +308,10 @@ Application-level logs (Serilog / Seq) include structured entries for every proc
 2. Check the webhook delivery history in the Stripe Dashboard — look for a failed delivery.
 3. Search app logs for `invoice.payment_succeeded` — if the log line is missing, the event was not received.
 4. Check that `StripeSubscriptionId` in the `UserSubscriptions` table matches the Stripe subscription ID in the invoice.
+
+If the checkout success page receives `session_id`, the frontend calls `POST /api/v1.0/billing/checkout/confirm` as a fallback reconciliation. This endpoint validates the Stripe session server-side and synchronizes `UserSubscription` if the webhook has not updated the DB yet.
+
+For Stripe Customer Portal changes (plan switch/cancel), the billing UI can call `POST /api/v1.0/billing/subscription/sync` to force a user-scoped reconciliation from Stripe before rendering current subscription details.
 
 ---
 

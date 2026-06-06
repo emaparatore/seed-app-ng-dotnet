@@ -16,8 +16,19 @@ export interface Memory {
 export interface SystemHealth {
   database: ComponentStatus;
   email: ComponentStatus;
+  paymentsWebhook: PaymentsWebhookStatus;
   version: string;
   environment: string;
   uptime: Uptime;
   memory: Memory;
+}
+
+export interface PaymentsWebhookStatus {
+  status: string;
+  description: string;
+  lastWebhookReceivedAt: string | null;
+  lastFailureAt: string | null;
+  recentFailuresCount: number;
+  pendingCheckoutsCount: number;
+  stalePendingCheckoutsCount: number;
 }

@@ -23,6 +23,17 @@ export interface CheckoutSessionResponse {
   checkoutUrl: string;
 }
 
+export interface CheckoutConfirmationResponse {
+  confirmed: boolean;
+  status: string;
+}
+
+export interface SyncSubscriptionResponse {
+  synced: boolean;
+  status: string;
+  planName: string | null;
+}
+
 export interface CreateCheckoutRequest {
   planId: string;
   billingInterval: 'Monthly' | 'Yearly';
@@ -65,6 +76,21 @@ export interface InvoiceRequest {
   vatNumber: string | null;
   sdiCode: string | null;
   pecEmail: string | null;
+  userSubscriptionId: string | null;
+  stripeInvoiceId: string | null;
+  currency: string | null;
+  amountSubtotal: number | null;
+  amountTax: number | null;
+  amountTotal: number | null;
+  amountPaid: number | null;
+  isProrationApplied: boolean | null;
+  prorationAmount: number | null;
+  billingReason: string | null;
+  serviceName: string | null;
+  servicePeriodStart: string | null;
+  servicePeriodEnd: string | null;
+  invoicePeriodStart: string | null;
+  invoicePeriodEnd: string | null;
   stripePaymentIntentId: string | null;
   status: string;
   createdAt: string;
@@ -83,5 +109,6 @@ export interface CreateInvoiceRequest {
   vatNumber?: string;
   sdiCode?: string;
   pecEmail?: string;
+  userSubscriptionId: string;
   stripePaymentIntentId?: string;
 }

@@ -1,5 +1,6 @@
 .admin-container {
-  height: calc(100vh - 64px);
+  min-height: calc(100vh - 64px);
+  height: auto;
 }
 
 .admin-sidebar {
@@ -18,6 +19,7 @@
 .admin-content-wrapper {
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .mobile-header {
@@ -41,6 +43,7 @@
   flex: 1;
   padding: 24px;
   overflow-x: auto;
+  overflow-y: visible;
 }
 
 @media (max-width: 768px) {

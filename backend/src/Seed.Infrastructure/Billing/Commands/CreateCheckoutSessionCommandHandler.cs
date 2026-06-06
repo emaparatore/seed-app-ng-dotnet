@@ -20,6 +20,8 @@ public sealed class CreateCheckoutSessionCommandHandler(
     IAuditService auditService)
     : IRequestHandler<CreateCheckoutSessionCommand, Result<CheckoutSessionResponse>>
 {
+    private static readonly TimeSpan PendingCheckoutWindow = TimeSpan.FromMinutes(10);
+
     public async Task<Result<CheckoutSessionResponse>> Handle(
         CreateCheckoutSessionCommand request, CancellationToken cancellationToken)
     {
@@ -47,6 +49,24 @@ public sealed class CreateCheckoutSessionCommandHandler(
         if (user is null)
             return Result<CheckoutSessionResponse>.Failure("User not found.");
 
+        var hasActiveSubscription = await dbContext.UserSubscriptions
+            .AsNoTracking()
+            .AnyAsync(s => s.UserId == request.UserId
+                && (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trialing), cancellationToken);
+
+        if (hasActiveSubscription)
+            return Result<CheckoutSessionResponse>.Failure("User already has an active subscription.");
+
+        var pendingThreshold = DateTime.UtcNow.Subtract(PendingCheckoutWindow);
+        var hasPendingAttempt = await dbContext.CheckoutSessionAttempts
+            .AsNoTracking()
+            .AnyAsync(a => a.UserId == request.UserId
+                && a.Status == CheckoutSessionAttemptStatus.Pending
+                && a.CreatedAt >= pendingThreshold, cancellationToken);
+
+        if (hasPendingAttempt)
+            return Result<CheckoutSessionResponse>.Failure("A checkout session is already in progress. Please complete it before trying again.");
+
         var existingCustomerId = await dbContext.UserSubscriptions
             .AsNoTracking()
             .Where(s => s.UserId == request.UserId && s.StripeCustomerId != null)
@@ -61,10 +81,24 @@ public sealed class CreateCheckoutSessionCommandHandler(
                 user.Email!, $"{user.FirstName} {user.LastName}".Trim(), cancellationToken);
         }
 
+        var attempt = new CheckoutSessionAttempt
+        {
+            Id = Guid.NewGuid(),
+            UserId = request.UserId,
+            PlanId = request.PlanId,
+            Status = CheckoutSessionAttemptStatus.Pending,
+            StripeCustomerId = customerId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        dbContext.CheckoutSessionAttempts.Add(attempt);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
         var metadata = new Dictionary<string, string>
         {
             ["userId"] = request.UserId.ToString(),
-            ["planId"] = request.PlanId.ToString()
+            ["planId"] = request.PlanId.ToString(),
+            ["attemptId"] = attempt.Id.ToString()
         };
 
         var checkoutRequest = new CreateCheckoutRequest(
@@ -76,7 +110,23 @@ public sealed class CreateCheckoutSessionCommandHandler(
             TrialDays: plan.TrialDays > 0 ? plan.TrialDays : null,
             Metadata: metadata);
 
-        var checkoutUrl = await paymentGateway.CreateCheckoutSessionAsync(checkoutRequest, cancellationToken);
+        CheckoutSessionCreationResult checkoutSession;
+        try
+        {
+            checkoutSession = await paymentGateway.CreateCheckoutSessionAsync(checkoutRequest, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            attempt.Status = CheckoutSessionAttemptStatus.Failed;
+            attempt.FailureReason = ex.Message;
+            attempt.UpdatedAt = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            throw;
+        }
+
+        attempt.StripeSessionId = checkoutSession.SessionId;
+        attempt.UpdatedAt = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         await auditService.LogAsync(
             AuditActions.CheckoutSessionCreated,
@@ -88,6 +138,6 @@ public sealed class CreateCheckoutSessionCommandHandler(
             userAgent: request.UserAgent,
             cancellationToken: cancellationToken);
 
-        return Result<CheckoutSessionResponse>.Success(new CheckoutSessionResponse(checkoutUrl));
+        return Result<CheckoutSessionResponse>.Success(new CheckoutSessionResponse(checkoutSession.CheckoutUrl));
     }
 }

@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { HasPermissionDirective, PERMISSIONS, PermissionService } from 'shared-auth';
+import { ConfigService } from '../../../../services/config.service';
 import { AdminUsersService } from '../users.service';
 import { AdminRole, AdminUserDetail } from '../models/user.models';
 import { ConfirmDialog } from '../confirm-dialog/confirm-dialog';
@@ -41,6 +42,7 @@ export class UserDetail implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly usersService = inject(AdminUsersService);
   private readonly permissionService = inject(PermissionService);
+  protected readonly configService = inject(ConfigService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
@@ -69,6 +71,22 @@ export class UserDetail implements OnInit {
 
   protected hasPermission(permission: string): boolean {
     return this.permissionService.hasPermission(permission);
+  }
+
+  protected canViewSubscriptionInfo(): boolean {
+    return this.configService.paymentsEnabled() && this.hasPermission(this.permissions.Subscriptions.Read);
+  }
+
+  protected getSubscriptionStatusLabel(status: string): string {
+    const statusMap: Record<string, string> = {
+      active: 'Attivo',
+      trialing: 'In prova',
+      pastdue: 'Scaduto',
+      canceled: 'Annullato',
+      expired: 'Scaduto (periodo)',
+    };
+
+    return statusMap[status.toLowerCase()] ?? status;
   }
 
   protected getInitials(): string {
