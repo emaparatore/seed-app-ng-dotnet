@@ -117,7 +117,7 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           install -m 600 /dev/null /tmp/deploy_key
-          printf '%s' "$DEPLOY_SSH_KEY" > /tmp/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > /tmp/deploy_key
 
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates ${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources ${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards ${DEPLOY_DIR}/monitoring/grafana/dashboards /opt/seed-app/backups/production /opt/seed-app/backups/staging"
