@@ -26,9 +26,12 @@ jobs:
     steps:
       - name: Determine target environment
         id: env
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          BRANCH="${{ github.event.workflow_run.head_branch }}"
-          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          BRANCH="$HEAD_BRANCH"
+          SHORT_SHA=$(printf '%s' "$HEAD_SHA" | cut -c1-7)
           if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
             echo "tag_prefix=sha-" >> "$GITHUB_OUTPUT"
@@ -59,8 +62,10 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          JOBS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/jobs)
+          JOBS=$(gh api "repos/$REPOSITORY/actions/runs/$WORKFLOW_RUN_ID/jobs")
           API_RESULT=$(echo "$JOBS" | jq -r '[.jobs[] | select(.name == "build-api") | .conclusion] | first // "skipped"')
           WEB_RESULT=$(echo "$JOBS" | jq -r '[.jobs[] | select(.name == "build-web") | .conclusion] | first // "skipped"')
 
@@ -83,11 +88,16 @@ jobs:
 
       - name: Deploy info
         if: steps.check.outputs.should_deploy == 'true'
+        env:
+          DEPLOY_ENVIRONMENT: ${{ needs.determine-environment.outputs.environment }}
+          IMAGE_TAG: ${{ needs.determine-environment.outputs.image_tag }}
+          DEPLOY_DIR: ${{ needs.determine-environment.outputs.deploy_dir }}
+          SERVICES: ${{ steps.check.outputs.services }}
         run: |
-          echo "Deploying to: ${{ needs.determine-environment.outputs.environment }}"
-          echo "Image tag:    ${{ needs.determine-environment.outputs.image_tag }}"
-          echo "Deploy dir:   ${{ needs.determine-environment.outputs.deploy_dir }}"
-          echo "Services:     ${{ steps.check.outputs.services }}"
+          echo "Deploying to: $DEPLOY_ENVIRONMENT"
+          echo "Image tag:    $IMAGE_TAG"
+          echo "Deploy dir:   $DEPLOY_DIR"
+          echo "Services:     $SERVICES"
 
       # ============================================================
       # OPTION A: Docker Compose on VPS via SSH (ACTIVE)
@@ -100,56 +110,59 @@ jobs:
 
       - name: Sync deploy files to VPS
         if: steps.check.outputs.should_deploy == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_DIR: ${{ needs.determine-environment.outputs.deploy_dir }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           install -m 600 /dev/null /tmp/deploy_key
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
+          printf '%s' "$DEPLOY_SSH_KEY" > /tmp/deploy_key
 
-          DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
-
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates ${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources ${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards ${DEPLOY_DIR}/monitoring/grafana/dashboards /opt/seed-app/backups/production /opt/seed-app/backups/staging"
 
           echo "Syncing docker-compose.deploy.yml..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/docker-compose.deploy.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/docker-compose.deploy.yml
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/docker-compose.deploy.yml"
 
           echo "Syncing docker-compose.portainer.yml (server-wide, lives outside deploy dir)..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/docker-compose.portainer.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/seed-app/docker-compose.portainer.yml
+            "$DEPLOY_USER@$DEPLOY_HOST:/opt/seed-app/docker-compose.portainer.yml"
 
           echo "Syncing deploy scripts..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/scripts/migrate.sh docker/scripts/seed.sh docker/scripts/restore.sh \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/scripts/
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/scripts/"
 
           echo "Syncing monitoring config..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/monitoring/prometheus.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/prometheus.yml
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/monitoring/prometheus.yml"
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/monitoring/grafana/provisioning/datasources/prometheus.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources/prometheus.yml
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources/prometheus.yml"
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/monitoring/grafana/provisioning/dashboards/dashboards.yml \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards/dashboards.yml
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/monitoring/grafana/dashboards/aspnet-core.json \
             docker/monitoring/grafana/dashboards/docker-cadvisor.json \
             docker/monitoring/grafana/dashboards/node-exporter.json \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/monitoring/grafana/dashboards/
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/monitoring/grafana/dashboards/"
 
           echo "Syncing nginx config..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/nginx/nginx.conf \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/nginx/nginx.conf
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/nginx/nginx.conf"
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/nginx/templates/* \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_DIR}/nginx/templates/
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_DIR}/nginx/templates/"
 
           echo "Verifying files exist on VPS..."
-          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "chmod 755 ${DEPLOY_DIR}/scripts/*.sh \
              && test -f ${DEPLOY_DIR}/docker-compose.deploy.yml \
              && test -f ${DEPLOY_DIR}/scripts/migrate.sh \
