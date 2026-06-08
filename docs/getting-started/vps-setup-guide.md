@@ -2,6 +2,10 @@
 
 Questa guida spiega come deployare l'applicazione Seed App su un VPS (Virtual Private Server) usando Docker Compose, Nginx come reverse proxy, Cloudflare come CDN/protezione e SSL con Cloudflare Origin Certificate.
 
+**Quando usarla:** il server parte davvero da zero e devi preparare VPS, utente, Docker, firewall, DNS e certificati.
+
+**Quando non usarla come primo documento:** se stai solo creando una nuova app da un seed su un VPS che hai gia pronto, parti da [Seed Checklist](seed-checklist.md) o [New Project Deploy Guide](new-project-deploy-guide.md).
+
 ## Architettura
 
 ```
@@ -179,6 +183,8 @@ OpenSSH                    ALLOW       Anywhere
 
 Il deploy usa una struttura a due ambienti separati, entrambi sullo stesso VPS. Il CI/CD crea automaticamente le subdirectory e copia tutti i file (compose, nginx, scripts) ad ogni deploy; qui devi solo creare la directory root e configurare il file `.env`.
 
+> **Nota per i progetti derivati dal seed**: per default il workflow usa `/opt/<nome-repository>` come root di deploy. Se vuoi forzare un path diverso, imposta la repository variable GitHub Actions `DEPLOY_ROOT`.
+
 ```bash
 sudo mkdir -p /opt/seed-app
 sudo chown deploy:deploy /opt/seed-app
@@ -285,9 +291,9 @@ CLIENT_BASE_URL=https://staging.tuodominio.com
 
 > **Nota su `AllowedHosts`**: il valore `*` e sicuro perche l'API non e esposta direttamente — solo Nginx riceve traffico esterno. L'healthcheck interno usa `localhost`, quindi un valore restrittivo causerebbe il fallimento dell'healthcheck.
 
-> **Email SMTP (opzionale):** le variabili `Smtp__*` configurano l'invio email. Se non le configuri, il sistema logga le email in console. Vedi [Configurazione SMTP](smtp-configuration.md).
+> **Email SMTP (opzionale):** le variabili `Smtp__*` configurano l'invio email. Se non le configuri, il sistema logga le email in console. Vedi [Configurazione SMTP](../modules/smtp-configuration.md).
 
-> **SuperAdmin (bootstrap iniziale):** aggiungi le variabili `SuperAdmin__*` al `.env` production per creare l'admin iniziale. Dopo il primo deploy, rimuovi `SuperAdmin__Password` per sicurezza. Vedi [Admin Dashboard](admin-dashboard.md#configurazione-iniziale).
+> **SuperAdmin (bootstrap iniziale):** aggiungi le variabili `SuperAdmin__*` al `.env` production per creare l'admin iniziale. Dopo il primo deploy, rimuovi `SuperAdmin__Password` per sicurezza. Vedi [Admin Dashboard](../modules/admin-dashboard.md#configurazione-iniziale).
 
 > **IMPORTANTE**: usa password forti e uniche per i due ambienti. Non committare mai i file `.env` su git.
 
@@ -622,7 +628,7 @@ I backup pre-migrazione vengono salvati in:
 - Production: `/opt/seed-app/backups/production/`
 - Staging: `/opt/seed-app/backups/staging/`
 
-I backup sono conservati per 7 giorni. Per dettagli completi, vedi [Migration Strategy](migration-strategy.md).
+I backup sono conservati per 7 giorni. Per dettagli completi, vedi [Migration Strategy](../architecture/migration-strategy.md).
 
 ---
 
@@ -747,7 +753,7 @@ ssh -L 9443:127.0.0.1:9443 deploy@TUO_IP_VPS
 
 > **Importante:** al primo avvio di Portainer hai 5 minuti per creare l'utente admin. Se il timeout scade, riavvia il container: `docker compose -f docker-compose.portainer.yml restart`
 
-Per la documentazione completa dello stack di monitoring (metriche custom, dashboard, alerting, troubleshooting) vedi [docs/monitoring.md](monitoring.md).
+Per la documentazione completa dello stack di monitoring (metriche custom, dashboard, alerting, troubleshooting) vedi [Monitoring](../operations/monitoring.md).
 
 ### Statistiche dei container
 

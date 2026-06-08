@@ -10,12 +10,15 @@ set -euo pipefail
 # =============================================================================
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.deploy.yml}"
+CURRENT_DIR="$(pwd)"
+ENVIRONMENT_NAME="$(basename "$CURRENT_DIR")"
+DEFAULT_BACKUP_GLOB="$(dirname "$CURRENT_DIR")/backups/${ENVIRONMENT_NAME}/seeddb_*.sql.gz"
 
 if [ -z "${1:-}" ]; then
   echo "Usage: $0 <backup_file.sql.gz>"
   echo ""
   echo "Available backups:"
-  ls -lh /opt/seed-app/backups/production/seeddb_*.sql.gz /opt/seed-app/backups/staging/seeddb_*.sql.gz 2>/dev/null || echo "  No backups found."
+  ls -lh $DEFAULT_BACKUP_GLOB 2>/dev/null || echo "  No backups found."
   exit 1
 fi
 

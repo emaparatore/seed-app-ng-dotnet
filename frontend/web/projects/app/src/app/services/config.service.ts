@@ -5,6 +5,7 @@ import { AUTH_CONFIG } from 'shared-auth';
 
 interface AppConfig {
   paymentsEnabled: boolean;
+  appName: string;
 }
 
 const CONFIG_STATE_KEY = makeStateKey<AppConfig>('app.config');
@@ -16,11 +17,13 @@ export class ConfigService {
   private readonly http = inject(HttpClient);
   private readonly transferState = inject(TransferState);
   private readonly configUrl = `${inject(AUTH_CONFIG).apiUrl}/config`;
+  readonly appName = signal('Starter App');
   readonly paymentsEnabled = signal(false);
 
   async loadConfig(): Promise<void> {
     const transferred = this.transferState.get(CONFIG_STATE_KEY, null);
     if (transferred) {
+      this.appName.set(transferred.appName);
       this.paymentsEnabled.set(transferred.paymentsEnabled);
       this.transferState.remove(CONFIG_STATE_KEY);
       return;
@@ -29,6 +32,7 @@ export class ConfigService {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
         const config = await firstValueFrom(this.http.get<AppConfig>(this.configUrl));
+        this.appName.set(config.appName);
         this.paymentsEnabled.set(config.paymentsEnabled);
         this.transferState.set(CONFIG_STATE_KEY, config);
         return;

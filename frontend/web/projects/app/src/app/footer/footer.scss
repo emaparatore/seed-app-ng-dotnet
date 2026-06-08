@@ -5,11 +5,14 @@
   gap: 8px;
   padding: 16px;
   font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--app-text-secondary);
+  border-top: 1px solid var(--app-border-subtle);
+  background: rgba(248, 250, 252, 0.9);
 
   a {
-    color: inherit;
+    color: var(--app-text-accent);
     text-decoration: none;
+    font-weight: 600;
 
     &:hover {
       text-decoration: underline;

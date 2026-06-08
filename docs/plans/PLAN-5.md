@@ -920,7 +920,7 @@ Create the payment gateway abstraction in `Seed.Application/Common/Interfaces/`:
 **Depends on:** T-23, T-24 (all tasks complete)
 
 **What to do:**
-Create `docs/subscription-payments.md` covering:
+Create `docs/modules/subscription-payments.md` covering:
 
 1. **Overview del modulo** — cosa fa, architettura (IPaymentGateway, webhook flow, module toggle), diagramma del flusso checkout → webhook → subscription.
 
@@ -966,11 +966,11 @@ Create `docs/subscription-payments.md` covering:
    - Comportamento quando il modulo è disabilitato
 
 Aggiornare anche:
-- `CLAUDE.md` — aggiungere `docs/subscription-payments.md` alla lista dei docs esistenti
+- `CLAUDE.md` — aggiungere `docs/modules/subscription-payments.md` alla lista dei docs esistenti
 - `README.md` — aggiungere il doc alla tabella indice (se presente)
 
 **Definition of Done:**
-- [x] `docs/subscription-payments.md` creato con tutte le sezioni
+- [x] `docs/modules/subscription-payments.md` creato con tutte le sezioni
 - [x] Istruzioni Stripe verificabili (link a docs ufficiali dove appropriato)
 - [x] Sezione sviluppo locale testabile passo-passo
 - [x] Checklist staging/produzione completa
@@ -979,7 +979,7 @@ Aggiornare anche:
 - [x] Un developer senza contesto può attivare il modulo seguendo solo il doc
 
 **Implementation Notes:**
-- `docs/subscription-payments.md` creato con 8 sezioni complete: overview, attivazione modulo, setup Stripe, sviluppo locale, staging/produzione, troubleshooting, aggiunta piani, protezione endpoint
+- `docs/modules/subscription-payments.md` creato con 8 sezioni complete: overview, attivazione modulo, setup Stripe, sviluppo locale, staging/produzione, troubleshooting, aggiunta piani, protezione endpoint
 - Inclusa tabella di tutti e 6 gli eventi webhook gestiti (inclusi `invoice.payment_succeeded` e `invoice.payment_failed` non esplicitati nel piano ma gestiti dal codice)
 - Documentata la semantica fire-and-forget delle email e l'idempotenza via cache da `StripeWebhookEventHandler`
 - Sezione `MockPaymentGateway` inclusa in sviluppo locale con istruzioni self-contained per sviluppo FE senza Stripe

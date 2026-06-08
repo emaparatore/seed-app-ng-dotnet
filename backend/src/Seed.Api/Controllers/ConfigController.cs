@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Seed.Application.Common.Interfaces;
 using Seed.Shared.Extensions;
 
 namespace Seed.Api.Controllers;
@@ -10,13 +11,25 @@ namespace Seed.Api.Controllers;
 [Route("api/v{version:apiVersion}/config")]
 [AllowAnonymous]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class ConfigController(IConfiguration configuration) : ControllerBase
+public class ConfigController(
+    IConfiguration configuration,
+    ISystemSettingsService systemSettingsService) : ControllerBase
 {
+    private const string DefaultAppName = "Starter App";
+
     [HttpGet]
-    public IActionResult GetConfig()
+    public async Task<IActionResult> GetConfig(CancellationToken cancellationToken)
     {
         Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         Response.Headers.Pragma = "no-cache";
-        return Ok(new { paymentsEnabled = configuration.IsPaymentsModuleEnabled() });
+
+        var appName = await systemSettingsService.GetValueAsync("General.AppName", cancellationToken)
+            ?? DefaultAppName;
+
+        return Ok(new
+        {
+            paymentsEnabled = configuration.IsPaymentsModuleEnabled(),
+            appName
+        });
     }
 }

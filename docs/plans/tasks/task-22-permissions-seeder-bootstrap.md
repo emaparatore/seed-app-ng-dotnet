@@ -28,7 +28,7 @@ T-11: Admin subscriptions dashboard API — Implementation Notes:
 
 ### Riferimenti
 - `docs/requirements/FEAT-3.md` — DA-1: Modulo attivabile via configurazione
-- `docs/admin-dashboard.md` — RBAC permissions, SuperAdmin seeding
+- `docs/modules/admin-dashboard.md` — RBAC permissions, SuperAdmin seeding
 
 ## Stato attuale del codice
 

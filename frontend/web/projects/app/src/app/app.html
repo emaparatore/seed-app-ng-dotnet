@@ -1,9 +1,11 @@
 <mat-toolbar color="primary" class="top-nav">
   <span class="brand" routerLink="/">
-    <img src="/logo.svg?v=1.0" alt="Seed App" class="nav-logo" />
-    Seed App
+    <img src="/logo.svg?v=1.0" [attr.alt]="configService.appName() + ' logo'" class="nav-logo" />
+    {{ configService.appName() }}
   </span>
   <span class="spacer"></span>
+
+  <a mat-button routerLink="/features">Features</a>
 
   @if (authService.isAuthenticated()) {
     <a class="user-icon-link" mat-icon-button routerLink="/profile" aria-label="Profile">
@@ -24,6 +26,10 @@
     <button mat-menu-item routerLink="/">
       <mat-icon>home</mat-icon>
       <span>Home</span>
+    </button>
+    <button mat-menu-item routerLink="/features">
+      <mat-icon>widgets</mat-icon>
+      <span>Features</span>
     </button>
     @if (configService.paymentsEnabled()) {
       <button mat-menu-item routerLink="/pricing">

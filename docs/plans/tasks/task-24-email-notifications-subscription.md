@@ -28,7 +28,7 @@ T-06: Webhook handler endpoint and event processing -
 
 ### Riferimenti
 - `docs/requirements/FEAT-3.md` — FEAT-3 requirements
-- `docs/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production
+- `docs/modules/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production
 
 ## Stato attuale del codice
 - `backend/src/Seed.Application/Common/Interfaces/IEmailService.cs` — interface with 2 methods: `SendPasswordResetEmailAsync`, `SendEmailVerificationAsync`

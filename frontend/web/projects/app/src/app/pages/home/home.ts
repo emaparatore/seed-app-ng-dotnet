@@ -1,14 +1,17 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Component, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { ConfigService } from '../../services/config.service';
 
 @Component({
   selector: 'app-home',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
 export class Home implements OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  protected readonly configService = inject(ConfigService);
   private animationFrameId: number | null = null;
 
   ngOnDestroy(): void {
