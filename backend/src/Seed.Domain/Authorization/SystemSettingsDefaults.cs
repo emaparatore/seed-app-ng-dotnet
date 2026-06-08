@@ -18,6 +18,6 @@ public static class SystemSettingsDefaults
         new("Email.SendPasswordResetNotification", "true", "bool", "Email", "Send notification after password reset"),
         new("AuditLog.RetentionMonths", "0", "int", "AuditLog", "Audit log retention in months (0 = no retention)"),
         new("General.MaintenanceMode", "false", "bool", "General", "Enable maintenance mode"),
-        new("General.AppName", "Seed App", "string", "General", "Application display name")
+        new("General.AppName", "Starter App", "string", "General", "Application display name")
     ];
 }

@@ -1,0 +1,165 @@
+:host {
+  display: block;
+}
+
+.feature-catalog-page {
+}
+
+.hero {
+  margin-bottom: 2rem;
+}
+
+.hero-inner {
+}
+
+.eyebrow,
+.feature-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--app-color-accent-500);
+}
+
+h1 {
+  margin: 0.75rem 0 0.65rem;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.1;
+  color: #f8fafc;
+}
+
+.hero-text,
+.feature-summary,
+.audience-copy,
+.detail-list,
+.intro-list,
+.subtle-note {
+  color: var(--app-text-secondary);
+  line-height: 1.6;
+}
+
+.hero-text {
+  color: #e5e7eb;
+}
+
+.hero-meta {
+  margin-top: 1rem;
+  color: #d1fae5;
+}
+
+.section {
+  margin-top: 2rem;
+}
+
+.intro-section {
+  padding: 1.2rem;
+}
+
+.intro-section h2,
+.feature-section h2,
+.feature-section h3 {
+  margin-top: 0;
+}
+
+.feature-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.feature-section {
+  padding: 1.2rem;
+}
+
+.feature-section + .feature-section {
+  margin-top: 0.25rem;
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--app-radius-pill);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--app-state-success-text);
+  background: var(--app-state-success-bg);
+  border: 1px solid var(--app-state-success-border);
+}
+
+h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.feature-summary {
+  margin: 0.85rem 0 0;
+}
+
+.section-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.9fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.section-panel {
+  background: var(--app-surface-secondary);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--app-radius-md);
+  padding: 1rem;
+}
+
+.section-panel h3 {
+  margin-bottom: 0.65rem;
+}
+
+.detail-list,
+.intro-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.audience-copy {
+  margin: 0;
+}
+
+.feature-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.feature-link {
+  text-decoration: none;
+}
+
+.route-count {
+  color: var(--app-text-muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .feature-catalog-page {
+    padding-top: 1rem;
+  }
+
+  .hero-inner {
+    padding: 1.4rem;
+  }
+
+  .section-heading-row,
+  .section-columns {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}

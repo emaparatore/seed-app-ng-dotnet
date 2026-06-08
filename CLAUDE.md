@@ -72,7 +72,7 @@ To add a new seeder:
 2. Register it in `InfrastructureServiceCollectionExtensions.cs`
 3. Call it in `src/Seed.Bootstrap/Program.cs` in the `SeedApplicationDataAsync` function
 
-See [docs/bootstrap-console.md](../docs/bootstrap-console.md) for full details.
+See [docs/architecture/bootstrap-console.md](docs/architecture/bootstrap-console.md) for full details.
 
 ## Frontend Web (Angular)
 
@@ -132,7 +132,7 @@ Connection string for local development: `Host=localhost;Database=seeddb;Usernam
 
 ## Database Migrations
 
-See `docs/migration-strategy.md` for the full migration strategy (local and production).
+See `docs/architecture/migration-strategy.md` for the full migration strategy (local and production).
 
 **Rules for production-safe migrations:**
 - **Always safe:** new table, nullable column, column with default value, new index
@@ -191,7 +191,7 @@ All project documentation lives in `docs/`. **After completing any code change**
 
 **When to update docs:**
 - **New feature or behavioral change:** Update the relevant existing doc, or create a new one in `docs/` if no existing doc covers the topic. If a new file is created, add it to the index table in `README.md` and to the list below. When updating an existing doc, check if its description in the index below still matches the content — update it if needed.
-- **Bug fix:** If the root cause or resolution would help someone in the future, add it to the "Troubleshooting" section of the relevant doc. If not tied to a specific topic, add it to `docs/troubleshooting.md`.
+- **Bug fix:** If the root cause or resolution would help someone in the future, add it to the "Troubleshooting" section of the relevant doc. If not tied to a specific topic, add it to `docs/operations/troubleshooting.md`.
 - **No doc update needed:** Pure refactors with no behavioral change, test-only changes, or trivial fixes (typos, formatting) don't require doc updates.
 
 **When to update CLAUDE.md:**
@@ -263,19 +263,19 @@ Keep the title short (<70 chars). Put details in the body, not the title. The PR
 
 
 Existing docs:
-- `docs/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
-- `docs/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
-- `docs/migration-strategy.md` — Migration strategy for local (auto via MigrateAsync) and production (bundle + CI/CD). Backup, rollback, expand-contract patterns. Read before creating or modifying any EF Core migration.
-- `docs/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
-- `docs/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
-- `docs/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
-- `docs/admin-dashboard.md` — Admin area: RBAC permissions, SuperAdmin seeding, user/role management, audit log, system settings, system health, navigation guards. Read when touching admin features, permissions, or audit logging.
-- `docs/rollback.md` — Production rollback: image rollback via .env, git revert, DB restore from backup. Three scenarios from least to most impactful. Read when a deploy goes wrong.
-- `docs/env-backup.md` — Automated daily .env backup via cron, cleanup of old backups, restore procedure. Read when setting up or troubleshooting production .env backups.
-- `docs/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
-- `docs/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
-- `docs/adding-collaborators.md` — Checklist for hardening repo settings before adding team members: branch protection, reviews, CODEOWNERS, secret scanning. Read when onboarding collaborators.
-- `docs/monitoring.md` — Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, metriche custom, alerting. Read when touching monitoring config, dashboards, or metrics.
-- `docs/gdpr-compliance-checklist.md` — Post-implementation GDPR checklist: legal text, privacy contact, DPA, data processing register. Read when completing GDPR compliance or onboarding a data controller.
-- `docs/subscription-payments.md` — Subscription payments module: Stripe setup, module toggle, webhook flow, plan/feature guards, troubleshooting. Read when configuring or developing subscription/payment features.
+- `docs/architecture/authentication.md` — JWT auth with refresh token rotation, Angular integration, token persistence, password reset flows. Read when touching auth handlers, login/signup UI, or token logic.
+- `docs/operations/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
+- `docs/architecture/migration-strategy.md` — Migration strategy for local (auto via MigrateAsync) and production (bundle + CI/CD). Backup, rollback, expand-contract patterns. Read before creating or modifying any EF Core migration.
+- `docs/modules/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
+- `docs/getting-started/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
+- `docs/getting-started/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
+- `docs/modules/admin-dashboard.md` — Admin area: RBAC permissions, SuperAdmin seeding, user/role management, audit log, system settings, system health, navigation guards. Read when touching admin features, permissions, or audit logging.
+- `docs/operations/rollback.md` — Production rollback: image rollback via .env, git revert, DB restore from backup. Three scenarios from least to most impactful. Read when a deploy goes wrong.
+- `docs/operations/env-backup.md` — Automated daily .env backup via cron, cleanup of old backups, restore procedure. Read when setting up or troubleshooting production .env backups.
+- `docs/operations/troubleshooting.md` — Catch-all for issues not covered in topic-specific docs. Add here when a fix isn't tied to a specific topic.
+- `docs/operations/auto-execute.md` — Auto-execute script (modalita' autonoma, review, interattiva, YOLO) e sandbox Docker. Read when setting up or using autonomous task execution with Claude Code.
+- `docs/operations/adding-collaborators.md` — Checklist for hardening repo settings before adding team members: branch protection, reviews, CODEOWNERS, secret scanning. Read when onboarding collaborators.
+- `docs/operations/monitoring.md` — Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, metriche custom, alerting. Read when touching monitoring config, dashboards, or metrics.
+- `docs/compliance/gdpr-compliance-checklist.md` — Post-implementation GDPR checklist: legal text, privacy contact, DPA, data processing register. Read when completing GDPR compliance or onboarding a data controller.
+- `docs/modules/subscription-payments.md` — Subscription payments module: Stripe setup, module toggle, webhook flow, plan/feature guards, troubleshooting. Read when configuring or developing subscription/payment features.
 - `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.

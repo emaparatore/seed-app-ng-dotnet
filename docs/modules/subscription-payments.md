@@ -263,7 +263,7 @@ Copy the signing secret for this endpoint and set it as `Stripe__WebhookSecret` 
 - [ ] Webhook endpoint registered in Stripe Dashboard with live signing secret
 - [ ] All 6 webhook events selected (see Setup Stripe section)
 - [ ] Customer Portal configured and tested with a real card
-- [ ] SMTP configured so subscription emails are delivered (see `docs/smtp-configuration.md`)
+- [ ] SMTP configured so subscription emails are delivered (see `docs/modules/smtp-configuration.md`)
 - [ ] At least one plan created and synced to Stripe (`SyncPlanToProviderAsync` called)
 - [ ] Stripe Dashboard → **Developers → Logs** verified — no errors on test transactions
 - [ ] Stripe Radar rules reviewed (default fraud protection is active)

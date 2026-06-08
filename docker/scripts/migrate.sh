@@ -10,7 +10,10 @@ set -euo pipefail
 # =============================================================================
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.deploy.yml}"
-BACKUP_DIR="${BACKUP_DIR:-/opt/seed-app/backups}"
+CURRENT_DIR="$(pwd)"
+ENVIRONMENT_NAME="$(basename "$CURRENT_DIR")"
+DEFAULT_BACKUP_DIR="$(dirname "$CURRENT_DIR")/backups/${ENVIRONMENT_NAME}"
+BACKUP_DIR="${BACKUP_DIR:-$DEFAULT_BACKUP_DIR}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 
 # Load environment variables from Docker-style .env without shell-evaluating values.

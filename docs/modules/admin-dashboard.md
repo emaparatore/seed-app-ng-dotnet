@@ -332,7 +332,7 @@ Le impostazioni sono raggruppate per categoria:
 | Email | `Email.SendWelcomeEmail` | bool | `false` | Invio email di benvenuto |
 | Email | `Email.RequireEmailConfirmation` | bool | `true` | Richiedi conferma email |
 | AuditLog | `AuditLog.RetentionMonths` | int | `0` | Mesi di retention (0 = illimitato) |
-| General | `General.AppName` | string | `Seed App` | Nome applicazione |
+| General | `General.AppName` | string | `Starter App` | Nome applicazione |
 | General | `General.AllowPublicRegistration` | bool | `true` | Registrazione pubblica |
 
 ### Funzionalità

@@ -124,8 +124,8 @@ Modifiche:
 
 ---
 
-### Task 5: Aggiornare docs/vps-setup-guide.md
-**File:** `docs/vps-setup-guide.md`
+### Task 5: Aggiornare docs/getting-started/vps-setup-guide.md
+**File:** `docs/getting-started/vps-setup-guide.md`
 
 Riscrittura parziale per la nuova struttura:
 - [x]**Sezione 5** (Directory di Deploy): riscrivere completamente — non più "clona il repo", ma struttura `production/` + `staging/`
@@ -141,8 +141,8 @@ Riscrittura parziale per la nuova struttura:
 
 ---
 
-### Task 6: Aggiornare docs/ci-cd.md
-**File:** `docs/ci-cd.md`
+### Task 6: Aggiornare docs/operations/ci-cd.md
+**File:** `docs/operations/ci-cd.md`
 
 - [x]Aggiornare la sezione "Deploy" con i nuovi path e la logica dual-environment
 - [x]Aggiornare la sezione "GitHub Settings Required" (nuovi secrets se necessari, firewall)
@@ -151,7 +151,7 @@ Riscrittura parziale per la nuova struttura:
 ---
 
 ### Task 7: Aggiornare CLAUDE.md
-- [x]Aggiornare la entry di `docs/vps-setup-guide.md` nella lista docs se la descrizione cambia
+- [x]Aggiornare la entry di `docs/getting-started/vps-setup-guide.md` nella lista docs se la descrizione cambia
 
 ---
 

@@ -4,6 +4,14 @@ import { paymentsEnabledGuard } from './guards/payments-enabled.guard';
 
 export const routes: Routes = [
   {
+    path: 'features',
+    loadComponent: () => import('./pages/features/feature-list').then((m) => m.FeatureList),
+  },
+  {
+    path: 'features/:slug',
+    loadComponent: () => import('./pages/features/feature-detail').then((m) => m.FeatureDetail),
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin-layout').then((m) => m.AdminLayout),
     canActivate: [authGuard, adminGuard],

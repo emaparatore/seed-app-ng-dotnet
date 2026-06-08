@@ -1,6 +1,12 @@
- # Guida Operativa: Configurazione Pagamenti e Stripe
+# Guida Operativa: Configurazione Pagamenti e Stripe
 
 Questo documento contiene tutte le istruzioni operative per configurare i pagamenti e Stripe nel progetto, per gli ambienti **Development**, **Staging** e **Produzione**.
+
+**Quando usarlo:** vuoi attivare il modulo pagamenti in una app derivata dal seed.
+
+**Quando non serve:** non fa parte del percorso minimo di bootstrap di una nuova app. Se i pagamenti non ti servono, puoi ignorarlo completamente.
+
+**Prerequisiti:** repository gia configurato, deploy base funzionante, e se serve SMTP reale gia impostato tramite [smtp-configuration.md](smtp-configuration.md).
 
 ---
 
@@ -248,7 +254,7 @@ Per abilitare i pagamenti in Docker dev:
 - Server con Docker e Docker Compose installati
 - Chiavi Stripe **test** (consigliato per staging) o **live** (se si vuole testare in produzione simulata)
 
-> **Cloudflare Access — bypass per webhook Stripe:** Lo staging è protetto da Cloudflare Access (vedi [vps-setup-guide.md — sezione 7b](vps-setup-guide.md)), che richiede autenticazione OTP per accedere al dominio. Stripe non può autenticarsi, quindi le sue richieste POST a `/webhooks/stripe` verrebbero bloccate.
+> **Cloudflare Access — bypass per webhook Stripe:** Lo staging è protetto da Cloudflare Access (vedi [vps-setup-guide.md — sezione 7b](../getting-started/vps-setup-guide.md)), che richiede autenticazione OTP per accedere al dominio. Stripe non può autenticarsi, quindi le sue richieste POST a `/webhooks/stripe` verrebbero bloccate.
 >
 > Per ovviare, creare una **reusable policy** con action `Bypass` e una **applicazione Cloudflare Access** (Self-hosted) dedicata al solo path del webhook che usa quella policy:
 >
@@ -555,7 +561,7 @@ Quando il modulo pagamenti è disabilitato, queste policy funzionano come **pass
 ## Riferimenti correlati
 
 - [smtp-configuration.md](smtp-configuration.md) — Configurazione SMTP per email transazionali
-- [docs/vps-setup-guide.md](vps-setup-guide.md) — Guida al deployment su VPS
+- [../getting-started/vps-setup-guide.md](../getting-started/vps-setup-guide.md) — Guida al deployment su VPS
 - Documentazione ufficiale Stripe: [https://docs.stripe.com](https://docs.stripe.com)
 - Stripe Webhooks: [https://docs.stripe.com/webhooks](https://docs.stripe.com/webhooks)
 - Stripe CLI: [https://docs.stripe.com/stripe-cli](https://docs.stripe.com/stripe-cli)
