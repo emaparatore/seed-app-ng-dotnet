@@ -111,7 +111,7 @@ Questo limita i danni in caso di furto del token.
 | File | Descrizione |
 |------|-------------|
 | `JwtSettings.cs` | POCO con Secret, Issuer, Audience, AccessTokenExpirationMinutes (default 60), RefreshTokenExpirationDays (default 30) |
-| `SmtpSettings.cs` | POCO con Host, Port (587), Username, Password, FromEmail, FromName ("Seed App"), Security ("StartTls") |
+| `SmtpSettings.cs` | POCO con Host, Port (587), Username, Password, FromEmail, FromName ("Starter App"), Security ("StartTls") |
 | `ClientSettings.cs` | POCO con BaseUrl (default "http://localhost:4200"). Usato per costruire i link nelle email |
 
 ### Application Layer (`Seed.Application/`)
@@ -320,7 +320,7 @@ Il backend e' configurato per accettare richieste da `http://localhost:4200` (An
     "Username": "",
     "Password": "",
     "FromEmail": "noreply@seedapp.com",
-    "FromName": "Seed App",
+    "FromName": "Starter App",
     "UseSsl": true
   }
 }

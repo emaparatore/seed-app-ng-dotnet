@@ -21,6 +21,8 @@ jobs:
       environment: ${{ steps.env.outputs.name }}
       image_tag_prefix: ${{ steps.env.outputs.tag_prefix }}
       image_tag: ${{ steps.env.outputs.tag }}
+      deploy_root: ${{ steps.env.outputs.deploy_root }}
+      backup_root: ${{ steps.env.outputs.backup_root }}
       deploy_dir: ${{ steps.env.outputs.deploy_dir }}
       backup_dir: ${{ steps.env.outputs.backup_dir }}
     steps:
@@ -29,21 +31,29 @@ jobs:
         env:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          DEPLOY_ROOT_OVERRIDE: ${{ vars.DEPLOY_ROOT }}
         run: |
           BRANCH="$HEAD_BRANCH"
           SHORT_SHA=$(printf '%s' "$HEAD_SHA" | cut -c1-7)
+          DEPLOY_ROOT="${DEPLOY_ROOT_OVERRIDE:-/opt/${REPOSITORY_NAME}}"
+          BACKUP_ROOT="${DEPLOY_ROOT}/backups"
+
+          echo "deploy_root=${DEPLOY_ROOT}" >> "$GITHUB_OUTPUT"
+          echo "backup_root=${BACKUP_ROOT}" >> "$GITHUB_OUTPUT"
+
           if [ "$BRANCH" = "master" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
             echo "tag_prefix=sha-" >> "$GITHUB_OUTPUT"
             echo "tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-            echo "deploy_dir=/opt/seed-app/production" >> "$GITHUB_OUTPUT"
-            echo "backup_dir=/opt/seed-app/backups/production" >> "$GITHUB_OUTPUT"
+            echo "deploy_dir=${DEPLOY_ROOT}/production" >> "$GITHUB_OUTPUT"
+            echo "backup_dir=${BACKUP_ROOT}/production" >> "$GITHUB_OUTPUT"
           elif [ "$BRANCH" = "dev" ]; then
             echo "name=staging" >> "$GITHUB_OUTPUT"
             echo "tag_prefix=dev-sha-" >> "$GITHUB_OUTPUT"
             echo "tag=dev-sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-            echo "deploy_dir=/opt/seed-app/staging" >> "$GITHUB_OUTPUT"
-            echo "backup_dir=/opt/seed-app/backups/staging" >> "$GITHUB_OUTPUT"
+            echo "deploy_dir=${DEPLOY_ROOT}/staging" >> "$GITHUB_OUTPUT"
+            echo "backup_dir=${BACKUP_ROOT}/staging" >> "$GITHUB_OUTPUT"
           fi
 
   deploy:
@@ -113,6 +123,8 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_DIR: ${{ needs.determine-environment.outputs.deploy_dir }}
+          DEPLOY_ROOT: ${{ needs.determine-environment.outputs.deploy_root }}
+          BACKUP_ROOT: ${{ needs.determine-environment.outputs.backup_root }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
@@ -120,7 +132,7 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > /tmp/deploy_key
 
           ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates ${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources ${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards ${DEPLOY_DIR}/monitoring/grafana/dashboards /opt/seed-app/backups/production /opt/seed-app/backups/staging"
+            "mkdir -p ${DEPLOY_DIR}/scripts ${DEPLOY_DIR}/nginx/templates ${DEPLOY_DIR}/monitoring/grafana/provisioning/datasources ${DEPLOY_DIR}/monitoring/grafana/provisioning/dashboards ${DEPLOY_DIR}/monitoring/grafana/dashboards ${BACKUP_ROOT}/production ${BACKUP_ROOT}/staging"
 
           echo "Syncing docker-compose.deploy.yml..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
@@ -130,7 +142,7 @@ jobs:
           echo "Syncing docker-compose.portainer.yml (server-wide, lives outside deploy dir)..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
             docker/docker-compose.portainer.yml \
-            "$DEPLOY_USER@$DEPLOY_HOST:/opt/seed-app/docker-compose.portainer.yml"
+            "$DEPLOY_USER@$DEPLOY_HOST:${DEPLOY_ROOT}/docker-compose.portainer.yml"
 
           echo "Syncing deploy scripts..."
           scp -o StrictHostKeyChecking=no -i /tmp/deploy_key \
@@ -184,6 +196,7 @@ jobs:
             set -eu
 
             DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
+            DEPLOY_ROOT="${{ needs.determine-environment.outputs.deploy_root }}"
             COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.deploy.yml"
             SCRIPT_DIR="${DEPLOY_DIR}/scripts"
             BACKUP_DIR="${{ needs.determine-environment.outputs.backup_dir }}"
@@ -217,6 +230,14 @@ jobs:
 
             cd "$DEPLOY_DIR"
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+
+            if ! grep -q '^GHCR_OWNER=' .env; then
+              echo "GHCR_OWNER=${{ github.repository_owner }}" >> .env
+            fi
+
+            if ! grep -q '^GHCR_IMAGE_NAME=' .env; then
+              echo "GHCR_IMAGE_NAME=${{ github.event.repository.name }}" >> .env
+            fi
 
             IMAGE_TAG="${{ needs.determine-environment.outputs.image_tag }}"
             echo "Image tag for this deploy: $IMAGE_TAG"

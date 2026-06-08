@@ -181,6 +181,17 @@ Workflows:
 
 See [docs/ci-cd.md](docs/ci-cd.md) for full documentation.
 
+## Reusing as a seed
+
+When you create a new repo from this seed:
+
+- Docker images for deploy are resolved via `GHCR_OWNER` + `GHCR_IMAGE_NAME`
+- the VPS deploy root defaults to `/opt/<repository-name>`
+- you can override the deploy root with the GitHub Actions repository variable `DEPLOY_ROOT`
+
+See [docs/new-project-deploy-guide.md](docs/new-project-deploy-guide.md) for the full checklist.
+For a shorter operational version, see [docs/seed-checklist.md](docs/seed-checklist.md).
+
 ## Repository structure
 
 ```text
@@ -220,6 +231,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
 | [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
 | [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
+| [Seed Checklist](docs/seed-checklist.md) | Minimal operational checklist to turn this seed into a new project quickly |
 | [Admin Dashboard](docs/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
 | [Monitoring](docs/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
 | [.env Backup](docs/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |

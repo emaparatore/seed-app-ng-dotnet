@@ -2,6 +2,8 @@
 
 Questa guida spiega come deployare un nuovo progetto creato a partire dalla seed app su un VPS gia configurato.
 
+Per una versione piu corta e operativa, vedi anche [Seed Checklist](seed-checklist.md).
+
 > **Prerequisito**: il VPS deve essere gia configurato seguendo la [guida VPS](vps-setup-guide.md) (punti 1-4: utente, Docker, firewall). Se e il tuo primo deploy in assoluto, parti da quella guida.
 
 ---
@@ -10,7 +12,7 @@ Questa guida spiega come deployare un nuovo progetto creato a partire dalla seed
 
 ```
 [ ] 1. Fork/clone della seed app e rinomina il progetto
-[ ] 2. Aggiorna i nomi delle immagini Docker nel CI/CD
+[ ] 2. Configura `GHCR_OWNER`, `GHCR_IMAGE_NAME` e, se serve, `DEPLOY_ROOT`
 [ ] 3. Push su GitHub — le immagini vengono buildate automaticamente
 [ ] 4. Crea la directory sul VPS e configura .env
 [ ] 5. Aggiungi dominio su Cloudflare
@@ -37,23 +39,20 @@ Nel backend, rinomina il namespace `Seed` se vuoi (opzionale, puoi farlo dopo):
 - Solution, progetti, namespace C#
 - Dockerfile references
 
-Le immagini Docker vengono nominate automaticamente dal nome del repository GitHub (`ghcr.io/username/nuovo-progetto/api` e `.../web`), quindi non serve rinominarle manualmente.
+Le immagini Docker vengono nominate automaticamente dal nome del repository GitHub (`ghcr.io/username/nuovo-progetto/api` e `.../web`). Nel file `.env` del VPS basta impostare `GHCR_IMAGE_NAME=nuovo-progetto`.
 
 ---
 
 ## 2. Aggiorna il CI/CD (se hai rinominato il repo)
 
-I workflow usano `${{ github.repository }}` per i nomi delle immagini, quindi **si adattano automaticamente** al nuovo repo. Non devi cambiare nulla nei workflow.
+I workflow usano `${{ github.repository }}` per build e tagging delle immagini, quindi **si adattano automaticamente** al nuovo repo. Non devi cambiare nulla nei workflow.
 
-L'unica cosa da aggiornare e nel `docker-compose.deploy.yml` la variabile `GHCR_OWNER`:
+Per il deploy su VPS:
 
-```yaml
-# Questi si adattano automaticamente tramite .env
-image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/api:${API_IMAGE_TAG:-latest}
-image: ghcr.io/${GHCR_OWNER}/nuovo-progetto/web:${WEB_IMAGE_TAG:-latest}
-```
-
-> **Nota**: devi copiare `docker-compose.deploy.yml` nel nuovo progetto e aggiornare i nomi delle immagini da `seed-app-ng-dotnet` al nome del nuovo repo.
+- `GHCR_OWNER` va impostato nel `.env` del server
+- `GHCR_IMAGE_NAME` va impostato al nome del nuovo repository (es. `nuovo-progetto`)
+- il path di deploy di default diventa automaticamente `/opt/<nome-repo>`
+- se vuoi un path custom, imposta la variabile GitHub Actions `DEPLOY_ROOT` (es. `/opt/piattaforma`)
 
 ---
 
@@ -122,6 +121,7 @@ Smtp__UseSsl=true
 # --- VPS Deployment ---
 DOMAIN_NAME=nuovodominio.com
 GHCR_OWNER=tuo-github-username
+GHCR_IMAGE_NAME=nuovo-progetto
 # Il CI aggiorna automaticamente questi valori con il tag SHA del commit deployato
 API_IMAGE_TAG=latest
 WEB_IMAGE_TAG=latest
@@ -132,15 +132,11 @@ CERTBOT_EMAIL=tua-email@example.com
 
 > **SuperAdmin**: Il file `.env.prod.example` include anche le variabili `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName` per creare l'utente admin iniziale durante il bootstrap del deploy. Dopo il primo deploy, rimuovi la password dal file `.env`. Vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
 
-### Aggiorna i nomi delle immagini nel compose
+### Note sul compose
 
-```bash
-nano docker-compose.deploy.yml
-```
+Non serve piu modificare manualmente i nomi delle immagini nel `docker-compose.deploy.yml`: vengono risolti tramite `GHCR_OWNER` + `GHCR_IMAGE_NAME` dal file `.env`.
 
-Sostituisci `seed-app-ng-dotnet` con `nuovo-progetto` nelle righe delle immagini api e web.
-
-Cambia anche il `name:` del progetto compose (es. `nuovo-progetto-deploy`) per evitare conflitti con altre app sullo stesso VPS.
+Puoi comunque cambiare `COMPOSE_PROJECT_NAME` nel `.env` se vuoi nomi container/volumi diversi da quelli di default.
 
 ### Configura i backup per le migrazioni
 
@@ -238,13 +234,13 @@ Nel nuovo repository GitHub > **Settings** > **Secrets and variables** > **Actio
 
 ### Aggiorna il path nel workflow deploy.yml
 
-Nel file `.github/workflows/deploy.yml`, aggiorna il path nel comando SSH:
+Per default il workflow deploya in `/opt/<nome-repo>`, quindi spesso non devi cambiare nulla.
 
-```yaml
-script: |
-  cd /opt/nuovo-progetto    # <-- cambia qui
-  echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io ...
-```
+Se vuoi usare un path custom, aggiungi una repository variable GitHub Actions:
+
+| Variable | Valore di esempio |
+|----------|-------------------|
+| `DEPLOY_ROOT` | `/opt/nuovo-progetto` |
 
 ---
 

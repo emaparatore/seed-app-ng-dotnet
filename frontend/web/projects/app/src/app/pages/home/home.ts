@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Component, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
+import { ConfigService } from '../../services/config.service';
 
 @Component({
   selector: 'app-home',
@@ -9,6 +10,7 @@ import { Component, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 })
 export class Home implements OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  protected readonly configService = inject(ConfigService);
   private animationFrameId: number | null = null;
 
   ngOnDestroy(): void {

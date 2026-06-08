@@ -1,7 +1,7 @@
 <mat-toolbar color="primary" class="top-nav">
   <span class="brand" routerLink="/">
-    <img src="/logo.svg?v=1.0" alt="Seed App" class="nav-logo" />
-    Seed App
+    <img src="/logo.svg?v=1.0" [attr.alt]="configService.appName() + ' logo'" class="nav-logo" />
+    {{ configService.appName() }}
   </span>
   <span class="spacer"></span>
 

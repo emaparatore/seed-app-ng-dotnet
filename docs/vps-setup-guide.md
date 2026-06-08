@@ -179,6 +179,8 @@ OpenSSH                    ALLOW       Anywhere
 
 Il deploy usa una struttura a due ambienti separati, entrambi sullo stesso VPS. Il CI/CD crea automaticamente le subdirectory e copia tutti i file (compose, nginx, scripts) ad ogni deploy; qui devi solo creare la directory root e configurare il file `.env`.
 
+> **Nota per i progetti derivati dal seed**: per default il workflow usa `/opt/<nome-repository>` come root di deploy. Se vuoi forzare un path diverso, imposta la repository variable GitHub Actions `DEPLOY_ROOT`.
+
 ```bash
 sudo mkdir -p /opt/seed-app
 sudo chown deploy:deploy /opt/seed-app
