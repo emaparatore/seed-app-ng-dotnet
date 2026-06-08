@@ -1,6 +1,6 @@
-<main class="landing">
-  <header class="hero">
-    <div class="hero-inner">
+<main class="landing app-page">
+  <header class="hero app-hero">
+    <div class="hero-inner app-hero-panel">
       <span class="badge">{{ configService.appName() }}</span>
       <h1>Full-Stack Starter Kit</h1>
       <p class="tagline">Angular 21 &middot; ASP.NET Core 10 &middot; .NET MAUI &middot; Docker</p>
@@ -45,15 +45,15 @@ cp .env.example .env</code></pre>
   <section class="section">
     <h2>Core stack</h2>
     <div class="grid">
-      <div class="card">
+      <div class="card app-panel">
         <h3>Frontend</h3>
         <p>Angular 21 SPA with Server-Side Rendering, Angular Material, and three shared libraries: <code>shared-ui</code>, <code>shared-core</code>, <code>shared-auth</code>.</p>
       </div>
-      <div class="card">
+      <div class="card app-panel">
         <h3>Backend</h3>
         <p>ASP.NET Core 10 Web API following Clean Architecture. MediatR for CQRS, FluentValidation, Mapster, EF Core 10 with PostgreSQL, JWT auth, and Serilog.</p>
       </div>
-      <div class="card">
+      <div class="card app-panel">
         <h3>Mobile</h3>
         <p>.NET MAUI application sharing business logic with the backend through the same .NET solution.</p>
       </div>
@@ -73,19 +73,19 @@ cp .env.example .env</code></pre>
     </div>
 
     <div class="grid">
-      <div class="card accent-card">
+      <div class="card accent-card app-panel app-panel-accent">
         <h3>Authentication</h3>
         <p>Registration, login, password reset, confirm email, profile, refresh token rotation, and forced password change flows are already present.</p>
       </div>
-      <div class="card accent-card">
+      <div class="card accent-card app-panel app-panel-accent">
         <h3>Admin and RBAC</h3>
         <p>Users, roles, permissions, audit log, settings, dashboard metrics, and system health are already available in the admin area.</p>
       </div>
-      <div class="card accent-card">
+      <div class="card accent-card app-panel app-panel-accent">
         <h3>Subscriptions and billing</h3>
         <p>Pricing, checkout, subscription management, invoice requests, and feature gating are built and can stay disabled until needed.</p>
       </div>
-      <div class="card accent-card">
+      <div class="card accent-card app-panel app-panel-accent">
         <h3>Operations and deploy</h3>
         <p>Bootstrap seeding, CI/CD, Docker deploy, monitoring, rollback guidance, and environment runbooks are part of the seed.</p>
       </div>
@@ -94,7 +94,7 @@ cp .env.example .env</code></pre>
 
   <section class="section">
     <h2>Tooling</h2>
-    <div class="tool-row">
+    <div class="tool-row app-panel">
       <div class="tool-copy">
         <h3>Docker Test Runner</h3>
         <p>Run frontend and backend tests in Docker containers without local SDK/database setup.</p>
@@ -107,19 +107,19 @@ cp .env.example .env</code></pre>
     <h2>CI / CD</h2>
     <p class="subtle-note">GitHub Actions pipelines automate the full path from code to production.</p>
     <div class="grid">
-      <div class="card">
+      <div class="card app-panel">
         <h3>CI</h3>
         <p>Build and test on every pull request (<code>ci.yml</code>)</p>
       </div>
-      <div class="card">
+      <div class="card app-panel">
         <h3>Docker Publish</h3>
         <p>Build and push images to ghcr.io on merge (<code>docker-publish.yml</code>)</p>
       </div>
-      <div class="card">
+      <div class="card app-panel">
         <h3>Deploy</h3>
         <p>Deploy to VPS via SSH with Docker Compose, EF Core migrations, and health checks (<code>deploy.yml</code>)</p>
       </div>
-      <div class="card">
+      <div class="card app-panel">
         <h3>Hotfix Back-merge</h3>
         <p>Auto PR <code>master</code> → <code>dev</code> after hotfix (<code>hotfix-backmerge.yml</code>)</p>
       </div>

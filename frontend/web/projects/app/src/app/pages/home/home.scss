@@ -3,10 +3,6 @@
 }
 
 .landing {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem 1rem 3rem;
-  color: #1f2937;
   overflow-x: hidden;
 }
 
@@ -15,11 +11,6 @@
 }
 
 .hero-inner {
-  background: linear-gradient(135deg, #0C1210, #134E4A);
-  color: #f8fafc;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 8px 24px rgba(12, 18, 16, 0.4);
   overflow: hidden;
   word-wrap: break-word;
 }
@@ -31,7 +22,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.3rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--app-radius-pill);
   background: rgba(248, 250, 252, 0.2);
 }
 
@@ -44,7 +35,7 @@ h1 {
 .tagline {
   margin: 0;
   font-weight: 600;
-  color: #5EEAD4;
+  color: var(--app-color-accent-500);
 }
 
 .description {
@@ -67,8 +58,8 @@ h1 {
   gap: 0.5rem;
   font-weight: 600;
   text-decoration: none;
-  color: #0C1210;
-  background: #5EEAD4;
+  color: var(--app-color-brand-950);
+  background: var(--app-color-accent-500);
   border: 1px solid transparent;
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
@@ -81,7 +72,7 @@ h1 {
 }
 
 .action:focus-visible {
-  outline: 2px solid #5EEAD4;
+  outline: 2px solid var(--app-color-accent-500);
   outline-offset: 2px;
 }
 
@@ -104,7 +95,7 @@ h1 {
 }
 
 .inline-link {
-  color: #0f766e;
+  color: var(--app-text-accent);
   font-weight: 700;
   text-decoration: none;
 }
@@ -137,11 +128,7 @@ h1 {
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .card h3 {
@@ -149,8 +136,8 @@ h1 {
 }
 
 .accent-card {
-  border-color: rgba(15, 118, 110, 0.14);
-  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.08);
+  border-color: var(--app-border-accent);
+  box-shadow: var(--app-shadow-accent);
 }
 
 .steps {
@@ -160,11 +147,12 @@ h1 {
 }
 
 .steps li {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--app-surface-primary);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--app-radius-md);
   padding: 1rem;
   overflow: hidden;
+  box-shadow: var(--app-shadow-sm);
 }
 
 .steps.compact li {
@@ -173,7 +161,7 @@ h1 {
 
 .subtle-note {
   margin-top: 0.9rem;
-  color: #4b5563;
+  color: var(--app-text-secondary);
 }
 
 .tool-row {
@@ -181,9 +169,6 @@ h1 {
   grid-template-columns: minmax(280px, 1fr) minmax(260px, 420px);
   gap: 1rem;
   align-items: start;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
   padding: 1rem;
   overflow: hidden;
 }
@@ -197,33 +182,19 @@ h1 {
   line-height: 1.5;
 }
 
-pre {
-  margin-top: 0.75rem;
-  overflow-x: auto;
-  background: #0b1020;
-  color: #e2e8f0;
-  border-radius: 8px;
-  padding: 0.8rem;
-  max-width: 100%;
-
-  code {
-    font-size: 0.85rem;
-  }
-}
-
 .tool-row pre {
   margin-top: 0;
 }
 
 .tree {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--app-border-strong);
 }
 
 .footer {
   margin-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--app-border-subtle);
   padding-top: 1rem;
-  color: #4b5563;
+  color: var(--app-text-secondary);
 }
 
 @media (max-width: 800px) {
@@ -240,14 +211,6 @@ pre {
   .feature-showcase-header {
     align-items: start;
     flex-direction: column;
-  }
-
-  .hero-inner {
-    padding: 1.4rem;
-  }
-
-  pre code {
-    font-size: 0.75rem;
   }
 
   .steps {
