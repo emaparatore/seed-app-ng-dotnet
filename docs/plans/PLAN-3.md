@@ -307,36 +307,36 @@ Portainer è un'istanza unica a livello di server — vede tutti i container (pr
 **Stato:** [x] Done
 
 **Cosa fare:**
-1. Creare `docs/monitoring.md` con:
+1. Creare `docs/operations/monitoring.md` con:
    - Architettura dello stack di monitoring
    - Come accedere a ogni servizio (SSH tunnel)
    - Come aggiungere metriche custom nell'API
    - Come creare nuove dashboard Grafana
    - Configurazione alerting
-2. Aggiornare `docs/vps-setup-guide.md` con:
+2. Aggiornare `docs/getting-started/vps-setup-guide.md` con:
    - Sezione "Monitoring Stack"
    - Comandi SSH tunnel per Grafana, Prometheus, Portainer
 3. Aggiornare `CLAUDE.md` con riferimento al doc
 4. Aggiornare `docker/.env.prod.example` se necessario
 
 **Definition of Done:**
-- [x] `docs/monitoring.md` creato con sezioni: architettura, servizi, accesso SSH tunnel, metriche custom, dashboard, alerting, dev locale, troubleshooting
-- [x] `docs/vps-setup-guide.md` aggiornato con sottosezione "Monitoring Stack" in sezione 12 (SSH tunnel Grafana/Prometheus/Portainer, primo accesso)
-- [x] `CLAUDE.md` aggiornato con entry `docs/monitoring.md` nella lista existing docs
-- [x] `README.md` aggiornato con riga `docs/monitoring.md` nella tabella docs
+- [x] `docs/operations/monitoring.md` creato con sezioni: architettura, servizi, accesso SSH tunnel, metriche custom, dashboard, alerting, dev locale, troubleshooting
+- [x] `docs/getting-started/vps-setup-guide.md` aggiornato con sottosezione "Monitoring Stack" in sezione 12 (SSH tunnel Grafana/Prometheus/Portainer, primo accesso)
+- [x] `CLAUDE.md` aggiornato con entry `docs/operations/monitoring.md` nella lista existing docs
+- [x] `README.md` aggiornato con riga `docs/operations/monitoring.md` nella tabella docs
 - [x] `.env.prod.example` verificato come già completo (nessuna modifica necessaria)
 - [x] Nessun file non previsto dal piano viene modificato
 
 **Implementation Notes:**
-- `docs/monitoring.md` creato con sezioni complete: architettura (diagramma ASCII), tabella servizi, accesso SSH tunnel, configurazione variabili, metriche custom API (Counter/Histogram/Gauge con esempi C#), dashboard Grafana (pre-installate + creazione + export/import), alerting (alert rules PromQL + notifiche email), sviluppo locale (profile monitoring), troubleshooting (5 scenari comuni)
-- `docs/vps-setup-guide.md` aggiornata con sottosezione "Monitoring Stack" dentro sezione 12 (dopo verifica Seq, prima di "Statistiche dei container"): comandi SSH tunnel, primo accesso Grafana, avvio Portainer standalone con nota sui 5 minuti per setup admin
+- `docs/operations/monitoring.md` creato con sezioni complete: architettura (diagramma ASCII), tabella servizi, accesso SSH tunnel, configurazione variabili, metriche custom API (Counter/Histogram/Gauge con esempi C#), dashboard Grafana (pre-installate + creazione + export/import), alerting (alert rules PromQL + notifiche email), sviluppo locale (profile monitoring), troubleshooting (5 scenari comuni)
+- `docs/getting-started/vps-setup-guide.md` aggiornata con sottosezione "Monitoring Stack" dentro sezione 12 (dopo verifica Seq, prima di "Statistiche dei container"): comandi SSH tunnel, primo accesso Grafana, avvio Portainer standalone con nota sui 5 minuti per setup admin
 - Documentazione scritta in italiano coerente con lo stile degli altri doc del progetto
 - Porte e configurazioni verificate direttamente dai file compose e prometheus.yml per garantire coerenza
 - `docker/.env.prod.example` già completo con tutte le variabili monitoring — nessuna modifica necessaria
 
 **File coinvolti:**
-- `docs/monitoring.md` (nuovo)
-- `docs/vps-setup-guide.md`
+- `docs/operations/monitoring.md` (nuovo)
+- `docs/getting-started/vps-setup-guide.md`
 - `CLAUDE.md`
 - `README.md`
 

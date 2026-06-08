@@ -355,10 +355,10 @@ Modificare il `LoginCommandHandler` per verificare se la `ConsentVersion` dell'u
 **Depends on:** T-01 (il placeholder della privacy policy deve esistere)
 
 **What to do:**
-Creare un documento `docs/gdpr-compliance-checklist.md` che guida il titolare del trattamento nel completare gli aspetti non tecnici della conformità GDPR. Il documento elenca le azioni manuali necessarie dopo l'implementazione tecnica di FEAT-2, con indicazioni pratiche su cosa fare, chi deve farlo e risorse utili.
+Creare un documento `docs/compliance/gdpr-compliance-checklist.md` che guida il titolare del trattamento nel completare gli aspetti non tecnici della conformità GDPR. Il documento elenca le azioni manuali necessarie dopo l'implementazione tecnica di FEAT-2, con indicazioni pratiche su cosa fare, chi deve farlo e risorse utili.
 
 **Definition of Done:**
-- [x] File `docs/gdpr-compliance-checklist.md` creato con 6 sezioni complete
+- [x] File `docs/compliance/gdpr-compliance-checklist.md` creato con 6 sezioni complete
 - [x] Sezione: **Testo legale Privacy Policy e ToS** — cosa deve contenere (Art. 13-14), suggerimento di usare generatori (es. iubenda.com) o consultare un legale, dove sostituire il placeholder nel codice, nota su `ConsentVersion` per re-accettazione
 - [x] Sezione: **Contatto privacy** — decidere un'email dedicata (es. `privacy@dominio.com`), indicarla nella privacy policy, menzione DPO (Art. 37)
 - [x] Sezione: **DPA con fornitori terzi** — se si usa SMTP esterno (Brevo, Gmail), firmare un Data Processing Agreement con il fornitore, link DPA di Brevo, Google e Cloudflare

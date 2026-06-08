@@ -10,10 +10,10 @@
 - **Hard delete account** implementato (T-06, T-07) — `IUserPurgeService` con anonimizzazione audit log
 - **Data retention** implementato (T-10, T-11) — `DataRetentionBackgroundService` con cleanup automatico
 - **Re-accettazione consenso** implementato (T-12) — `ConsentVersion` check al login
-- **SMTP configuration** documentata in `docs/smtp-configuration.md` — Brevo come provider produzione
+- **SMTP configuration** documentata in `docs/modules/smtp-configuration.md` — Brevo come provider produzione
 - **README.md** ha una tabella indice docs alla riga ~215 con formato `| [Title](path) | Description |`
 - **CLAUDE.md** ha una lista docs alla fine con formato `- \`docs/file.md\` — description`
-- **Nessun file** `docs/gdpr-compliance-checklist.md` esiste ancora
+- **Nessun file** `docs/compliance/gdpr-compliance-checklist.md` esiste ancora
 
 ### Dipendenze e vincoli
 
@@ -25,9 +25,9 @@
 
 ## Piano di esecuzione
 
-### Step 1: Creare `docs/gdpr-compliance-checklist.md`
+### Step 1: Creare `docs/compliance/gdpr-compliance-checklist.md`
 
-**File:** `docs/gdpr-compliance-checklist.md` (NUOVO)
+**File:** `docs/compliance/gdpr-compliance-checklist.md` (NUOVO)
 
 Struttura del documento:
 
@@ -75,7 +75,7 @@ Introduzione: scopo del documento, prerequisiti tecnici gia implementati (link a
 
 Aggiungere riga nella tabella indice docs (dopo la riga Monitoring o Troubleshooting):
 ```
-| [GDPR Compliance Checklist](docs/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
+| [GDPR Compliance Checklist](docs/compliance/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
 ```
 
 ### Step 3: Aggiornare `CLAUDE.md`
@@ -84,7 +84,7 @@ Aggiungere riga nella tabella indice docs (dopo la riga Monitoring o Troubleshoo
 
 Aggiungere alla lista docs:
 ```
-- `docs/gdpr-compliance-checklist.md` — Post-implementation GDPR checklist: legal text, privacy contact, DPA, data processing register. Read when completing GDPR compliance or onboarding a data controller.
+- `docs/compliance/gdpr-compliance-checklist.md` — Post-implementation GDPR checklist: legal text, privacy contact, DPA, data processing register. Read when completing GDPR compliance or onboarding a data controller.
 ```
 
 ### Step 4: Verificare
@@ -96,7 +96,7 @@ ng build  # (opzionale, nessun file di codice modificato)
 
 ## Criteri di completamento
 
-- [ ] File `docs/gdpr-compliance-checklist.md` creato con tutte le sezioni richieste
+- [ ] File `docs/compliance/gdpr-compliance-checklist.md` creato con tutte le sezioni richieste
 - [ ] Sezione testo legale Privacy Policy e ToS con riferimenti Art. 13-14, suggerimento generatori, path dei file da modificare
 - [ ] Sezione contatto privacy con email dedicata e menzione DPO
 - [ ] Sezione DPA con fornitori terzi con riferimento a SMTP (Brevo/Gmail) e link utili
@@ -109,7 +109,7 @@ ng build  # (opzionale, nessun file di codice modificato)
 ## Risultato
 
 - File modificati/creati:
-  - `docs/gdpr-compliance-checklist.md` — **CREATO** — Checklist completa con 6 sezioni
+  - `docs/compliance/gdpr-compliance-checklist.md` — **CREATO** — Checklist completa con 6 sezioni
   - `README.md` — **MODIFICATO** — Aggiunta riga nella tabella indice docs
   - `CLAUDE.md` — **MODIFICATO** — Aggiunta entry nella lista docs
 

@@ -2,6 +2,12 @@
 
 Guida alla configurazione del servizio email per l'invio di email transazionali (reset password, notifiche, ecc.).
 
+**Quando usarla:** vuoi abilitare l'invio reale di email su una app derivata dal seed.
+
+**Quando non serve subito:** per partire in locale non e necessaria, perche Docker dev usa gia Mailpit e il backend ha un fallback console quando SMTP non e configurato.
+
+**Prerequisiti:** applicazione gia clonata e configurazione base di deploy gia chiara. Se stai ancora creando la nuova app dal seed, parti prima da [Seed Checklist](../getting-started/seed-checklist.md) o [New Project Deploy Guide](../getting-started/new-project-deploy-guide.md).
+
 ---
 
 ## Come funziona

@@ -223,7 +223,7 @@ L'interceptor funzionale (`HttpInterceptorFn`):
 | Confirm Email | `/confirm-email` | guestGuard | Auto-chiama API con email+token dai query param. Mostra spinner/successo/errore |
 | Forgot Password | `/forgot-password` | guestGuard | Form email per richiedere reset password |
 | Reset Password | `/reset-password` | guestGuard | Se aperto via link email: mostra solo campo nuova password (email e token pre-compilati dai query params). Se aperto manualmente: mostra form completo con email + token + nuova password |
-| Change Password | `/change-password` | authGuard + mustChangePasswordGuard | Cambio password obbligatorio (vedi [Admin Dashboard](admin-dashboard.md#cambio-password-obbligatorio)) |
+| Change Password | `/change-password` | authGuard + mustChangePasswordGuard | Cambio password obbligatorio (vedi [Admin Dashboard](../modules/admin-dashboard.md#cambio-password-obbligatorio)) |
 | Home | `/` | authGuard | Pagina protetta con info utente |
 
 Layout: toolbar Material in cima con nome utente + bottone Logout (visibili solo se autenticato).
@@ -449,10 +449,10 @@ Il frontend sara' su `http://localhost:4200`.
 
 Le seguenti funzionalità estendono il sistema di autenticazione base e sono documentate separatamente:
 
-- **Ruoli e autorizzazione RBAC** — sistema completo con 16 permessi granulari, 3 ruoli di sistema, authorization handler. Vedi [Admin Dashboard](admin-dashboard.md#sistema-di-permessi-rbac).
-- **Cambio password obbligatorio** — flusso che blocca la navigazione finché l'utente non cambia la password temporanea. Vedi [Admin Dashboard](admin-dashboard.md#cambio-password-obbligatorio).
-- **Invalidazione token immediata** — blacklist basata su `IDistributedCache` per disattivazione utenti e cambio ruoli. Vedi [Admin Dashboard](admin-dashboard.md#sistema-di-permessi-rbac).
-- **Audit log autenticazione** — tutti gli eventi auth (login, logout, cambio password, reset, ecc.) vengono registrati. Vedi [Admin Dashboard](admin-dashboard.md#audit-log).
+- **Ruoli e autorizzazione RBAC** — sistema completo con 16 permessi granulari, 3 ruoli di sistema, authorization handler. Vedi [Admin Dashboard](../modules/admin-dashboard.md#sistema-di-permessi-rbac).
+- **Cambio password obbligatorio** — flusso che blocca la navigazione finché l'utente non cambia la password temporanea. Vedi [Admin Dashboard](../modules/admin-dashboard.md#cambio-password-obbligatorio).
+- **Invalidazione token immediata** — blacklist basata su `IDistributedCache` per disattivazione utenti e cambio ruoli. Vedi [Admin Dashboard](../modules/admin-dashboard.md#sistema-di-permessi-rbac).
+- **Audit log autenticazione** — tutti gli eventi auth (login, logout, cambio password, reset, ecc.) vengono registrati. Vedi [Admin Dashboard](../modules/admin-dashboard.md#audit-log).
 
 ### Ancora da implementare
 

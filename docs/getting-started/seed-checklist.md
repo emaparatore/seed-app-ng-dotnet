@@ -2,6 +2,10 @@
 
 Usa questa checklist quando trasformi il seed in una nuova applicazione reale.
 
+**Quando usarla:** vuoi il percorso piu rapido per creare una nuova app dal seed.
+
+**Quando non basta:** se hai bisogno di tutti i dettagli di VPS, Cloudflare, SSL o deploy, passa a [New Project Deploy Guide](new-project-deploy-guide.md).
+
 ## 1. Crea il nuovo repository
 
 ```bash

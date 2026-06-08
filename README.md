@@ -179,7 +179,7 @@ Workflows:
 - **Deploy** - Deploy to VPS via SSH with Docker Compose (`deploy.yml`)
 - **Hotfix Back-merge** - Auto PR `master` → `dev` after hotfix (`hotfix-backmerge.yml`)
 
-See [docs/ci-cd.md](docs/ci-cd.md) for full documentation.
+See [docs/operations/ci-cd.md](docs/operations/ci-cd.md) for full documentation.
 
 ## Reusing as a seed
 
@@ -189,8 +189,8 @@ When you create a new repo from this seed:
 - the VPS deploy root defaults to `/opt/<repository-name>`
 - you can override the deploy root with the GitHub Actions repository variable `DEPLOY_ROOT`
 
-See [docs/new-project-deploy-guide.md](docs/new-project-deploy-guide.md) for the full checklist.
-For a shorter operational version, see [docs/seed-checklist.md](docs/seed-checklist.md).
+Start from [docs/getting-started/start-here.md](docs/getting-started/start-here.md) if you are unsure which document applies to your scenario.
+Use [docs/getting-started/seed-checklist.md](docs/getting-started/seed-checklist.md) for the shortest path, or [docs/getting-started/new-project-deploy-guide.md](docs/getting-started/new-project-deploy-guide.md) for the complete bootstrap flow.
 
 ## Repository structure
 
@@ -221,23 +221,47 @@ seed-app-ng-dotnet/
 
 Detailed documentation is available in the [`docs/`](docs/) folder:
 
+### Start Here
+
 | Document | Description |
 |---|---|
-| [Authentication](docs/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
-| [Bootstrap Console](docs/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |
-| [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
-| [Migration Strategy](docs/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
-| [Rollback Guide](docs/rollback.md) | Production rollback strategies: image rollback, git revert, DB restore |
-| [SMTP Configuration](docs/smtp-configuration.md) | Email service setup, provider config (Gmail, Brevo) |
-| [VPS Setup Guide](docs/vps-setup-guide.md) | Full VPS deployment with Docker, Nginx, Cloudflare, SSL |
-| [New Project Deploy Guide](docs/new-project-deploy-guide.md) | Checklist for deploying new projects based on this seed |
-| [Seed Checklist](docs/seed-checklist.md) | Minimal operational checklist to turn this seed into a new project quickly |
-| [Admin Dashboard](docs/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
-| [Monitoring](docs/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
-| [.env Backup](docs/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |
-| [GDPR Compliance Checklist](docs/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
-| [Subscription Payments](docs/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
-| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
+| [Start Here](docs/getting-started/start-here.md) | Scenario-based entry point to the documentation |
+
+### Bootstrap A New App
+
+| Document | Description |
+|---|---|
+| [Seed Checklist](docs/getting-started/seed-checklist.md) | Minimal operational checklist to turn this seed into a new project quickly |
+| [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) | Complete guide for creating and deploying a new project based on this seed |
+| [VPS Setup Guide](docs/getting-started/vps-setup-guide.md) | Prepare a VPS from zero for hosting the application |
+| [CI/CD](docs/operations/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
+
+### Module Setup
+
+| Document | Description |
+|---|---|
+| [SMTP Configuration](docs/modules/smtp-configuration.md) | Email service setup, provider config (Mailpit, Brevo) |
+| [Subscription Payments](docs/modules/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
+| [Stripe Payments Setup](docs/modules/stripe-payments-setup.md) | End-to-end setup for enabling and operating the Stripe payments module |
+| [Authentication](docs/architecture/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
+| [Admin Dashboard](docs/modules/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
+| [Bootstrap Console](docs/architecture/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |
+
+### Operations
+
+| Document | Description |
+|---|---|
+| [Migration Strategy](docs/architecture/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
+| [Rollback Guide](docs/operations/rollback.md) | Production rollback strategies: image rollback, git revert, DB restore |
+| [Monitoring](docs/operations/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
+| [.env Backup](docs/operations/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |
+| [Troubleshooting](docs/operations/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
+
+### Compliance And Readiness
+
+| Document | Description |
+|---|---|
+| [GDPR Compliance Checklist](docs/compliance/gdpr-compliance-checklist.md) | Post-implementation checklist for GDPR compliance: legal text, DPA, data processing register |
 
 ## Tech stack
 
@@ -263,7 +287,7 @@ New features are implemented as `IRequest` / `IRequestHandler` pairs in `Seed.Ap
 
 ### Authentication
 
-JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management in `Seed.Infrastructure`. See [docs/authentication.md](docs/authentication.md) for full details.
+JWT Bearer auth configured in `Seed.Api`. ASP.NET Identity for user management in `Seed.Infrastructure`. See [docs/architecture/authentication.md](docs/architecture/authentication.md) for full details.
 
 ### API Versioning
 
@@ -289,7 +313,7 @@ dotnet ef database update \
   --startup-project src/Seed.Api
 ```
 
-See [docs/migration-strategy.md](docs/migration-strategy.md) for the migration strategy and [docs/smtp-configuration.md](docs/smtp-configuration.md) for email service setup.
+See [docs/architecture/migration-strategy.md](docs/architecture/migration-strategy.md) for the migration strategy and [docs/modules/smtp-configuration.md](docs/modules/smtp-configuration.md) for email service setup.
 
 ## Frontend web notes
 

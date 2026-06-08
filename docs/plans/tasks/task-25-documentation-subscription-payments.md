@@ -47,8 +47,8 @@ From **T-13b (Frontend feature gating)**:
 ### Riferimenti
 - `docs/requirements/FEAT-3.md` — full requirements for Subscription Plans & Payments
 - `docs/plans/PLAN-5.md` — implementation plan with all task details
-- `docs/smtp-configuration.md` — existing email/SMTP doc (referenced for email integration)
-- `docs/admin-dashboard.md` — existing admin doc (admin plan management touches this area)
+- `docs/modules/smtp-configuration.md` — existing email/SMTP doc (referenced for email integration)
+- `docs/modules/admin-dashboard.md` — existing admin doc (admin plan management touches this area)
 
 ## Stato attuale del codice
 - **Configuration POCOs:**
@@ -69,13 +69,13 @@ From **T-13b (Frontend feature gating)**:
 - **Frontend directive:** `frontend/web/projects/shared-auth/src/lib/directives/requires-plan.directive.ts`
 - **Frontend config service:** `frontend/web/projects/app/src/app/services/config.service.ts`
 - **Frontend payments guard:** `frontend/web/projects/app/src/app/guards/payments-enabled.guard.ts`
-- **No existing `docs/subscription-payments.md`** — file needs to be created from scratch
+- **No existing `docs/modules/subscription-payments.md`** — file needs to be created from scratch
 - **README.md** has a docs index table at lines 213-227 — new doc must be added there
 - **CLAUDE.md** has an "Existing docs" list — new doc must be added there
 
 ## Piano di esecuzione
 
-### Step 1: Create `docs/subscription-payments.md`
+### Step 1: Create `docs/modules/subscription-payments.md`
 Write the full documentation file with these sections (as specified in T-25's "What to do"):
 
 1. **Overview del modulo** — architecture description: IPaymentGateway abstraction, webhook flow (Stripe → StripeWebhookController → StripeWebhookEventHandler → DB update + email), module toggle (`Modules:Payments:Enabled`), conditional registration via `PaymentsModuleConvention`. Include a text-based flow diagram: Checkout → Stripe → Webhook → Subscription update.
@@ -102,13 +102,13 @@ Write the full documentation file with these sections (as specified in T-25's "W
 ### Step 2: Update `CLAUDE.md`
 Add to the "Existing docs" list:
 ```
-- `docs/subscription-payments.md` — Subscription payments module: Stripe setup, module toggle, webhook flow, plan/feature guards, troubleshooting. Read when configuring or developing subscription/payment features.
+- `docs/modules/subscription-payments.md` — Subscription payments module: Stripe setup, module toggle, webhook flow, plan/feature guards, troubleshooting. Read when configuring or developing subscription/payment features.
 ```
 
 ### Step 3: Update `README.md`
 Add a row to the docs index table (after GDPR Compliance Checklist line):
 ```
-| [Subscription Payments](docs/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
+| [Subscription Payments](docs/modules/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
 ```
 
 ### Step 4: Verify
@@ -119,7 +119,7 @@ Add a row to the docs index table (after GDPR Compliance Checklist line):
 
 ## Criteri di completamento
 (Definition of Done, verbatim from PLAN-5.md)
-- [x] `docs/subscription-payments.md` creato con tutte le sezioni
+- [x] `docs/modules/subscription-payments.md` creato con tutte le sezioni
 - [x] Istruzioni Stripe verificabili (link a docs ufficiali dove appropriato)
 - [x] Sezione sviluppo locale testabile passo-passo
 - [x] Checklist staging/produzione completa
@@ -130,8 +130,8 @@ Add a row to the docs index table (after GDPR Compliance Checklist line):
 ## Risultato
 
 ### File modificati
-- `docs/subscription-payments.md` — **creato** con 8 sezioni complete
-- `CLAUDE.md` — aggiunto riferimento a `docs/subscription-payments.md` nella lista "Existing docs"
+- `docs/modules/subscription-payments.md` — **creato** con 8 sezioni complete
+- `CLAUDE.md` — aggiunto riferimento a `docs/modules/subscription-payments.md` nella lista "Existing docs"
 - `README.md` — aggiunta riga nella tabella docs index (dopo GDPR Compliance Checklist)
 
 ### Scelte chiave

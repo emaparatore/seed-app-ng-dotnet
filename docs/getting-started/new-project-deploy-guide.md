@@ -2,7 +2,9 @@
 
 Questa guida spiega come deployare un nuovo progetto creato a partire dalla seed app su un VPS gia configurato.
 
-Per una versione piu corta e operativa, vedi anche [Seed Checklist](seed-checklist.md).
+**Quando usarla:** vuoi il flusso completo per trasformare il seed in una nuova applicazione deployata.
+
+**Quando non serve partire da qui:** se vuoi solo una checklist corta, usa [Seed Checklist](seed-checklist.md). Se devi ancora preparare il server da zero, usa prima [VPS Setup Guide](vps-setup-guide.md).
 
 > **Prerequisito**: il VPS deve essere gia configurato seguendo la [guida VPS](vps-setup-guide.md) (punti 1-4: utente, Docker, firewall). Se e il tuo primo deploy in assoluto, parti da quella guida.
 
@@ -17,8 +19,8 @@ Per una versione piu corta e operativa, vedi anche [Seed Checklist](seed-checkli
 [ ] 4. Crea la directory sul VPS e configura .env
 [ ] 5. Aggiungi dominio su Cloudflare
 [ ] 6. Crea il certificato SSL (Origin Certificate)
-[ ] 7. Primo deploy manuale sul VPS
-[ ] 8. Configura i GitHub Secrets per il deploy automatico
+[ ] 7. Configura i GitHub Secrets per il deploy automatico
+[ ] 8. Primo deploy tramite CI/CD e smoke test
 ```
 
 ---
@@ -69,7 +71,7 @@ Verifica su GitHub > Actions che il build sia andato a buon fine.
 
 ## 4. Configura il VPS
 
-### Sullo stesso VPS (se ospiti piu app)
+### Directory di deploy
 
 ```bash
 # Crea la directory per la nuova app
@@ -78,14 +80,7 @@ sudo chown deploy:deploy /opt/nuovo-progetto
 cd /opt/nuovo-progetto
 ```
 
-### Copia i file necessari
-
-```bash
-# Dal tuo PC locale
-scp docker/docker-compose.deploy.yml deploy@TUO_IP_VPS:/opt/nuovo-progetto/
-scp -r docker/nginx deploy@TUO_IP_VPS:/opt/nuovo-progetto/
-scp docker/.env.prod.example deploy@TUO_IP_VPS:/opt/nuovo-progetto/.env
-```
+> Il CI/CD copia automaticamente compose, nginx, monitoring e script di deploy. L'unica cosa da creare manualmente e la root directory sul VPS, insieme al file `.env`.
 
 ### Configura le variabili d'ambiente
 
@@ -128,9 +123,9 @@ WEB_IMAGE_TAG=latest
 CERTBOT_EMAIL=tua-email@example.com
 ```
 
-> **SMTP**: Se non configuri `Smtp__Host`, le email vengono loggate in console (utile per debug). Per la guida completa alla configurazione SMTP (Gmail per dev, Brevo per prod, DNS setup) vedi [Configurazione SMTP](smtp-configuration.md).
+> **SMTP**: Se non configuri `Smtp__Host`, le email vengono loggate in console (utile per debug). Per la guida completa alla configurazione SMTP (Gmail per dev, Brevo per prod, DNS setup) vedi [Configurazione SMTP](../modules/smtp-configuration.md).
 
-> **SuperAdmin**: Il file `.env.prod.example` include anche le variabili `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName` per creare l'utente admin iniziale durante il bootstrap del deploy. Dopo il primo deploy, rimuovi la password dal file `.env`. Vedi [Admin Dashboard — Configurazione iniziale](admin-dashboard.md#configurazione-iniziale).
+> **SuperAdmin**: Il file `.env.prod.example` include anche le variabili `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FirstName`, `SuperAdmin__LastName` per creare l'utente admin iniziale durante il bootstrap del deploy. Dopo il primo deploy, rimuovi la password dal file `.env`. Vedi [Admin Dashboard — Configurazione iniziale](../modules/admin-dashboard.md#configurazione-iniziale).
 
 ### Note sul compose
 
@@ -143,16 +138,15 @@ Puoi comunque cambiare `COMPOSE_PROJECT_NAME` nel `.env` se vuoi nomi container/
 ```bash
 sudo mkdir -p /opt/nuovo-progetto/backups
 sudo chown deploy:deploy /opt/nuovo-progetto/backups
-
-# Copia gli script di migrazione dal tuo PC locale
-scp -r docker/scripts deploy@TUO_IP_VPS:/opt/nuovo-progetto/
 ```
 
-> Il deploy automatico aggiorna gli script ad ogni rilascio, esegue backup + migrazioni e poi il bootstrap applicativo prima di riavviare l'API. Vedi [Migration Strategy](migration-strategy.md) per dettagli.
+> Il deploy automatico aggiorna gli script ad ogni rilascio, esegue backup + migrazioni e poi il bootstrap applicativo prima di riavviare l'API. Vedi [Migration Strategy](../architecture/migration-strategy.md) per dettagli.
 
 ---
 
 ## 5. Cloudflare — Aggiungi il Nuovo Dominio
+
+Per il dettaglio completo della configurazione Cloudflare, SSL/TLS e staging protetto, usa sempre [VPS Setup Guide](vps-setup-guide.md). Qui trovi solo il minimo necessario per un progetto derivato dal seed.
 
 ### Se usi lo stesso account Cloudflare
 
@@ -199,27 +193,7 @@ sudo nano /var/lib/docker/volumes/nuovo-progetto-deploy_certbot_conf/_data/live/
 
 ---
 
-## 7. Primo Deploy Manuale
-
-```bash
-ssh deploy@TUO_IP_VPS
-cd /opt/nuovo-progetto
-
-# Login a GHCR
-echo "TUO_GITHUB_PAT" | docker login ghcr.io -u TUO_USERNAME --password-stdin
-
-# Pull e avvio
-docker compose -f docker-compose.deploy.yml pull
-docker compose -f docker-compose.deploy.yml up -d
-
-# Verifica
-docker compose -f docker-compose.deploy.yml ps
-curl https://nuovodominio.com/health/ready
-```
-
----
-
-## 8. GitHub Secrets per Deploy Automatico
+## 7. GitHub Secrets per Deploy Automatico
 
 Nel nuovo repository GitHub > **Settings** > **Secrets and variables** > **Actions**:
 
@@ -232,7 +206,7 @@ Nel nuovo repository GitHub > **Settings** > **Secrets and variables** > **Actio
 
 > Se usi lo stesso VPS per piu app, i secrets `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY` sono gli stessi. Solo `GHCR_TOKEN` potrebbe variare se usi repo privati diversi.
 
-### Aggiorna il path nel workflow deploy.yml
+### Path di deploy custom
 
 Per default il workflow deploya in `/opt/<nome-repo>`, quindi spesso non devi cambiare nulla.
 
@@ -241,6 +215,29 @@ Se vuoi usare un path custom, aggiungi una repository variable GitHub Actions:
 | Variable | Valore di esempio |
 |----------|-------------------|
 | `DEPLOY_ROOT` | `/opt/nuovo-progetto` |
+
+---
+
+## 8. Primo Deploy tramite CI/CD
+
+Con secrets e `.env` gia configurati, il primo deploy puo avvenire direttamente tramite pipeline dopo il push su `master`.
+
+### Flusso consigliato
+
+1. Esegui `git push origin master`
+2. Verifica che `docker-publish.yml` pubblichi le immagini
+3. Verifica che `deploy.yml` completi sync file, migrazioni, seeding e avvio stack
+4. Esegui lo smoke test finale
+
+### Smoke test minimo
+
+```bash
+curl https://nuovodominio.com/health/ready
+```
+
+### Deploy manuale straordinario
+
+Se ti serve fare un avvio manuale di emergenza prima di avere la pipeline pronta, usa il `docker-compose.deploy.yml` e gli stessi valori del file `.env`. Non e il flusso principale raccomandato per i progetti derivati dal seed.
 
 ---
 
@@ -278,6 +275,6 @@ Ogni app ha il suo container PostgreSQL isolato. Questo e semplice e sicuro. Se 
 | Fork + push | 5 min |
 | Configurazione VPS (.env, compose) | 10 min |
 | Cloudflare (dominio + SSL) | 10 min |
-| Primo deploy manuale | 5 min |
 | GitHub Secrets | 5 min |
+| Primo deploy via CI/CD | 5 min |
 | **Totale** | **~35 min** |

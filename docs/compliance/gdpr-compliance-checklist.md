@@ -1,6 +1,12 @@
 # GDPR Compliance Checklist
 
-Questa checklist guida il **titolare del trattamento** nel completare gli aspetti non tecnici della conformità GDPR, dopo l'implementazione delle funzionalità tecniche previste da [FEAT-2](requirements/FEAT-2.md).
+Questa checklist guida il **titolare del trattamento** nel completare gli aspetti non tecnici della conformità GDPR, dopo l'implementazione delle funzionalità tecniche previste da [FEAT-2](../requirements/FEAT-2.md).
+
+**Quando usarla:** prima del go-live o durante l'hardening di una applicazione reale che usa questo seed.
+
+**Quando non serve all'inizio:** non fa parte del bootstrap tecnico minimo di una nuova app. Serve quando stai trasformando il progetto in un prodotto realmente pubblicabile.
+
+**Prerequisiti:** deploy base gia funzionante e funzionalita GDPR tecniche gia presenti o confermate.
 
 **Prerequisiti tecnici già implementati:**
 - Pagine Privacy Policy e Terms of Service con testo placeholder (T-01)
