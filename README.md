@@ -21,6 +21,9 @@ App URLs:
 - API: `http://localhost:5035`
 - Seq: `http://localhost:8081`
 
+Feature catalog in the running app:
+- Web catalog: `http://localhost:4200/features`
+
 Run all tests with Docker only:
 
 ```bash
@@ -32,6 +35,20 @@ dotnet run --project docker/TestRunner -- all
 - Docker Desktop (or Docker Engine + Compose)
 - .NET SDK 10 (only needed for local `dotnet` commands and `docker/TestRunner`)
 - Node.js 22 (only needed if you run frontend outside Docker)
+
+## What's already included
+
+This seed already ships with working application capabilities, not just an empty stack skeleton:
+
+- Authentication flows: registration, login, confirm email, forgot/reset password, profile, JWT auth
+- Admin area: RBAC permissions, users, roles, audit log, settings, system health, dashboard
+- Subscription module: pricing, plans, checkout, subscription management, invoice requests, feature gating
+- Email integration: SMTP support with console fallback for local development
+- Bootstrap and seeding: deployment-time initialization of roles, permissions, admin user, system settings
+- Delivery pipeline: CI, Docker image publish, VPS deploy, migrations, seeding, health checks
+- Operations docs: monitoring, rollback, troubleshooting, environment backup
+
+For a navigable overview inside the app, open `/features`. Each feature has its own dedicated page with included behavior, related routes, documentation paths, and code areas.
 
 ## Run with Docker (recommended)
 

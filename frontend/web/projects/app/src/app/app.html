@@ -5,6 +5,8 @@
   </span>
   <span class="spacer"></span>
 
+  <a mat-button routerLink="/features">Features</a>
+
   @if (authService.isAuthenticated()) {
     <a class="user-icon-link" mat-icon-button routerLink="/profile" aria-label="Profile">
       <mat-icon>account_circle</mat-icon>
@@ -24,6 +26,10 @@
     <button mat-menu-item routerLink="/">
       <mat-icon>home</mat-icon>
       <span>Home</span>
+    </button>
+    <button mat-menu-item routerLink="/features">
+      <mat-icon>widgets</mat-icon>
+      <span>Features</span>
     </button>
     @if (configService.paymentsEnabled()) {
       <button mat-menu-item routerLink="/pricing">

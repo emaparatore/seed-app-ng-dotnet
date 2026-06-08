@@ -1,0 +1,47 @@
+<main class="feature-catalog-page">
+  <section class="catalog-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Included capabilities</p>
+      <h1>Explore what this seed already gives you.</h1>
+      <p class="hero-text">
+        This project is more than a starter shell. It already includes working product capabilities,
+        operational tooling, and deployment structure that you can keep, trim, or extend in your own app.
+      </p>
+    </div>
+
+    <div class="hero-panel">
+      <div class="hero-stat">
+        <span class="stat-number">{{ seedFeatures.length }}</span>
+        <span class="stat-label">feature tracks</span>
+      </div>
+      <p>
+        Open a feature page to see what is included, where it lives, which routes expose it, and what setup is optional.
+      </p>
+    </div>
+  </section>
+
+  <section class="catalog-grid" aria-label="Seed features">
+    @for (feature of seedFeatures; track feature.slug) {
+      <article class="feature-card">
+        <div class="card-topline">
+          <span class="card-eyebrow">{{ feature.eyebrow }}</span>
+          <span class="status-chip">{{ feature.status }}</span>
+        </div>
+
+        <h2>{{ feature.title }}</h2>
+        <p class="card-summary">{{ feature.summary }}</p>
+
+        <ul class="mini-list">
+          @for (highlight of feature.highlights.slice(0, 3); track highlight) {
+            <li>{{ highlight }}</li>
+          }
+        </ul>
+
+        <div class="card-footer">
+          <p>{{ feature.audience }}</p>
+          <a class="feature-link" [routerLink]="['/features', feature.slug]">Open feature page</a>
+        </div>
+      </article>
+    }
+  </section>
+</main>

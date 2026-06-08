@@ -1,0 +1,94 @@
+<main class="feature-detail-page">
+  @if (feature(); as currentFeature) {
+    <section class="detail-hero">
+      <div class="hero-main">
+        <a class="back-link" routerLink="/features">Back to all features</a>
+        <p class="eyebrow">{{ currentFeature.eyebrow }}</p>
+        <h1>{{ currentFeature.title }}</h1>
+        <p class="summary">{{ currentFeature.summary }}</p>
+      </div>
+
+      <aside class="hero-side">
+        <span class="status-chip">{{ currentFeature.status }}</span>
+        <p>{{ currentFeature.audience }}</p>
+      </aside>
+    </section>
+
+    <section class="detail-grid">
+      <article class="panel">
+        <h2>What is already included</h2>
+        <ul>
+          @for (highlight of currentFeature.highlights; track highlight) {
+            <li>{{ highlight }}</li>
+          }
+        </ul>
+      </article>
+
+      <article class="panel">
+        <h2>Optional setup and extension points</h2>
+        <ul>
+          @for (note of currentFeature.setupNotes; track note) {
+            <li>{{ note }}</li>
+          }
+        </ul>
+      </article>
+
+      <article class="panel">
+        <h2>App routes</h2>
+        @if (currentFeature.routes.length > 0) {
+          <ul class="code-list">
+            @for (route of currentFeature.routes; track route) {
+              <li><code>{{ route }}</code></li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">This feature is mostly infrastructure, backend, or documentation driven rather than a dedicated public route.</p>
+        }
+      </article>
+
+      <article class="panel">
+        <h2>Documentation paths</h2>
+        <ul class="code-list">
+          @for (doc of currentFeature.docs; track doc) {
+            <li><code>{{ doc }}</code></li>
+          }
+        </ul>
+      </article>
+
+      <article class="panel panel-wide">
+        <h2>Where it lives in the codebase</h2>
+        <ul class="code-list">
+          @for (area of currentFeature.codeAreas; track area) {
+            <li><code>{{ area }}</code></li>
+          }
+        </ul>
+      </article>
+    </section>
+
+    <section class="related-section">
+      <div class="related-header">
+        <h2>Other feature pages</h2>
+        <a routerLink="/features">See full catalog</a>
+      </div>
+
+      <div class="related-grid">
+        @for (featureEntry of relatedFeatures; track featureEntry.slug) {
+          @if (featureEntry.slug !== currentFeature.slug) {
+            <a class="related-card" [routerLink]="['/features', featureEntry.slug]">
+              <span class="related-eyebrow">{{ featureEntry.eyebrow }}</span>
+              <strong>{{ featureEntry.title }}</strong>
+              <span>{{ featureEntry.status }}</span>
+            </a>
+          }
+        }
+      </div>
+    </section>
+  } @else {
+    <section class="not-found">
+      <p class="eyebrow">Feature catalog</p>
+      <h1>Feature page not found.</h1>
+      <p>The requested feature slug does not exist in the current seed catalog.</p>
+      <a class="back-button" routerLink="/features">Go back to the catalog</a>
+    </section>
+  }
+</main>

@@ -10,6 +10,7 @@
       </p>
       <div class="hero-actions">
         <a class="action" href="#quick-start" (click)="scrollToSection($event, 'quick-start')">Quick start</a>
+        <a class="action secondary" routerLink="/features">Browse features</a>
         <a class="action secondary github-action" href="https://github.com/emaparatore/seed-app-ng-dotnet.git" target="_blank" rel="noopener noreferrer" aria-label="Open GitHub repository in a new tab">
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path
@@ -60,6 +61,35 @@ cp .env.example .env</code></pre>
     <p class="subtle-note">
       Infrastructure is already wired: Docker Compose starts PostgreSQL, API, and frontend together for local development.
     </p>
+  </section>
+
+  <section class="section">
+    <div class="feature-showcase-header">
+      <div>
+        <h2>Included features</h2>
+        <p class="subtle-note">The starter already includes real product capabilities, not just the stack skeleton.</p>
+      </div>
+      <a class="inline-link" routerLink="/features">Open full feature catalog</a>
+    </div>
+
+    <div class="grid">
+      <div class="card accent-card">
+        <h3>Authentication</h3>
+        <p>Registration, login, password reset, confirm email, profile, refresh token rotation, and forced password change flows are already present.</p>
+      </div>
+      <div class="card accent-card">
+        <h3>Admin and RBAC</h3>
+        <p>Users, roles, permissions, audit log, settings, dashboard metrics, and system health are already available in the admin area.</p>
+      </div>
+      <div class="card accent-card">
+        <h3>Subscriptions and billing</h3>
+        <p>Pricing, checkout, subscription management, invoice requests, and feature gating are built and can stay disabled until needed.</p>
+      </div>
+      <div class="card accent-card">
+        <h3>Operations and deploy</h3>
+        <p>Bootstrap seeding, CI/CD, Docker deploy, monitoring, rollback guidance, and environment runbooks are part of the seed.</p>
+      </div>
+    </div>
   </section>
 
   <section class="section">
