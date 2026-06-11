@@ -76,8 +76,10 @@ On push, only changed images are rebuilt (path filtering). On manual trigger, yo
 | `dev` | `dev`, `dev-sha-<short>` |
 
 **Images:**
-- `ghcr.io/<owner>/<repo>/api` - Backend API
-- `ghcr.io/<owner>/<repo>/web` - Frontend web
+- `ghcr.io/<owner>/<project-slug>/api` - Backend API
+- `ghcr.io/<owner>/<project-slug>/web` - Frontend web
+
+`PROJECT_SLUG` is read from GitHub Actions Variables and defaults to `seed-app`, so image publishing and VPS deploy use the same naming source.
 
 Path filtering applies here too — only changed images are rebuilt on push. Use `workflow_dispatch` with force inputs to bypass this.
 

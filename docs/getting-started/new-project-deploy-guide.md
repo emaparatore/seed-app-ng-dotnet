@@ -47,7 +47,7 @@ La convenzione consigliata e scegliere uno slug stabile del progetto. Il workflo
 
 ## 2. Aggiorna il CI/CD (se hai rinominato il repo)
 
-I workflow usano `${{ github.repository }}` per build e tagging delle immagini, ma il deploy non dipende dal nome del repository GitHub.
+I workflow di build e deploy usano lo stesso `PROJECT_SLUG`, quindi il nome delle immagini e il path VPS restano coerenti e non dipendono dal nome del repository GitHub.
 
 Per il deploy su VPS:
 
