@@ -34,17 +34,33 @@ Puoi rimandare a dopo:
 
 ## 3. Configura il deploy
 
+Nel repository GitHub puoi anche non impostare nulla: il seed va in default con `PROJECT_SLUG=seed-app`.
+
+Imposta questa Actions variable solo se vuoi uno slug diverso dal default:
+
+```text
+PROJECT_SLUG=seed-app
+```
+
+Se stai creando una nuova app, sostituisci `seed-app` con uno slug stabile del progetto, ad esempio `nuovo-progetto`.
+
 Nel `.env` del VPS imposta almeno:
 
 ```env
 GHCR_OWNER=tuo-github-username
-GHCR_IMAGE_NAME=nuovo-progetto
 DOMAIN_NAME=nuovodominio.com
 CLIENT_BASE_URL=https://nuovodominio.com
 ```
 
+Se `GHCR_OWNER` manca, il workflow usa il repository owner GitHub come fallback. Conviene comunque impostarlo esplicitamente nel `.env` se vuoi una configurazione piu leggibile o se le immagini stanno sotto un owner diverso.
+
 Opzionale:
-- GitHub Actions variable `DEPLOY_ROOT=/opt/nuovo-progetto` se non vuoi usare il default `/opt/<repository-name>`
+- GitHub Actions variable `DEPLOY_ROOT=/opt/nuovo-progetto` se non vuoi usare il default `/opt/<PROJECT_SLUG>`
+
+Nota:
+- se non personalizzi nulla, il seed usa `PROJECT_SLUG=seed-app` e deploya in `/opt/seed-app`
+- il workflow scrive automaticamente `GHCR_IMAGE_NAME=seed-app` nel `.env` del VPS
+- se cambi progetto, aggiorna `PROJECT_SLUG`: non serve modificare `GHCR_IMAGE_NAME` a mano
 
 Verifica:
 - la directory root del deploy esiste sul VPS

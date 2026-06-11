@@ -14,7 +14,7 @@ Questa guida spiega come deployare un nuovo progetto creato a partire dalla seed
 
 ```
 [ ] 1. Fork/clone della seed app e rinomina il progetto
-[ ] 2. Configura `GHCR_OWNER`, `GHCR_IMAGE_NAME` e, se serve, `DEPLOY_ROOT`
+[ ] 2. Configura `PROJECT_SLUG`, `GHCR_OWNER` e, se serve, `DEPLOY_ROOT`
 [ ] 3. Push su GitHub — le immagini vengono buildate automaticamente
 [ ] 4. Crea la directory sul VPS e configura .env
 [ ] 5. Aggiungi dominio su Cloudflare
@@ -41,19 +41,20 @@ Nel backend, rinomina il namespace `Seed` se vuoi (opzionale, puoi farlo dopo):
 - Solution, progetti, namespace C#
 - Dockerfile references
 
-Le immagini Docker vengono nominate automaticamente dal nome del repository GitHub (`ghcr.io/username/nuovo-progetto/api` e `.../web`). Nel file `.env` del VPS basta impostare `GHCR_IMAGE_NAME=nuovo-progetto`.
+La convenzione consigliata e scegliere uno slug stabile del progetto. Il workflow usa la GitHub Actions variable `PROJECT_SLUG` per derivare sia il nome immagini sia il path di deploy. Se non vuoi personalizzare nulla, lascia il default del seed: `PROJECT_SLUG=seed-app`.
 
 ---
 
 ## 2. Aggiorna il CI/CD (se hai rinominato il repo)
 
-I workflow usano `${{ github.repository }}` per build e tagging delle immagini, quindi **si adattano automaticamente** al nuovo repo. Non devi cambiare nulla nei workflow.
+I workflow usano `${{ github.repository }}` per build e tagging delle immagini, ma il deploy non dipende dal nome del repository GitHub.
 
 Per il deploy su VPS:
 
-- `GHCR_OWNER` va impostato nel `.env` del server
-- `GHCR_IMAGE_NAME` va impostato al nome del nuovo repository (es. `nuovo-progetto`)
-- il path di deploy di default diventa automaticamente `/opt/<nome-repo>`
+- `PROJECT_SLUG` e opzionale: se non lo imposti, il seed usa il default `seed-app`
+- `GHCR_OWNER` conviene impostarlo nel `.env` del server; se manca, il workflow usa il repository owner GitHub come fallback
+- `GHCR_IMAGE_NAME` viene scritto automaticamente dal workflow a partire da `PROJECT_SLUG`, quindi non devi ricavarlo dal nome repo ne gestirlo a mano nel file di esempio
+- il path di deploy di default diventa automaticamente `/opt/<project-slug>`
 - se vuoi un path custom, imposta la variabile GitHub Actions `DEPLOY_ROOT` (es. `/opt/piattaforma`)
 
 ---
@@ -72,6 +73,8 @@ Verifica su GitHub > Actions che il build sia andato a buon fine.
 ## 4. Configura il VPS
 
 ### Directory di deploy
+
+Esempio con `PROJECT_SLUG=nuovo-progetto` e senza `DEPLOY_ROOT` custom:
 
 ```bash
 # Crea la directory per la nuova app
@@ -116,7 +119,6 @@ Smtp__UseSsl=true
 # --- VPS Deployment ---
 DOMAIN_NAME=nuovodominio.com
 GHCR_OWNER=tuo-github-username
-GHCR_IMAGE_NAME=nuovo-progetto
 # Il CI aggiorna automaticamente questi valori con il tag SHA del commit deployato
 API_IMAGE_TAG=latest
 WEB_IMAGE_TAG=latest
@@ -129,7 +131,7 @@ CERTBOT_EMAIL=tua-email@example.com
 
 ### Note sul compose
 
-Non serve piu modificare manualmente i nomi delle immagini nel `docker-compose.deploy.yml`: vengono risolti tramite `GHCR_OWNER` + `GHCR_IMAGE_NAME` dal file `.env`.
+Non serve piu modificare manualmente i nomi delle immagini nel `docker-compose.deploy.yml`: vengono risolti tramite `GHCR_OWNER` + `GHCR_IMAGE_NAME` dal file `.env`. Il workflow scrive e aggiorna automaticamente `GHCR_IMAGE_NAME` in base a `PROJECT_SLUG`.
 
 Puoi comunque cambiare `COMPOSE_PROJECT_NAME` nel `.env` se vuoi nomi container/volumi diversi da quelli di default.
 
@@ -208,12 +210,13 @@ Nel nuovo repository GitHub > **Settings** > **Secrets and variables** > **Actio
 
 ### Path di deploy custom
 
-Per default il workflow deploya in `/opt/<nome-repo>`, quindi spesso non devi cambiare nulla.
+Per default il workflow deploya in `/opt/<project-slug>`. Se non configuri nulla, il seed usa `PROJECT_SLUG=seed-app` e quindi `/opt/seed-app`.
 
 Se vuoi usare un path custom, aggiungi una repository variable GitHub Actions:
 
 | Variable | Valore di esempio |
 |----------|-------------------|
+| `PROJECT_SLUG` | `nuovo-progetto` |
 | `DEPLOY_ROOT` | `/opt/nuovo-progetto` |
 
 ---
