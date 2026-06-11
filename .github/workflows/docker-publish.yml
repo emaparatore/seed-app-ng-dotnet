@@ -24,6 +24,10 @@ permissions:
   contents: read
   packages: write
 
+env:
+  PROJECT_SLUG: ${{ vars.PROJECT_SLUG || 'seed-app' }}
+  GHCR_IMAGE_BASE: ghcr.io/${{ github.repository_owner }}/${{ vars.PROJECT_SLUG || 'seed-app' }}
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -59,7 +63,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}/api
+          images: ${{ env.GHCR_IMAGE_BASE }}/api
           tags: |
             type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
             type=sha,prefix=sha-,enable=${{ github.ref_name == 'master' }}
@@ -85,7 +89,7 @@ jobs:
       - name: Scan API image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}/api:${{ steps.meta.outputs.version }}
+          image-ref: ${{ env.GHCR_IMAGE_BASE }}/api:${{ steps.meta.outputs.version }}
           exit-code: 1
           severity: CRITICAL,HIGH
 
@@ -107,7 +111,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}/web
+          images: ${{ env.GHCR_IMAGE_BASE }}/web
           tags: |
             type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
             type=sha,prefix=sha-,enable=${{ github.ref_name == 'master' }}
@@ -133,6 +137,6 @@ jobs:
       - name: Scan Web image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}/web:${{ steps.meta.outputs.version }}
+          image-ref: ${{ env.GHCR_IMAGE_BASE }}/web:${{ steps.meta.outputs.version }}
           exit-code: 1
           severity: CRITICAL,HIGH

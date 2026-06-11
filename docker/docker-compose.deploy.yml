@@ -35,7 +35,7 @@ services:
       - app-network
 
   api:
-    image: ghcr.io/${GHCR_OWNER}/${GHCR_IMAGE_NAME:-seed-app-ng-dotnet}/api:${API_IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/${GHCR_IMAGE_NAME:-seed-app}/api:${API_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:
@@ -70,7 +70,7 @@ services:
       - app-network
 
   web:
-    image: ghcr.io/${GHCR_OWNER}/${GHCR_IMAGE_NAME:-seed-app-ng-dotnet}/web:${WEB_IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/${GHCR_IMAGE_NAME:-seed-app}/web:${WEB_IMAGE_TAG:-latest}
     restart: unless-stopped
     mem_limit: 384m
     depends_on:
