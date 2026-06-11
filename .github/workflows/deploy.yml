@@ -19,8 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.env.outputs.name }}
+      project_slug: ${{ steps.env.outputs.project_slug }}
       image_tag_prefix: ${{ steps.env.outputs.tag_prefix }}
       image_tag: ${{ steps.env.outputs.tag }}
+      ghcr_image_name: ${{ steps.env.outputs.ghcr_image_name }}
       deploy_root: ${{ steps.env.outputs.deploy_root }}
       backup_root: ${{ steps.env.outputs.backup_root }}
       deploy_dir: ${{ steps.env.outputs.deploy_dir }}
@@ -31,14 +33,18 @@ jobs:
         env:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          PROJECT_SLUG_INPUT: ${{ vars.PROJECT_SLUG }}
           DEPLOY_ROOT_OVERRIDE: ${{ vars.DEPLOY_ROOT }}
         run: |
           BRANCH="$HEAD_BRANCH"
           SHORT_SHA=$(printf '%s' "$HEAD_SHA" | cut -c1-7)
-          DEPLOY_ROOT="${DEPLOY_ROOT_OVERRIDE:-/opt/${REPOSITORY_NAME}}"
+          PROJECT_SLUG="${PROJECT_SLUG_INPUT:-seed-app}"
+          GHCR_IMAGE_NAME="$PROJECT_SLUG"
+          DEPLOY_ROOT="${DEPLOY_ROOT_OVERRIDE:-/opt/${PROJECT_SLUG}}"
           BACKUP_ROOT="${DEPLOY_ROOT}/backups"
 
+          echo "project_slug=${PROJECT_SLUG}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_image_name=${GHCR_IMAGE_NAME}" >> "$GITHUB_OUTPUT"
           echo "deploy_root=${DEPLOY_ROOT}" >> "$GITHUB_OUTPUT"
           echo "backup_root=${BACKUP_ROOT}" >> "$GITHUB_OUTPUT"
 
@@ -100,11 +106,15 @@ jobs:
         if: steps.check.outputs.should_deploy == 'true'
         env:
           DEPLOY_ENVIRONMENT: ${{ needs.determine-environment.outputs.environment }}
+          PROJECT_SLUG: ${{ needs.determine-environment.outputs.project_slug }}
+          GHCR_IMAGE_NAME: ${{ needs.determine-environment.outputs.ghcr_image_name }}
           IMAGE_TAG: ${{ needs.determine-environment.outputs.image_tag }}
           DEPLOY_DIR: ${{ needs.determine-environment.outputs.deploy_dir }}
           SERVICES: ${{ steps.check.outputs.services }}
         run: |
           echo "Deploying to: $DEPLOY_ENVIRONMENT"
+          echo "Project slug: $PROJECT_SLUG"
+          echo "Image name:   $GHCR_IMAGE_NAME"
           echo "Image tag:    $IMAGE_TAG"
           echo "Deploy dir:   $DEPLOY_DIR"
           echo "Services:     $SERVICES"
@@ -197,6 +207,7 @@ jobs:
 
             DEPLOY_DIR="${{ needs.determine-environment.outputs.deploy_dir }}"
             DEPLOY_ROOT="${{ needs.determine-environment.outputs.deploy_root }}"
+            GHCR_IMAGE_NAME="${{ needs.determine-environment.outputs.ghcr_image_name }}"
             COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.deploy.yml"
             SCRIPT_DIR="${DEPLOY_DIR}/scripts"
             BACKUP_DIR="${{ needs.determine-environment.outputs.backup_dir }}"
@@ -235,8 +246,10 @@ jobs:
               echo "GHCR_OWNER=${{ github.repository_owner }}" >> .env
             fi
 
-            if ! grep -q '^GHCR_IMAGE_NAME=' .env; then
-              echo "GHCR_IMAGE_NAME=${{ github.event.repository.name }}" >> .env
+            if grep -q '^GHCR_IMAGE_NAME=' .env; then
+              sed -i "s/^GHCR_IMAGE_NAME=.*/GHCR_IMAGE_NAME=${GHCR_IMAGE_NAME}/" .env
+            else
+              echo "GHCR_IMAGE_NAME=${GHCR_IMAGE_NAME}" >> .env
             fi
 
             IMAGE_TAG="${{ needs.determine-environment.outputs.image_tag }}"

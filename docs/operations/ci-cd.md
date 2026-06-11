@@ -102,7 +102,9 @@ Uses GitHub Environments:
 - `staging` - auto-deploy on `dev` push → deploys to `<DEPLOY_ROOT>/staging/`
 - `production` - deploy on `master` push (configure required reviewers if needed) → deploys to `<DEPLOY_ROOT>/production/`
 
-`DEPLOY_ROOT` defaults to `/opt/<repository-name>`. You can override it with the GitHub Actions repository variable `DEPLOY_ROOT`.
+The deploy naming is driven by the GitHub Actions repository variable `PROJECT_SLUG`.
+If you do not set it, the seed defaults to `PROJECT_SLUG=seed-app`.
+`DEPLOY_ROOT` defaults to `/opt/<PROJECT_SLUG>` and can be overridden with the GitHub Actions repository variable `DEPLOY_ROOT`.
 
 **Dual-environment deploy paths:**
 
@@ -113,12 +115,14 @@ Uses GitHub Environments:
 
 Il CI scrive il tag SHA immutabile del commit deployato (es. `sha-6d7da25`) nel `.env` del VPS, separatamente per ogni servizio (`API_IMAGE_TAG`, `WEB_IMAGE_TAG`). Solo i servizi effettivamente rebuildati vengono aggiornati.
 
+Il workflow mantiene anche `GHCR_IMAGE_NAME` allineato a `PROJECT_SLUG`, cosi il nome immagini non dipende mai dal nome del repository GitHub.
+
 The CI creates the directory structure and copies these files to the deploy dir on each run:
 - `docker/docker-compose.deploy.yml`
 - `docker/scripts/migrate.sh`, `seed.sh`, `restore.sh`
 - `docker/nginx/nginx.conf` and `docker/nginx/templates/*`
 
-No manual file copying is needed — even on the first deploy, the CI handles everything. The only prerequisite on the VPS is the deploy root directory (`DEPLOY_ROOT`, by default `/opt/<repository-name>`) owned by the deploy user and the `.env` file, which is **never overwritten by CI** and must be created manually once (see [VPS Setup Guide](../getting-started/vps-setup-guide.md#6-configurazione-delle-variabili-dambiente)).
+No manual file copying is needed — even on the first deploy, the CI handles everything. The only prerequisite on the VPS is the deploy root directory (`DEPLOY_ROOT`, by default `/opt/seed-app`) owned by the deploy user and the `.env` file, which is **never overwritten by CI** and must be created manually once (see [VPS Setup Guide](../getting-started/vps-setup-guide.md#6-configurazione-delle-variabili-dambiente)).
 
 ### 4. Hotfix Back-merge (`hotfix-backmerge.yml`)
 

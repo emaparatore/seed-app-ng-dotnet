@@ -202,8 +202,12 @@ See [docs/operations/ci-cd.md](docs/operations/ci-cd.md) for full documentation.
 
 When you create a new repo from this seed:
 
-- Docker images for deploy are resolved via `GHCR_OWNER` + `GHCR_IMAGE_NAME`
-- the VPS deploy root defaults to `/opt/<repository-name>`
+- the deploy naming is driven by the GitHub Actions repository variable `PROJECT_SLUG`
+- if you do not customize it, the seed uses `PROJECT_SLUG=seed-app`
+- Docker images for deploy default to `ghcr.io/<owner>/seed-app/...`
+- if `GHCR_OWNER` is not present in the VPS `.env`, the deploy workflow falls back to the GitHub repository owner
+- the deploy workflow keeps `GHCR_IMAGE_NAME` in the VPS `.env` aligned with `PROJECT_SLUG`
+- the VPS deploy root defaults to `/opt/<PROJECT_SLUG>` and therefore `/opt/seed-app` out of the box
 - you can override the deploy root with the GitHub Actions repository variable `DEPLOY_ROOT`
 
 Start from [docs/getting-started/start-here.md](docs/getting-started/start-here.md) if you are unsure which document applies to your scenario.
