@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
-const DOCS_SOURCE = path.join(REPO_ROOT, 'docs');
+const PUBLIC_DOCS_CONFIG = path.join(REPO_ROOT, 'docs', 'public-docs.json');
 const PUBLIC_OUTPUT = path.join(__dirname, '..', 'projects', 'app', 'public', 'docs');
 
 const CATEGORIES = [
@@ -19,10 +20,8 @@ const CATEGORIES = [
   { slug: 'seed', title: 'Seed', order: 6 },
 ];
 
-const EXCLUDED_FILES = new Set([
-  'docs/operations/auto-execute.md',
-  'docs/operations/adding-collaborators.md',
-]);
+const CATEGORY_BY_SLUG = new Map(CATEGORIES.map((category) => [category.slug, category]));
+const CHECK_MODE = process.argv.includes('--check');
 
 function slugifyTitle(raw) {
   return raw
@@ -42,83 +41,181 @@ function extractTitle(content) {
   return null;
 }
 
-async function cleanOutput() {
-  await fs.rm(PUBLIC_OUTPUT, { recursive: true, force: true });
-  await fs.mkdir(PUBLIC_OUTPUT, { recursive: true });
+async function readPublicDocsConfig() {
+  const raw = await fs.readFile(PUBLIC_DOCS_CONFIG, 'utf-8');
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed.documents)) {
+    throw new Error('docs/public-docs.json must contain a "documents" array.');
+  }
+  return parsed.documents;
 }
 
-async function buildCategory(category) {
-  const sourceDir = path.join(DOCS_SOURCE, category.slug);
-  const outputDir = path.join(PUBLIC_OUTPUT, category.slug);
-
-  let entries;
-  try {
-    entries = await fs.readdir(sourceDir, { withFileTypes: true });
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.warn(`[docs] Skipping missing category: ${category.slug}`);
-      return [];
-    }
-    throw err;
-  }
-
+async function cleanOutput(outputDir) {
+  await fs.rm(outputDir, { recursive: true, force: true });
   await fs.mkdir(outputDir, { recursive: true });
+}
 
+async function buildDocs(outputDir) {
+  await cleanOutput(outputDir);
+  const publicDocs = await readPublicDocsConfig();
+  const seen = new Set();
+  const orderByCategory = new Map();
   const docs = [];
-  let order = 1;
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.md')) {
-      continue;
-    }
-    const relativePath = `docs/${category.slug}/${entry.name}`;
-    if (EXCLUDED_FILES.has(relativePath)) {
-      console.log(`[docs] Excluding: ${relativePath}`);
-      continue;
-    }
-    const sourceFile = path.join(sourceDir, entry.name);
-    const content = await fs.readFile(sourceFile, 'utf-8');
-    const title = extractTitle(content) ?? entry.name.replace(/\.md$/, '');
-    const fileBase = entry.name.replace(/\.md$/, '');
-    const slug = slugifyTitle(fileBase);
-    const destFile = path.join(outputDir, `${slug}.md`);
 
-    await fs.writeFile(destFile, content, 'utf-8');
+  for (const relativePath of publicDocs) {
+    validatePublicDocPath(relativePath, seen);
+
+    const parts = relativePath.split('/');
+    const categorySlug = parts[1];
+    const category = CATEGORY_BY_SLUG.get(categorySlug);
+    if (!category) {
+      throw new Error(`Unsupported public docs category "${categorySlug}" in ${relativePath}.`);
+    }
+
+    const sourceFile = path.join(REPO_ROOT, relativePath);
+    const stat = await fs.stat(sourceFile).catch(() => null);
+    if (!stat?.isFile()) {
+      throw new Error(`Public doc not found: ${relativePath}`);
+    }
+
+    const content = await fs.readFile(sourceFile, 'utf-8');
+    const title = extractTitle(content) ?? path.basename(relativePath, '.md');
+    const fileBase = path.basename(relativePath, '.md');
+    const slug = slugifyTitle(fileBase);
+    const outputCategoryDir = path.join(outputDir, categorySlug);
+    const outputFile = path.join(outputCategoryDir, `${slug}.md`);
+
+    await fs.mkdir(outputCategoryDir, { recursive: true });
+    await fs.writeFile(outputFile, content, 'utf-8');
+
+    const order = (orderByCategory.get(categorySlug) ?? 0) + 1;
+    orderByCategory.set(categorySlug, order);
 
     docs.push({
-      category: category.slug,
+      category: categorySlug,
       slug,
       title,
-      order: order++,
-      path: `docs/${category.slug}/${slug}.md`,
+      order,
+      path: `docs/${categorySlug}/${slug}.md`,
     });
-  }
-
-  docs.sort((a, b) => a.title.localeCompare(b.title));
-  return docs.map((doc, index) => ({ ...doc, order: index + 1 }));
-}
-
-async function main() {
-  await cleanOutput();
-
-  const allDocs = [];
-  for (const category of CATEGORIES) {
-    const docs = await buildCategory(category);
-    allDocs.push(...docs);
   }
 
   const manifest = {
     categories: CATEGORIES,
-    docs: allDocs,
+    docs,
   };
 
   await fs.writeFile(
-    path.join(PUBLIC_OUTPUT, 'manifest.json'),
-    JSON.stringify(manifest, null, 2),
+    path.join(outputDir, 'manifest.json'),
+    `${JSON.stringify(manifest, null, 2)}\n`,
     'utf-8',
   );
 
+  return manifest;
+}
+
+function validatePublicDocPath(relativePath, seen) {
+  if (typeof relativePath !== 'string') {
+    throw new Error('Each public document path must be a string.');
+  }
+  if (seen.has(relativePath)) {
+    throw new Error(`Duplicate public doc path: ${relativePath}`);
+  }
+  seen.add(relativePath);
+
+  if (!relativePath.startsWith('docs/')) {
+    throw new Error(`Public doc path must start with "docs/": ${relativePath}`);
+  }
+  if (!relativePath.endsWith('.md')) {
+    throw new Error(`Public doc path must end with ".md": ${relativePath}`);
+  }
+  if (relativePath.includes('..') || path.isAbsolute(relativePath)) {
+    throw new Error(`Public doc path must be relative and stay inside docs/: ${relativePath}`);
+  }
+}
+
+async function listFiles(rootDir) {
+  const files = [];
+
+  async function walk(currentDir) {
+    const entries = await fs.readdir(currentDir, { withFileTypes: true }).catch((err) => {
+      if (err.code === 'ENOENT') {
+        return [];
+      }
+      throw err;
+    });
+
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+      if (entry.isFile()) {
+        files.push(path.relative(rootDir, fullPath).replace(/\\/g, '/'));
+      }
+    }
+  }
+
+  await walk(rootDir);
+  return files.sort();
+}
+
+async function assertDirectoriesEqual(expectedDir, actualDir) {
+  const [expectedFiles, actualFiles] = await Promise.all([
+    listFiles(expectedDir),
+    listFiles(actualDir),
+  ]);
+
+  const expectedSet = new Set(expectedFiles);
+  const actualSet = new Set(actualFiles);
+  const missing = expectedFiles.filter((file) => !actualSet.has(file));
+  const extra = actualFiles.filter((file) => !expectedSet.has(file));
+
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error([
+      'Generated public docs snapshot is out of sync.',
+      missing.length > 0 ? `Missing files: ${missing.join(', ')}` : null,
+      extra.length > 0 ? `Extra files: ${extra.join(', ')}` : null,
+      'Run: npm run sync:docs',
+    ].filter(Boolean).join('\n'));
+  }
+
+  for (const file of expectedFiles) {
+    const [expected, actual] = await Promise.all([
+      fs.readFile(path.join(expectedDir, file), 'utf-8'),
+      fs.readFile(path.join(actualDir, file), 'utf-8'),
+    ]);
+    if (expected !== actual) {
+      throw new Error([
+        'Generated public docs snapshot is out of sync.',
+        `Changed file: ${file}`,
+        'Run: npm run sync:docs',
+      ].join('\n'));
+    }
+  }
+}
+
+async function checkDocsSync() {
+  const tempDir = await fs.mkdtemp(path.join(tmpdir(), 'public-docs-'));
+  try {
+    await buildDocs(tempDir);
+    await assertDirectoriesEqual(tempDir, PUBLIC_OUTPUT);
+    console.log('[docs] Public docs snapshot is up to date.');
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+async function main() {
+  if (CHECK_MODE) {
+    await checkDocsSync();
+    return;
+  }
+
+  const manifest = await buildDocs(PUBLIC_OUTPUT);
   console.log(
-    `[docs] Built ${allDocs.length} docs across ${CATEGORIES.length} categories -> ${path.relative(REPO_ROOT, PUBLIC_OUTPUT)}`,
+    `[docs] Synced ${manifest.docs.length} public docs -> ${path.relative(REPO_ROOT, PUBLIC_OUTPUT)}`,
   );
 }
 

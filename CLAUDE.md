@@ -279,5 +279,5 @@ Existing docs:
 - `docs/operations/monitoring.md` — Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, metriche custom, alerting. Read when touching monitoring config, dashboards, or metrics.
 - `docs/compliance/gdpr-compliance-checklist.md` — Post-implementation GDPR checklist: legal text, privacy contact, DPA, data processing register. Read when completing GDPR compliance or onboarding a data controller.
 - `docs/modules/subscription-payments.md` — Subscription payments module: Stripe setup, module toggle, webhook flow, plan/feature guards, troubleshooting. Read when configuring or developing subscription/payment features.
-- `docs/modules/in-app-documentation.md` — In-app Markdown documentation viewer: build-docs manifest generation, included/excluded docs, Angular viewer routes, rendering and sanitization. Read when touching docs viewer behavior or documentation visibility.
+- `docs/modules/in-app-documentation.md` — In-app Markdown documentation viewer: public docs allowlist, committed frontend snapshot, sync/check workflow, Angular viewer routes, rendering and sanitization. Read when touching docs viewer behavior or documentation visibility.
 - `docs/plans/` — Directory containing phased implementation plans. Read when the user references a plan or says "continua il piano". See the phased-execution skill for the full workflow.
