@@ -539,6 +539,65 @@ export const seedFeatures: readonly SeedFeature[] = [
       'Keep only the operational pieces your cloned app will actually use.',
     ],
   },
+  {
+    slug: 'in-app-documentation',
+    title: 'In-app documentation viewer',
+    eyebrow: 'Built-in docs',
+    summary:
+      'Project documentation from docs/ is exposed as a navigable markdown viewer with sidebar index, sanitized rendering, and previous/next navigation.',
+    overview: [
+      'A build script copies selected markdown files from the repository docs/ folder into Angular public assets and generates a manifest. The viewer loads this manifest at runtime, renders each document with marked + DOMPurify, and presents it in a sidebar + content layout.',
+      'The feature is frontend-only and requires no backend API. Documents can be included or excluded per-file via the build script, and the manifest is regenerated on every npm start or npm run build.',
+    ],
+    status: 'Included',
+    audience: 'Use this to surface developer and ops documentation directly inside the running application.',
+    highlights: [
+      'Sidebar index grouped by category with active/hover styling',
+      'Deep-linkable routes per document',
+      'Sanitized markdown rendering with marked + DOMPurify (lazy loaded)',
+      'Previous/next document navigation across all categories',
+      'Per-file exclusion list for maintainer-only documents',
+    ],
+    sections: [
+      {
+        id: 'routes',
+        title: 'Available routes',
+        table: {
+          headers: ['Route', 'Behavior'],
+          rows: [
+            ['/docs', 'Redirects to the first available document'],
+            ['/docs/:category', 'Redirects to the first document in the category'],
+            ['/docs/:category/:slug', 'Loads and renders the document'],
+          ],
+        },
+      },
+      {
+        id: 'categories',
+        title: 'Documentation categories',
+        paragraphs: [
+          'Six public categories are exposed: Getting Started, Architecture, Modules, Operations, Compliance, and Seed. Internal working folders (plans, requirements, wishes, skills) are excluded.',
+        ],
+      },
+      {
+        id: 'sidebars',
+        title: 'Excluding documents',
+        code: {
+          language: 'javascript',
+          value: "const EXCLUDED_FILES = new Set([\n  'docs/operations/auto-execute.md',\n  'docs/operations/adding-collaborators.md',\n]);",
+        },
+        paragraphs: [
+          'Add a path to the EXCLUDED_FILES set in scripts/build-docs.mjs to hide it from the viewer without removing it from the repository.',
+        ],
+      },
+    ],
+    routes: ['/docs'],
+    docs: ['docs/modules/in-app-documentation.md'],
+    codeAreas: ['frontend/web/scripts/build-docs.mjs', 'frontend/web/projects/app/src/app/pages/docs/'],
+    setupNotes: [
+      'No setup needed — the feature is always available.',
+      'New .md files added to any public docs/ subfolder appear automatically after the next npm start or npm run build.',
+    ],
+  },
 ];
 
 export function findSeedFeatureBySlug(slug: string | null): SeedFeature | undefined {
