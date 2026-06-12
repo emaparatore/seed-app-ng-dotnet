@@ -1,10 +1,11 @@
 # Troubleshooting
 
 Common issues and solutions not tied to a specific documentation topic. For topic-specific troubleshooting, see the relevant document:
-- [VPS Setup Guide — Troubleshooting](../getting-started/vps-setup-guide.md#13-troubleshooting)
-- [SMTP Configuration — Troubleshooting](../modules/smtp-configuration.md#troubleshooting)
-- [Migration Strategy — Rollback](../architecture/migration-strategy.md#rollback)
-- [Admin Dashboard — Configurazione](../modules/admin-dashboard.md#configurazione-iniziale)
+- [VPS Setup Guide - Troubleshooting](../getting-started/vps-setup-guide.md#troubleshooting-vps)
+- [New Project Deploy Guide - Troubleshooting](../getting-started/new-project-deploy-guide.md#13-troubleshooting-primo-deploy)
+- [SMTP Configuration - Troubleshooting](../modules/smtp-configuration.md#troubleshooting)
+- [Migration Strategy - Rollback](../architecture/migration-strategy.md#rollback)
+- [Admin Dashboard - Configurazione](../modules/admin-dashboard.md#configurazione-iniziale)
 
 ## Docker
 

@@ -254,7 +254,7 @@ Per abilitare i pagamenti in Docker dev:
 - Server con Docker e Docker Compose installati
 - Chiavi Stripe **test** (consigliato per staging) o **live** (se si vuole testare in produzione simulata)
 
-> **Cloudflare Access — bypass per webhook Stripe:** Lo staging è protetto da Cloudflare Access (vedi [vps-setup-guide.md — sezione 7b](../getting-started/vps-setup-guide.md)), che richiede autenticazione OTP per accedere al dominio. Stripe non può autenticarsi, quindi le sue richieste POST a `/webhooks/stripe` verrebbero bloccate.
+> **Cloudflare Access — bypass per webhook Stripe:** Lo staging è protetto da Cloudflare Access (vedi [New Project Deploy Guide - Proteggi staging](../getting-started/new-project-deploy-guide.md#65-proteggi-staging-con-cloudflare-access)), che richiede autenticazione OTP per accedere al dominio. Stripe non può autenticarsi, quindi le sue richieste POST a `/webhooks/stripe` verrebbero bloccate.
 >
 > Per ovviare, creare una **reusable policy** con action `Bypass` e una **applicazione Cloudflare Access** (Self-hosted) dedicata al solo path del webhook che usa quella policy:
 >
@@ -560,8 +560,9 @@ Quando il modulo pagamenti è disabilitato, queste policy funzionano come **pass
 
 ## Riferimenti correlati
 
-- [smtp-configuration.md](smtp-configuration.md) — Configurazione SMTP per email transazionali
-- [../getting-started/vps-setup-guide.md](../getting-started/vps-setup-guide.md) — Guida al deployment su VPS
+- [smtp-configuration.md](smtp-configuration.md) - Configurazione SMTP per email transazionali
+- [../getting-started/vps-setup-guide.md](../getting-started/vps-setup-guide.md) - Preparazione VPS: SSH, Docker, firewall, deploy root
+- [../getting-started/new-project-deploy-guide.md](../getting-started/new-project-deploy-guide.md) - Primo deploy: Cloudflare, SSL, `.env`, GitHub Actions
 - Documentazione ufficiale Stripe: [https://docs.stripe.com](https://docs.stripe.com)
 - Stripe Webhooks: [https://docs.stripe.com/webhooks](https://docs.stripe.com/webhooks)
 - Stripe CLI: [https://docs.stripe.com/stripe-cli](https://docs.stripe.com/stripe-cli)

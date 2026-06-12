@@ -267,8 +267,9 @@ Existing docs:
 - `docs/operations/ci-cd.md` — CI/CD pipelines, branch protection, Docker image publishing to GHCR, deploy workflows. Read when modifying GitHub Actions or deployment strategy.
 - `docs/architecture/migration-strategy.md` — Migration strategy for local (auto via MigrateAsync) and production (bundle + CI/CD). Backup, rollback, expand-contract patterns. Read before creating or modifying any EF Core migration.
 - `docs/modules/smtp-configuration.md` — SMTP auto-switch (console fallback), Gmail dev setup, Brevo production, DNS/SPF/DKIM. Read when configuring or debugging email sending.
-- `docs/getting-started/vps-setup-guide.md` — Server setup, Docker, Nginx reverse proxy, Cloudflare CDN/SSL, manual deploy. Read when setting up or troubleshooting a VPS deployment.
-- `docs/getting-started/new-project-deploy-guide.md` — Fork-and-deploy checklist: repo setup, CI/CD updates, VPS config, Cloudflare, GitHub Secrets. Read when deploying a new project from this seed.
+- `docs/seed/using-this-seed.md` — Seed-specific handoff guide: create a product repo from the original seed, choose project values, rename/cleanup seed artifacts. Read when changing template/seed onboarding docs.
+- `docs/getting-started/vps-setup-guide.md` — Blank VPS preparation: server setup, SSH hardening, Docker, firewall, deploy root. Read when preparing or troubleshooting host-level VPS setup.
+- `docs/getting-started/new-project-deploy-guide.md` — First deploy flow for a seed-based app: repo setup, `.env`, Cloudflare, SSL, GitHub Actions, smoke tests. Read when deploying a new project from this seed.
 - `docs/modules/admin-dashboard.md` — Admin area: RBAC permissions, SuperAdmin seeding, user/role management, audit log, system settings, system health, navigation guards. Read when touching admin features, permissions, or audit logging.
 - `docs/operations/rollback.md` — Production rollback: image rollback via .env, git revert, DB restore from backup. Three scenarios from least to most impactful. Read when a deploy goes wrong.
 - `docs/operations/env-backup.md` — Automated daily .env backup via cron, cleanup of old backups, restore procedure. Read when setting up or troubleshooting production .env backups.
