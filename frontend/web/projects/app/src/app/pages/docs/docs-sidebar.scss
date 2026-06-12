@@ -40,6 +40,30 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
+.doc-link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.doc-link {
+  display: block;
+  padding: 0.45rem 0.75rem;
+  border-radius: 4px;
+  color: var(--mat-sys-on-surface);
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-highest);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
 .doc-title {
   display: block;
   font-size: 0.875rem;
@@ -50,20 +74,14 @@
   -webkit-line-clamp: unset;
 }
 
-::ng-deep .sidebar .mat-mdc-list-item {
-  --mdc-list-list-item-container-shape: 6px;
-  min-height: 40px;
-  height: auto;
-}
-
-::ng-deep .sidebar .mat-mdc-list-item .mdc-list-item__content {
-  height: auto;
-}
-
 .active-doc {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
-  border-radius: 6px;
+
+  &:hover {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
 }
 
 .sidebar-empty,

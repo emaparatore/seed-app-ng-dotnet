@@ -12,19 +12,17 @@
     @for (group of groups(); track group.category.slug) {
       <section class="sidebar-group">
         <h3 class="sidebar-group-title">{{ group.category.title }}</h3>
-        <mat-nav-list dense>
+        <div class="doc-link-list">
           @for (doc of group.docs; track doc.slug) {
             <a
-              mat-list-item
+              class="doc-link"
               [routerLink]="['/docs', doc.category, doc.slug]"
               routerLinkActive="active-doc"
-              #rla="routerLinkActive"
-              [activated]="rla.isActive"
             >
               <span class="doc-title">{{ doc.title }}</span>
             </a>
           }
-        </mat-nav-list>
+        </div>
       </section>
     }
   }

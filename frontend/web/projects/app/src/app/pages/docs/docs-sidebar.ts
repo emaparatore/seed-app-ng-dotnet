@@ -1,12 +1,11 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { DocsService } from '../../services/docs.service';
 
 @Component({
   selector: 'app-docs-sidebar',
-  imports: [RouterLink, RouterLinkActive, MatListModule, MatIconModule],
+  imports: [RouterLink, RouterLinkActive, MatIconModule],
   templateUrl: './docs-sidebar.html',
   styleUrl: './docs-sidebar.scss',
 })
