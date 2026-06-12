@@ -21,6 +21,7 @@ const CATEGORIES = [
 
 const EXCLUDED_FILES = new Set([
   'docs/operations/auto-execute.md',
+  'docs/operations/adding-collaborators.md',
 ]);
 
 function slugifyTitle(raw) {
