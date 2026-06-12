@@ -1,0 +1,22 @@
+{
+  "documents": [
+    "docs/getting-started/seed-checklist.md",
+    "docs/getting-started/vps-setup-guide.md",
+    "docs/getting-started/new-project-deploy-guide.md",
+    "docs/architecture/authentication.md",
+    "docs/architecture/bootstrap-console.md",
+    "docs/architecture/migration-strategy.md",
+    "docs/modules/admin-dashboard.md",
+    "docs/modules/smtp-configuration.md",
+    "docs/modules/stripe-payments-setup.md",
+    "docs/modules/in-app-documentation.md",
+    "docs/modules/subscription-payments.md",
+    "docs/operations/env-backup.md",
+    "docs/operations/ci-cd.md",
+    "docs/operations/monitoring.md",
+    "docs/operations/rollback.md",
+    "docs/operations/troubleshooting.md",
+    "docs/compliance/gdpr-compliance-checklist.md",
+    "docs/seed/using-this-seed.md"
+  ]
+}
