@@ -1,15 +1,10 @@
 # Seed App - Angular + .NET Full Stack
 
-A ready-to-use full-stack seed/starter application, designed as a starting point for new projects. Includes:
+A battle-tested, production-ready full-stack seed/starter application. Includes authentication, subscriptions, CI/CD pipeline, monitoring, and Docker-based infrastructure — everything you need to launch.
 
-- ASP.NET Core backend
+- ASP.NET Core backend (PostgreSQL)
 - Angular web frontend (with SSR support)
 - Docker setup for local development and test execution
-
-This repository has two purposes:
-
-- it is a runnable full-stack application you can start, test, deploy and extend
-- it is a seed/starter application designed to be cloned or used as a template for new products
 
 If you want to create your app using di seed read the doc [Using This Seed](docs/seed/using-this-seed.md).
 
