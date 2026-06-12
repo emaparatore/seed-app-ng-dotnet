@@ -41,14 +41,29 @@
 }
 
 .doc-title {
+  display: block;
   font-size: 0.875rem;
   line-height: 1.3;
   white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  -webkit-line-clamp: unset;
+}
+
+::ng-deep .sidebar .mat-mdc-list-item {
+  --mdc-list-list-item-container-shape: 6px;
+  min-height: 40px;
+  height: auto;
+}
+
+::ng-deep .sidebar .mat-mdc-list-item .mdc-list-item__content {
+  height: auto;
 }
 
 .active-doc {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
+  border-radius: 6px;
 }
 
 .sidebar-empty,
