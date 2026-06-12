@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  height: calc(100vh - 64px);
+}
+
+.docs-shell {
+  height: 100%;
+  background: var(--mat-sys-surface);
+}
+
+.docs-sidenav {
+  width: 280px;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container);
+}
+
+.docs-content {
+  background: var(--mat-sys-surface);
+}

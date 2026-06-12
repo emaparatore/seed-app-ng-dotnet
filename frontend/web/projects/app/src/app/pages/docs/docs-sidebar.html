@@ -1,0 +1,29 @@
+<nav class="sidebar" aria-label="Documentation navigation">
+  <h2 class="sidebar-title">
+    <mat-icon>menu_book</mat-icon>
+    <span>Documentation</span>
+  </h2>
+
+  @if (loadError(); as error) {
+    <p class="sidebar-error" role="alert">{{ error }}</p>
+  } @else if (!hasGroups()) {
+    <p class="sidebar-empty">Loading documentation…</p>
+  } @else {
+    @for (group of groups(); track group.category.slug) {
+      <section class="sidebar-group">
+        <h3 class="sidebar-group-title">{{ group.category.title }}</h3>
+        <div class="doc-link-list">
+          @for (doc of group.docs; track doc.slug) {
+            <a
+              class="doc-link"
+              [routerLink]="['/docs', doc.category, doc.slug]"
+              routerLinkActive="active-doc"
+            >
+              <span class="doc-title">{{ doc.title }}</span>
+            </a>
+          }
+        </div>
+      </section>
+    }
+  }
+</nav>

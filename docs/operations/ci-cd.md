@@ -124,7 +124,7 @@ The CI creates the directory structure and copies these files to the deploy dir 
 - `docker/scripts/migrate.sh`, `seed.sh`, `restore.sh`
 - `docker/nginx/nginx.conf` and `docker/nginx/templates/*`
 
-No manual file copying is needed — even on the first deploy, the CI handles everything. The only prerequisite on the VPS is the deploy root directory (`DEPLOY_ROOT`, by default `/opt/seed-app`) owned by the deploy user and the `.env` file, which is **never overwritten by CI** and must be created manually once (see [VPS Setup Guide](../getting-started/vps-setup-guide.md#6-configurazione-delle-variabili-dambiente)).
+No manual file copying is needed - even on the first deploy, the CI handles everything. The VPS must already have the deploy root directory (`DEPLOY_ROOT`, by default `/opt/seed-app`) owned by the deploy user. The `.env` file is **never overwritten by CI** and must be created manually once per environment (see [New Project Deploy Guide](../getting-started/new-project-deploy-guide.md#5-configura-env)).
 
 ### 4. Hotfix Back-merge (`hotfix-backmerge.yml`)
 

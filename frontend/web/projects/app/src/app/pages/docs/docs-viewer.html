@@ -1,0 +1,77 @@
+<article class="docs-viewer">
+  @switch (state().kind) {
+    @case ('loading') {
+      <div class="state-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading document…</p>
+      </div>
+    }
+    @case ('not-found') {
+      <div class="state-message">
+        <mat-icon>find_in_page</mat-icon>
+        <h2>Document not found</h2>
+        <p>The requested documentation page does not exist.</p>
+        <button mat-flat-button color="primary" (click)="goHome()">Go to home</button>
+      </div>
+    }
+    @case ('error') {
+      @if (state(); as s) {
+        @if (s.kind === 'error') {
+          <div class="state-message">
+            <mat-icon>error_outline</mat-icon>
+            <h2>Failed to load</h2>
+            <p>{{ s.message }}</p>
+            <button mat-flat-button color="primary" (click)="retry()">Retry</button>
+          </div>
+        }
+      }
+    }
+    @case ('ready') {
+      @if (state(); as s) {
+        @if (s.kind === 'ready') {
+          <header class="docs-header">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <a routerLink="/docs">Docs</a>
+              <mat-icon class="breadcrumb-sep">chevron_right</mat-icon>
+              <span class="breadcrumb-category">{{ currentCategoryTitle() }}</span>
+            </nav>
+            <h1 class="docs-title">{{ s.doc.title }}</h1>
+          </header>
+
+          <section class="docs-body" [innerHTML]="s.html"></section>
+
+          <nav class="docs-pager" aria-label="Document navigation">
+            @if (s.nav.previous; as prev) {
+              <a
+                mat-stroked-button
+                class="pager-prev"
+                [routerLink]="['/docs', prev.category, prev.slug]"
+              >
+                <mat-icon>arrow_back</mat-icon>
+                <span class="pager-text">
+                  <span class="pager-label">Previous</span>
+                  <span class="pager-title">{{ prev.title }}</span>
+                </span>
+              </a>
+            } @else {
+              <span class="pager-spacer"></span>
+            }
+            @if (s.nav.next; as next) {
+              <a
+                mat-stroked-button
+                class="pager-next"
+                [routerLink]="['/docs', next.category, next.slug]"
+              >
+                <span class="pager-text">
+                  <span class="pager-label">Next</span>
+                  <span class="pager-title">{{ next.title }}</span>
+                </span>
+                <mat-icon>arrow_forward</mat-icon>
+              </a>
+            }
+          </nav>
+        }
+      }
+    }
+  }
+</article>
