@@ -258,6 +258,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [SMTP Configuration](docs/modules/smtp-configuration.md) | Email service setup, provider config (Mailpit, Brevo) |
 | [Subscription Payments](docs/modules/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
 | [Stripe Payments Setup](docs/modules/stripe-payments-setup.md) | End-to-end setup for enabling and operating the Stripe payments module |
+| [In-App Documentation Viewer](docs/modules/in-app-documentation.md) | In-app Markdown documentation viewer, generated manifest, included/excluded docs, rendering flow |
 | [Authentication](docs/architecture/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
 | [Admin Dashboard](docs/modules/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
 | [Bootstrap Console](docs/architecture/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |
