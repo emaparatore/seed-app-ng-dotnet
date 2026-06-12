@@ -6,6 +6,7 @@
     "prebuild": "node scripts/build-docs.mjs",
     "prestart": "node scripts/build-docs.mjs",
     "build:docs": "node scripts/build-docs.mjs",
+    "test:docs": "node scripts/build-docs.test.mjs",
     "start": "ng serve",
     "build": "ng build app",
     "watch": "ng build --watch --configuration development",

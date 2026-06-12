@@ -19,6 +19,10 @@ const CATEGORIES = [
   { slug: 'seed', title: 'Seed', order: 6 },
 ];
 
+const EXCLUDED_FILES = new Set([
+  'docs/operations/auto-execute.md',
+]);
+
 function slugifyTitle(raw) {
   return raw
     .toLowerCase()
@@ -63,6 +67,11 @@ async function buildCategory(category) {
   let order = 1;
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith('.md')) {
+      continue;
+    }
+    const relativePath = `docs/${category.slug}/${entry.name}`;
+    if (EXCLUDED_FILES.has(relativePath)) {
+      console.log(`[docs] Excluding: ${relativePath}`);
       continue;
     }
     const sourceFile = path.join(sourceDir, entry.name);
