@@ -1,73 +1,160 @@
 <main class="feature-detail-page app-page">
   @if (feature(); as currentFeature) {
-    <section class="hero app-hero">
+    <header class="hero app-hero">
       <div class="hero-inner app-hero-panel">
-        <a class="back-link" routerLink="/features">Back to all features</a>
+        <a class="back-link" routerLink="/features">Back to feature documentation</a>
         <p class="eyebrow">{{ currentFeature.eyebrow }}</p>
         <h1>{{ currentFeature.title }}</h1>
         <p class="summary">{{ currentFeature.summary }}</p>
         <p class="hero-meta">
           <span class="status-chip">{{ currentFeature.status }}</span>
-          <span>{{ currentFeature.audience }}</span>
+          <span>{{ currentFeature.sections.length }} documentation sections</span>
         </p>
       </div>
-    </section>
+    </header>
 
-    <section class="section detail-sections">
-      <article class="panel app-panel-accent">
-        <h2>What is already included</h2>
-        <ul>
-          @for (highlight of currentFeature.highlights; track highlight) {
-            <li>{{ highlight }}</li>
+    <div class="doc-layout">
+      <aside class="doc-sidebar app-panel" aria-label="Page navigation">
+        <p class="sidebar-label">On this page</p>
+        <nav>
+          <button type="button" (click)="scrollToSection('overview')">Overview</button>
+          @for (section of currentFeature.sections; track section.id) {
+            <button type="button" (click)="scrollToSection(section.id)">{{ section.title }}</button>
           }
-        </ul>
-      </article>
+          <button type="button" (click)="scrollToSection('reference')">Reference</button>
+          <button type="button" (click)="scrollToSection('related')">Related features</button>
+        </nav>
+      </aside>
 
-      <article class="panel app-panel-accent">
-        <h2>Optional setup and extension points</h2>
-        <ul>
-          @for (note of currentFeature.setupNotes; track note) {
-            <li>{{ note }}</li>
+      <article class="doc-content app-panel">
+        <section id="overview" class="doc-section">
+          <p class="section-label">Overview</p>
+          <h2>What this feature provides</h2>
+          @for (paragraph of currentFeature.overview; track paragraph) {
+            <p>{{ paragraph }}</p>
           }
-        </ul>
-      </article>
 
-      <article class="panel">
-        <h2>App routes</h2>
-        @if (currentFeature.routes.length > 0) {
-          <ul class="code-list">
-            @for (route of currentFeature.routes; track route) {
-              <li><code>{{ route }}</code></li>
+          <div class="highlight-box">
+            <h3>Included capabilities</h3>
+            <ul>
+              @for (highlight of currentFeature.highlights; track highlight) {
+                <li>{{ highlight }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+
+        @for (section of currentFeature.sections; track section.id) {
+          <section [id]="section.id" class="doc-section">
+            <p class="section-label">Documentation</p>
+            <h2>{{ section.title }}</h2>
+
+            @if (section.paragraphs) {
+              @for (paragraph of section.paragraphs; track paragraph) {
+                <p>{{ paragraph }}</p>
+              }
             }
-          </ul>
-        } @else {
-          <p class="muted">This feature is mostly infrastructure, backend, or documentation driven rather than a dedicated public route.</p>
+
+            @if (section.items) {
+              <ul>
+                @for (item of section.items; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            }
+
+            @if (section.table; as table) {
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      @for (header of table.headers; track header) {
+                        <th>{{ header }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of table.rows; track row) {
+                      <tr>
+                        @for (cell of row; track cell) {
+                          <td>{{ cell }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (section.code; as code) {
+              <pre><code>{{ code.value }}</code></pre>
+            }
+
+            @if (section.callout; as callout) {
+              <aside class="callout">
+                <strong>{{ callout.title }}</strong>
+                <p>{{ callout.body }}</p>
+              </aside>
+            }
+          </section>
         }
-      </article>
 
-      <article class="panel">
-        <h2>Documentation paths</h2>
-        <ul class="code-list">
-          @for (doc of currentFeature.docs; track doc) {
-            <li><code>{{ doc }}</code></li>
-          }
-        </ul>
-      </article>
+        <section id="reference" class="doc-section reference-section">
+          <p class="section-label">Reference</p>
+          <h2>Routes, documentation, and code paths</h2>
 
-      <article class="panel">
-        <h2>Where it lives in the codebase</h2>
-        <ul class="code-list">
-          @for (area of currentFeature.codeAreas; track area) {
-            <li><code>{{ area }}</code></li>
-          }
-        </ul>
-      </article>
-    </section>
+          <div class="reference-grid">
+            <div>
+              <h3>Application routes</h3>
+              @if (currentFeature.routes.length > 0) {
+                <ul class="code-list">
+                  @for (route of currentFeature.routes; track route) {
+                    <li><code>{{ route }}</code></li>
+                  }
+                </ul>
+              } @else {
+                <p class="muted">This feature is mostly infrastructure, backend, or documentation driven rather than a dedicated public route.</p>
+              }
+            </div>
 
-    <section class="section related-section app-panel">
+            <div>
+              <h3>Documentation source</h3>
+              <ul class="code-list">
+                @for (doc of currentFeature.docs; track doc) {
+                  <li><code>{{ doc }}</code></li>
+                }
+              </ul>
+            </div>
+
+            <div>
+              <h3>Codebase areas</h3>
+              <ul class="code-list">
+                @for (area of currentFeature.codeAreas; track area) {
+                  <li><code>{{ area }}</code></li>
+                }
+              </ul>
+            </div>
+
+            <div>
+              <h3>Setup notes</h3>
+              <ul>
+                @for (note of currentFeature.setupNotes; track note) {
+                  <li>{{ note }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        </section>
+      </article>
+    </div>
+
+    <section id="related" class="section related-section app-panel">
       <div class="related-header">
-        <h2>Other feature pages</h2>
-        <a class="catalog-link" routerLink="/features">See full catalog</a>
+        <div>
+          <p class="section-label">Continue reading</p>
+          <h2>Other feature documents</h2>
+        </div>
+        <a class="catalog-link" routerLink="/features">See full index</a>
       </div>
 
       <div class="related-list">
@@ -76,7 +163,7 @@
             <a class="related-item" [routerLink]="['/features', featureEntry.slug]">
               <span>
                 <strong>{{ featureEntry.title }}</strong>
-                <small>{{ featureEntry.eyebrow }}</small>
+                <small>{{ featureEntry.summary }}</small>
               </span>
               <span class="related-status">{{ featureEntry.status }}</span>
             </a>
@@ -85,11 +172,11 @@
       </div>
     </section>
   } @else {
-    <section class="not-found">
-      <p class="eyebrow">Feature catalog</p>
+    <section class="not-found app-panel">
+      <p class="eyebrow">Feature documentation</p>
       <h1>Feature page not found.</h1>
       <p>The requested feature slug does not exist in the current seed catalog.</p>
-      <a class="back-button app-button-link" routerLink="/features">Go back to the catalog</a>
+      <a class="back-button app-button-link" routerLink="/features">Go back to the index</a>
     </section>
   }
 </main>

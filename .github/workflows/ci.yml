@@ -14,6 +14,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -24,6 +25,10 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/web/**'
+            docs:
+              - 'docs/**'
+              - 'frontend/web/projects/app/public/docs/**'
+              - 'frontend/web/scripts/build-docs.mjs'
 
   backend-build-test:
     needs: changes
@@ -158,15 +163,32 @@ jobs:
         working-directory: frontend/web
         run: npm run build
 
+  docs-sync:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify public docs snapshot is synchronized
+        working-directory: frontend/web
+        run: npm run check:docs-sync
+
   ci-success:
     if: always()
-    needs: [changes, backend-build-test, frontend-build-test]
+    needs: [changes, backend-build-test, frontend-build-test, docs-sync]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
           if [[ "${{ needs.backend-build-test.result }}" == "failure" || \
-                "${{ needs.frontend-build-test.result }}" == "failure" ]]; then
+                "${{ needs.frontend-build-test.result }}" == "failure" || \
+                "${{ needs.docs-sync.result }}" == "failure" ]]; then
             echo "One or more jobs failed"
             exit 1
           fi

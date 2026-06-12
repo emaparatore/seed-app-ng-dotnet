@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/features/feature-detail').then((m) => m.FeatureDetail),
   },
   {
+    path: 'docs',
+    loadChildren: () => import('./pages/docs/docs.routes').then((m) => m.docsRoutes),
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./pages/admin/admin-layout').then((m) => m.AdminLayout),
     canActivate: [authGuard, adminGuard],

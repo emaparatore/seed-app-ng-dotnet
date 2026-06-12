@@ -1,9 +1,34 @@
 # Seed App - Angular + .NET Full Stack
-A ready-to-use full-stack seed/starter application, designed as a starting point for new projects. Includes: 
-- ASP.NET Core backend
+
+A battle-tested, production-ready full-stack seed/starter application. Includes authentication, subscriptions, CI/CD pipeline, monitoring, and Docker-based infrastructure — everything you need to launch.
+
+- ASP.NET Core backend (PostgreSQL)
 - Angular web frontend (with SSR support)
-- .NET MAUI mobile app
 - Docker setup for local development and test execution
+
+If you want to create your app using di seed read the doc [Using This Seed](docs/seed/using-this-seed.md).
+
+
+
+## What's already included
+
+The seed ships with working application capabilities, not just an empty stack skeleton:
+
+- Authentication flows: registration, login, confirm email, forgot/reset password, profile, JWT auth
+- Admin area: RBAC permissions, users, roles, audit log, settings, system health, dashboard
+- Subscription module: pricing, plans, checkout, subscription management, invoice requests, feature gating
+- Email integration: SMTP support with console fallback for local development
+- Bootstrap and seeding: deployment-time initialization of roles, permissions, admin user, system settings
+- Delivery pipeline: CI, Docker image publish, VPS deploy, migrations, seeding, health checks
+- Operations docs: monitoring, rollback, troubleshooting, environment backup
+
+For a navigable overview inside the app, open `/features`. Each feature has its own dedicated page with included behavior, related routes, documentation paths, and code areas.
+
+## Prerequisites
+
+- Docker Desktop (or Docker Engine + Compose)
+- .NET SDK 10 (only needed for local `dotnet` commands and `docker/TestRunner`)
+- Node.js 22 (only needed if you run frontend outside Docker)
 
 ## Quick start
 
@@ -29,26 +54,6 @@ Run all tests with Docker only:
 ```bash
 dotnet run --project docker/TestRunner -- all
 ```
-
-## Prerequisites
-
-- Docker Desktop (or Docker Engine + Compose)
-- .NET SDK 10 (only needed for local `dotnet` commands and `docker/TestRunner`)
-- Node.js 22 (only needed if you run frontend outside Docker)
-
-## What's already included
-
-This seed already ships with working application capabilities, not just an empty stack skeleton:
-
-- Authentication flows: registration, login, confirm email, forgot/reset password, profile, JWT auth
-- Admin area: RBAC permissions, users, roles, audit log, settings, system health, dashboard
-- Subscription module: pricing, plans, checkout, subscription management, invoice requests, feature gating
-- Email integration: SMTP support with console fallback for local development
-- Bootstrap and seeding: deployment-time initialization of roles, permissions, admin user, system settings
-- Delivery pipeline: CI, Docker image publish, VPS deploy, migrations, seeding, health checks
-- Operations docs: monitoring, rollback, troubleshooting, environment backup
-
-For a navigable overview inside the app, open `/features`. Each feature has its own dedicated page with included behavior, related routes, documentation paths, and code areas.
 
 ## Run with Docker (recommended)
 
@@ -185,33 +190,27 @@ npm start
 
 ## CI/CD
 
-The project uses GitHub Actions with a branch strategy:
+The project uses GitHub Actions with this branch strategy:
 
 - `master` (production) ← `dev` (staging) ← `feature/*`
 - `hotfix/*` → direct PR to `master` with automatic back-merge to `dev`
 
 Workflows:
-- **CI** - Build and test on every PR (`ci.yml`)
-- **Docker Publish** - Build and push images to ghcr.io on merge (`docker-publish.yml`)
-- **Deploy** - Deploy to VPS via SSH with Docker Compose (`deploy.yml`)
+- **CI** - Runs on PRs to `dev` or `master`; path-filters backend/frontend jobs, builds, tests, checks NuGet vulnerabilities, verifies EF migrations, and builds a migration bundle (`ci.yml`)
+- **Docker Publish** - Runs on pushes to `dev` or `master`, or manual trigger; builds only changed API/web images unless forced, scans them with Trivy, and pushes to GHCR (`docker-publish.yml`)
+- **Deploy** - Runs after successful Docker Publish; deploys `dev` to staging and `master` to production on the VPS via SSH and Docker Compose (`deploy.yml`)
 - **Hotfix Back-merge** - Auto PR `master` → `dev` after hotfix (`hotfix-backmerge.yml`)
+- **Security scans** - Gitleaks and Semgrep workflows provide additional repository/code scanning
+
+Deploy behavior:
+- `PROJECT_SLUG` drives image names and the default deploy root `/opt/<PROJECT_SLUG>`
+- `DEPLOY_ROOT` can override the VPS deploy root
+- staging deploys to `<DEPLOY_ROOT>/staging`, production deploys to `<DEPLOY_ROOT>/production`
+- the workflow syncs compose, nginx, monitoring config and scripts to the VPS on every deploy
+- `.env` files are never overwritten by CI and must be created manually once per environment
+- deploys use immutable SHA tags (`sha-...` for production, `dev-sha-...` for staging), while `latest`/`dev` remain convenience tags
 
 See [docs/operations/ci-cd.md](docs/operations/ci-cd.md) for full documentation.
-
-## Reusing as a seed
-
-When you create a new repo from this seed:
-
-- the deploy naming is driven by the GitHub Actions repository variable `PROJECT_SLUG`
-- if you do not customize it, the seed uses `PROJECT_SLUG=seed-app`
-- Docker images for deploy default to `ghcr.io/<owner>/seed-app/...`
-- if `GHCR_OWNER` is not present in the VPS `.env`, the deploy workflow falls back to the GitHub repository owner
-- the deploy workflow keeps `GHCR_IMAGE_NAME` in the VPS `.env` aligned with `PROJECT_SLUG`
-- the VPS deploy root defaults to `/opt/<PROJECT_SLUG>` and therefore `/opt/seed-app` out of the box
-- you can override the deploy root with the GitHub Actions repository variable `DEPLOY_ROOT`
-
-Start from [docs/getting-started/start-here.md](docs/getting-started/start-here.md) if you are unsure which document applies to your scenario.
-Use [docs/getting-started/seed-checklist.md](docs/getting-started/seed-checklist.md) for the shortest path, or [docs/getting-started/new-project-deploy-guide.md](docs/getting-started/new-project-deploy-guide.md) for the complete bootstrap flow.
 
 ## Repository structure
 
@@ -242,19 +241,14 @@ seed-app-ng-dotnet/
 
 Detailed documentation is available in the [`docs/`](docs/) folder:
 
-### Start Here
-
-| Document | Description |
-|---|---|
-| [Start Here](docs/getting-started/start-here.md) | Scenario-based entry point to the documentation |
-
 ### Bootstrap A New App
 
 | Document | Description |
 |---|---|
+| [Using This Seed](docs/seed/using-this-seed.md) | How to turn the original seed into a product repository and what to clean up afterwards |
 | [Seed Checklist](docs/getting-started/seed-checklist.md) | Minimal operational checklist to turn this seed into a new project quickly |
-| [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) | Complete guide for creating and deploying a new project based on this seed |
-| [VPS Setup Guide](docs/getting-started/vps-setup-guide.md) | Prepare a VPS from zero for hosting the application |
+| [VPS Setup Guide](docs/getting-started/vps-setup-guide.md) | Prepare a blank VPS with SSH, Docker, firewall and deploy root |
+| [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) | Complete first deploy flow: app config, Cloudflare, SSL, GitHub Actions and smoke tests |
 | [CI/CD](docs/operations/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
 
 ### Module Setup
@@ -264,6 +258,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [SMTP Configuration](docs/modules/smtp-configuration.md) | Email service setup, provider config (Mailpit, Brevo) |
 | [Subscription Payments](docs/modules/subscription-payments.md) | Stripe integration, module toggle, webhook flow, plan guards, troubleshooting |
 | [Stripe Payments Setup](docs/modules/stripe-payments-setup.md) | End-to-end setup for enabling and operating the Stripe payments module |
+| [In-App Documentation Viewer](docs/modules/in-app-documentation.md) | In-app Markdown documentation viewer, generated manifest, included/excluded docs, rendering flow |
 | [Authentication](docs/architecture/authentication.md) | JWT auth, refresh tokens, password reset, Angular integration |
 | [Admin Dashboard](docs/modules/admin-dashboard.md) | Admin area: RBAC, user/role management, audit log, settings, system health |
 | [Bootstrap Console](docs/architecture/bootstrap-console.md) | Production bootstrap runner: config validation, seeding (roles, permissions, admin user), adding custom seeders |

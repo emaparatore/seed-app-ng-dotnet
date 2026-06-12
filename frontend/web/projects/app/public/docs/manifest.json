@@ -1,0 +1,162 @@
+{
+  "categories": [
+    {
+      "slug": "getting-started",
+      "title": "Getting Started",
+      "order": 1
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture",
+      "order": 2
+    },
+    {
+      "slug": "modules",
+      "title": "Modules",
+      "order": 3
+    },
+    {
+      "slug": "operations",
+      "title": "Operations",
+      "order": 4
+    },
+    {
+      "slug": "compliance",
+      "title": "Compliance",
+      "order": 5
+    },
+    {
+      "slug": "seed",
+      "title": "Seed",
+      "order": 6
+    }
+  ],
+  "docs": [
+    {
+      "category": "getting-started",
+      "slug": "seed-checklist",
+      "title": "Checklist Rapida: Riusa la Seed per un Nuovo Progetto",
+      "order": 1,
+      "path": "docs/getting-started/seed-checklist.md"
+    },
+    {
+      "category": "getting-started",
+      "slug": "vps-setup-guide",
+      "title": "Guida: Preparazione VPS per Deploy Docker",
+      "order": 2,
+      "path": "docs/getting-started/vps-setup-guide.md"
+    },
+    {
+      "category": "getting-started",
+      "slug": "new-project-deploy-guide",
+      "title": "Guida: Primo Deploy di un Nuovo Progetto dalla Seed App",
+      "order": 3,
+      "path": "docs/getting-started/new-project-deploy-guide.md"
+    },
+    {
+      "category": "architecture",
+      "slug": "authentication",
+      "title": "Autenticazione JWT — Documentazione Implementazione",
+      "order": 1,
+      "path": "docs/architecture/authentication.md"
+    },
+    {
+      "category": "architecture",
+      "slug": "bootstrap-console",
+      "title": "Bootstrap Console Application",
+      "order": 2,
+      "path": "docs/architecture/bootstrap-console.md"
+    },
+    {
+      "category": "architecture",
+      "slug": "migration-strategy",
+      "title": "Migration Strategy",
+      "order": 3,
+      "path": "docs/architecture/migration-strategy.md"
+    },
+    {
+      "category": "modules",
+      "slug": "admin-dashboard",
+      "title": "Admin Dashboard",
+      "order": 1,
+      "path": "docs/modules/admin-dashboard.md"
+    },
+    {
+      "category": "modules",
+      "slug": "smtp-configuration",
+      "title": "Configurazione SMTP",
+      "order": 2,
+      "path": "docs/modules/smtp-configuration.md"
+    },
+    {
+      "category": "modules",
+      "slug": "stripe-payments-setup",
+      "title": "Guida Operativa: Configurazione Pagamenti e Stripe",
+      "order": 3,
+      "path": "docs/modules/stripe-payments-setup.md"
+    },
+    {
+      "category": "modules",
+      "slug": "in-app-documentation",
+      "title": "In-App Documentation Viewer",
+      "order": 4,
+      "path": "docs/modules/in-app-documentation.md"
+    },
+    {
+      "category": "modules",
+      "slug": "subscription-payments",
+      "title": "Subscription Payments",
+      "order": 5,
+      "path": "docs/modules/subscription-payments.md"
+    },
+    {
+      "category": "operations",
+      "slug": "env-backup",
+      "title": ".env Backup",
+      "order": 1,
+      "path": "docs/operations/env-backup.md"
+    },
+    {
+      "category": "operations",
+      "slug": "ci-cd",
+      "title": "CI/CD Pipeline",
+      "order": 2,
+      "path": "docs/operations/ci-cd.md"
+    },
+    {
+      "category": "operations",
+      "slug": "monitoring",
+      "title": "Monitoring Stack",
+      "order": 3,
+      "path": "docs/operations/monitoring.md"
+    },
+    {
+      "category": "operations",
+      "slug": "rollback",
+      "title": "Rollback Guide",
+      "order": 4,
+      "path": "docs/operations/rollback.md"
+    },
+    {
+      "category": "operations",
+      "slug": "troubleshooting",
+      "title": "Troubleshooting",
+      "order": 5,
+      "path": "docs/operations/troubleshooting.md"
+    },
+    {
+      "category": "compliance",
+      "slug": "gdpr-compliance-checklist",
+      "title": "GDPR Compliance Checklist",
+      "order": 1,
+      "path": "docs/compliance/gdpr-compliance-checklist.md"
+    },
+    {
+      "category": "seed",
+      "slug": "using-this-seed",
+      "title": "Using This Seed",
+      "order": 1,
+      "path": "docs/seed/using-this-seed.md"
+    }
+  ]
+}
