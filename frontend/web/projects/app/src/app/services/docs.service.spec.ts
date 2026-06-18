@@ -92,7 +92,7 @@ describe('DocsService', () => {
   it('keeps lower-level headings after removing the leading title', async () => {
     const markdown = '# Hello\n\n## Details\n\nBody';
     const html = await service.renderMarkdown(markdown, 'docs/test.md');
-    expect(html).toContain('<h2>Details</h2>');
+    expect(html).toContain('<h2 id="details">Details</h2>');
     expect(html).toContain('<p>Body</p>');
     expect(html).not.toContain('<h1>Hello</h1>');
   });
@@ -119,6 +119,27 @@ describe('DocsService', () => {
     expect(html).not.toContain('href="bootstrap-console.md"');
   });
 
+  it('rewrites internal markdown links with fragments', async () => {
+    const promise = service.ensureLoaded();
+    httpMock.expectOne('docs/manifest.json').flush(manifest);
+    await promise;
+
+    const md = 'See [Bootstrap](bootstrap-console.md#usage) for details.';
+    const html = await service.renderMarkdown(md, 'docs/architecture/authentication.md');
+    expect(html).toContain('href="/docs/architecture/bootstrap-console#usage"');
+    expect(html).not.toContain('href="bootstrap-console.md#usage"');
+  });
+
+  it('rewrites same-document anchor links when current doc is known', async () => {
+    const promise = service.ensureLoaded();
+    httpMock.expectOne('docs/manifest.json').flush(manifest);
+    await promise;
+
+    const md = 'Jump to [SMTP config](#setup).';
+    const html = await service.renderMarkdown(md, 'docs/modules/smtp-configuration.md');
+    expect(html).toContain('href="/docs/modules/smtp#setup"');
+  });
+
   it('rewrites internal markdown links from root-level source like README.md', async () => {
     const promise = service.ensureLoaded();
     httpMock.expectOne('docs/manifest.json').flush(manifest);
@@ -140,6 +161,13 @@ describe('DocsService', () => {
     expect(html).toContain('href="https://github.com"');
     expect(html).toContain('href="#section"');
     expect(html).toContain('href="mailto:test@test.com"');
+  });
+
+  it('adds stable ids to headings for table-of-contents anchors', async () => {
+    const markdown = '# Title\n\n## Sistema di permessi (RBAC)\n\n### 6.5 Proteggi staging con Cloudflare Access';
+    const html = await service.renderMarkdown(markdown, 'docs/test.md');
+    expect(html).toContain('<h2 id="sistema-di-permessi-rbac">Sistema di permessi (RBAC)</h2>');
+    expect(html).toContain('<h3 id="65-proteggi-staging-con-cloudflare-access">6.5 Proteggi staging con Cloudflare Access</h3>');
   });
 
   it('does not rewrite links to unknown markdown files', async () => {

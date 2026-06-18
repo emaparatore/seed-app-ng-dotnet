@@ -1,6 +1,6 @@
 # GDPR Compliance Checklist
 
-Questa checklist guida il **titolare del trattamento** nel completare gli aspetti non tecnici della conformità GDPR, dopo l'implementazione delle funzionalità tecniche previste da [FEAT-2](../requirements/FEAT-2.md).
+Questa checklist guida il **titolare del trattamento** nel completare gli aspetti non tecnici della conformità GDPR, dopo l'implementazione delle funzionalità tecniche previste dal requisito FEAT-2 (GDPR technical features).
 
 **Quando usarla:** prima del go-live o durante l'hardening di una applicazione reale che usa questo seed.
 

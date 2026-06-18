@@ -45,6 +45,22 @@ function resolveRelativePath(link: string, baseDir: string): string {
   return resolved.join('/');
 }
 
+function stripHtmlTags(value: string): string {
+  return value.replace(/<[^>]*>/g, '');
+}
+
+export function slugifyHeadingForDocs(value: string): string {
+  return stripHtmlTags(value)
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&[a-z0-9#]+;/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 @Injectable({ providedIn: 'root' })
 export class DocsService {
   private readonly http = inject(HttpClient);
@@ -168,7 +184,8 @@ export class DocsService {
     );
     const [marked, dompurify] = await Promise.all([getMarked(), getDomPurify()]);
     const raw = marked.marked.parse(rewritten, { async: false }) as string;
-    return dompurify.default.sanitize(raw, {
+    const withAnchors = this.addHeadingAnchors(raw);
+    return dompurify.default.sanitize(withAnchors, {
       ADD_ATTR: ['target', 'rel'],
     });
   }
@@ -179,15 +196,26 @@ export class DocsService {
 
   private rewriteInternalLinks(markdown: string, sourcePath: string): string {
     const baseDir = dirname(sourcePath);
+    const currentDoc = this.docsBySourcePath().get(sourcePath) ?? null;
 
     return markdown.replace(
-      /\[([^\]]*)\]\(([^)\s]+\.md)(?:\s+"[^"]*")?\)/g,
+      /\[([^\]]*)\]\((#[^)\s]+|[^)\s]+\.md(?:#[^)\s]+)?)(?:\s+"[^"]*")?\)/g,
       (match, text, linkPath) => {
-        if (/^(https?:\/\/|mailto:|#)/.test(linkPath)) {
+        if (/^(https?:\/\/|mailto:)/.test(linkPath)) {
           return match;
         }
 
-        const resolved = this.resolveDocSourcePath(linkPath, baseDir);
+        if (linkPath.startsWith('#')) {
+          if (!currentDoc) {
+            return match;
+          }
+
+          return `[${text}](/docs/${currentDoc.category}/${currentDoc.slug}${linkPath})`;
+        }
+
+        const [docPath, fragment] = linkPath.split('#', 2);
+
+        const resolved = this.resolveDocSourcePath(docPath, baseDir);
         if (!resolved) {
           return match;
         }
@@ -197,9 +225,27 @@ export class DocsService {
           return match;
         }
 
-        return `[${text}](/docs/${doc.category}/${doc.slug})`;
+        const docUrl = `/docs/${doc.category}/${doc.slug}`;
+        return `[${text}](${fragment ? `${docUrl}#${fragment}` : docUrl})`;
       },
     );
+  }
+
+  private addHeadingAnchors(html: string): string {
+    const slugCounts = new Map<string, number>();
+
+    return html.replace(/<h([1-6])>([\s\S]*?)<\/h\1>/g, (match, level, content) => {
+      const baseSlug = slugifyHeadingForDocs(content);
+      if (!baseSlug) {
+        return match;
+      }
+
+      const count = slugCounts.get(baseSlug) ?? 0;
+      slugCounts.set(baseSlug, count + 1);
+      const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+
+      return `<h${level} id="${slug}">${content}</h${level}>`;
+    });
   }
 
   private resolveDocSourcePath(linkPath: string, baseDir: string): string | null {

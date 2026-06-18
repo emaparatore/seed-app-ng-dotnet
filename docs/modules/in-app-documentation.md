@@ -179,10 +179,12 @@ The service:
 - Fetches the selected Markdown file as text
 - Removes the first Markdown `# Heading` because the viewer already renders the page title separately
 - Rewrites internal Markdown links (e.g. `docs/operations/ci-cd.md`) into app route links (`/docs/operations/ci-cd`)
+- Rewrites document links with fragments (e.g. `docs/operations/ci-cd.md#deploy`) into app route links with anchors
+- Adds stable `id` attributes to rendered headings so table-of-contents links and deep links can scroll correctly
 - Renders Markdown with `marked`
 - Sanitizes rendered HTML with `DOMPurify`
 
-**Link rewriting** resolves link targets against the manifest by `sourcePath`. If a link target matches a published document, the href is converted to an Angular route. External URLs, anchors, mailto links, and unknown targets are left unchanged.
+**Link rewriting** resolves link targets against the manifest by `sourcePath`. If a link target matches a published document, the href is converted to an Angular route. Same-document anchors are rewritten to the current `/docs/:category/:slug#fragment` URL so they keep working under the app base href. External URLs, mailto links, and unknown targets are left unchanged.
 
 `marked` and `DOMPurify` are dynamically imported, so they are loaded only when the docs viewer needs to render a document.
 
