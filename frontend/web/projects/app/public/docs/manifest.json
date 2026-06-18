@@ -37,17 +37,25 @@
     },
     {
       "category": "getting-started",
-      "slug": "vps-setup-guide",
-      "title": "Guida: Preparazione VPS per Deploy Docker",
+      "slug": "using-this-seed",
+      "title": "Using This Seed",
       "order": 2,
+      "path": "docs/getting-started/using-this-seed.md",
+      "sourcePath": "docs/getting-started/using-this-seed.md"
+    },
+    {
+      "category": "getting-started",
+      "slug": "vps-setup-guide",
+      "title": "Preparazione VPS per Deploy Docker",
+      "order": 3,
       "path": "docs/getting-started/vps-setup-guide.md",
       "sourcePath": "docs/getting-started/vps-setup-guide.md"
     },
     {
       "category": "getting-started",
       "slug": "new-project-deploy-guide",
-      "title": "Guida: Primo Deploy di un Nuovo Progetto dalla Seed App",
-      "order": 3,
+      "title": "Primo Deploy di un Nuovo Progetto dalla Seed App",
+      "order": 4,
       "path": "docs/getting-started/new-project-deploy-guide.md",
       "sourcePath": "docs/getting-started/new-project-deploy-guide.md"
     },
@@ -162,14 +170,6 @@
       "order": 1,
       "path": "docs/compliance/gdpr-compliance-checklist.md",
       "sourcePath": "docs/compliance/gdpr-compliance-checklist.md"
-    },
-    {
-      "category": "getting-started",
-      "slug": "using-this-seed",
-      "title": "Using This Seed",
-      "order": 4,
-      "path": "docs/getting-started/using-this-seed.md",
-      "sourcePath": "docs/getting-started/using-this-seed.md"
     }
   ]
 }

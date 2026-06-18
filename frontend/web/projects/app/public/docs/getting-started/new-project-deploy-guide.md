@@ -1,4 +1,4 @@
-# Guida: Primo Deploy di un Nuovo Progetto dalla Seed App
+# Primo Deploy di un Nuovo Progetto dalla Seed App
 
 Questa guida spiega come trasformare la seed app in un nuovo progetto deployato tramite GitHub Actions, GHCR, Docker Compose, Cloudflare e VPS.
 

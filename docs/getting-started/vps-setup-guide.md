@@ -1,10 +1,8 @@
-# Guida: Preparazione VPS per Deploy Docker
+# Preparazione VPS per Deploy Docker
 
 Questa guida prepara un VPS vuoto per ospitare applicazioni deployate con Docker Compose e CI/CD.
 
 **Quando usarla:** il server parte da zero e devi configurare sistema operativo, utente `deploy`, SSH, Docker, firewall e directory base.
-
-**Quando non usarla come guida di deploy:** se il VPS e gia pronto e devi deployare una nuova app dal seed, usa [New Project Deploy Guide](new-project-deploy-guide.md).
 
 **Output atteso:** al termine hai un server accessibile via SSH con utente non-root, Docker funzionante, firewall configurato e directory root pronta per i deploy. Il dominio, Cloudflare, certificati, `.env`, GitHub Actions e primo deploy sono trattati nella guida di deploy.
 
