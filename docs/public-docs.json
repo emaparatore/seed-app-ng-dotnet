@@ -6,7 +6,6 @@
       "slug": "project-overview",
       "title": "Project Overview"
     },
-    "docs/getting-started/seed-checklist.md",
     "docs/getting-started/vps-setup-guide.md",
     "docs/getting-started/new-project-deploy-guide.md",
     "docs/architecture/authentication.md",

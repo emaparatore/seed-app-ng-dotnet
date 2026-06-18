@@ -6,7 +6,7 @@ A battle-tested, production-ready full-stack seed/starter application. Includes 
 - Angular web frontend (with SSR support)
 - Docker setup for local development and test execution
 
-If you want to create your app using this seed read the doc [Using This Seed](docs/getting-started/using-this-seed.md).
+If you want to create a product from this repository, start with [Using This Seed](docs/getting-started/using-this-seed.md) for the seed-specific handoff, then use [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) for the actual first deploy.
 
 
 
@@ -245,10 +245,9 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 
 | Document | Description |
 |---|---|
-| [Using This Seed](docs/getting-started/using-this-seed.md) | How to turn the original seed into a product repository and what to clean up afterwards |
-| [Seed Checklist](docs/getting-started/seed-checklist.md) | Minimal operational checklist to turn this seed into a new project quickly |
+| [Using This Seed](docs/getting-started/using-this-seed.md) | Seed-specific handoff: what this repository is, how to adopt it, and what to clean up afterwards |
 | [VPS Setup Guide](docs/getting-started/vps-setup-guide.md) | Prepare a blank VPS with SSH, Docker, firewall and deploy root |
-| [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) | Complete first deploy flow: app config, Cloudflare, SSL, GitHub Actions and smoke tests |
+| [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) | Operational first deploy guide: app config, Cloudflare, SSL, GitHub Actions and smoke tests |
 | [CI/CD](docs/operations/ci-cd.md) | GitHub Actions workflows, branch strategy, Docker publish, deploy |
 
 ### Module Setup
