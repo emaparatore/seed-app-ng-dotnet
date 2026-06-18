@@ -10,6 +10,7 @@ export interface DocsEntry {
   readonly title: string;
   readonly order: number;
   readonly path: string;
+  readonly sourcePath: string;
 }
 
 export interface DocsManifest {

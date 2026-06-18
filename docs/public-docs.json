@@ -1,5 +1,11 @@
 {
   "documents": [
+    {
+      "source": "README.md",
+      "category": "getting-started",
+      "slug": "project-overview",
+      "title": "Project Overview"
+    },
     "docs/getting-started/seed-checklist.md",
     "docs/getting-started/vps-setup-guide.md",
     "docs/getting-started/new-project-deploy-guide.md",
@@ -17,6 +23,6 @@
     "docs/operations/rollback.md",
     "docs/operations/troubleshooting.md",
     "docs/compliance/gdpr-compliance-checklist.md",
-    "docs/seed/using-this-seed.md"
+    "docs/getting-started/using-this-seed.md"
   ]
 }

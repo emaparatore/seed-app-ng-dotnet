@@ -52,13 +52,33 @@ The public allowlist contains the exact source files exposed in the app:
 }
 ```
 
+Each entry can be:
+
+- A **string** path for documents under `docs/` (category is inferred from the folder).
+- An **object** for documents outside `docs/` or when you need explicit control:
+
+  ```json
+  {
+    "source": "README.md",
+    "category": "getting-started",
+    "slug": "project-overview",
+    "title": "Project Overview"
+  }
+  ```
+
+  Fields for object entries:
+  - `source` — file path relative to repo root, must end with `.md`
+  - `category` — must match a supported slug
+  - `slug` — URL slug for the route (`/docs/:category/:slug`)
+  - `title` — display title (optional; falls back to the first `# Heading` in the file)
+
 Rules:
 
-- Paths must start with `docs/`
-- Paths must end with `.md`
-- Paths must exist
-- Duplicates are rejected
-- Unsupported categories are rejected
+- Source paths must be unique (no duplicates between string and object entries)
+- Source files must exist
+- Categories must be one of the supported slugs below
+- For string entries: path must start with `docs/` and end with `.md`
+- For object entries: `source`, `category`, and `slug` are required
 
 Supported categories:
 
@@ -69,7 +89,6 @@ Supported categories:
 | `docs/modules/` | Modules |
 | `docs/operations/` | Operations |
 | `docs/compliance/` | Compliance |
-| `docs/seed/` | Seed |
 
 Folders such as `docs/plans/`, `docs/requirements/`, `docs/wishes/`, and `docs/skills/` are not public unless support is intentionally added to the sync script.
 
@@ -77,8 +96,8 @@ Folders such as `docs/plans/`, `docs/requirements/`, `docs/wishes/`, and `docs/s
 
 To make a document visible in the app:
 
-1. Create or update a source document under `docs/`, for example `docs/modules/my-feature.md`.
-2. Add the file path to `docs/public-docs.json`.
+1. Create or update a source document.
+2. Add the file path (or object config) to `docs/public-docs.json`.
 3. Run the sync command:
 
 ```bash
@@ -158,8 +177,12 @@ The service:
 
 - Loads `docs/manifest.json` from Angular public assets
 - Fetches the selected Markdown file as text
+- Removes the first Markdown `# Heading` because the viewer already renders the page title separately
+- Rewrites internal Markdown links (e.g. `docs/operations/ci-cd.md`) into app route links (`/docs/operations/ci-cd`)
 - Renders Markdown with `marked`
 - Sanitizes rendered HTML with `DOMPurify`
+
+**Link rewriting** resolves link targets against the manifest by `sourcePath`. If a link target matches a published document, the href is converted to an Angular route. External URLs, anchors, mailto links, and unknown targets are left unchanged.
 
 `marked` and `DOMPurify` are dynamically imported, so they are loaded only when the docs viewer needs to render a document.
 

@@ -78,9 +78,9 @@ If you need a custom path, set the GitHub Actions variable `DEPLOY_ROOT`.
 
 Use the regular project documentation:
 
-1. If the VPS is new, prepare it with [VPS Setup Guide](../getting-started/vps-setup-guide.md)
-2. Deploy the app with [New Project Deploy Guide](../getting-started/new-project-deploy-guide.md)
-3. Use [Seed Checklist](../getting-started/seed-checklist.md) if you only need the shortest operational checklist
+1. If the VPS is new, prepare it with [VPS Setup Guide](vps-setup-guide.md)
+2. Deploy the app with [New Project Deploy Guide](new-project-deploy-guide.md)
+3. Use [Seed Checklist](seed-checklist.md) if you only need the shortest operational checklist
 
 ## Make The Repository Yours
 
@@ -97,7 +97,7 @@ After the first successful deploy, update the repository so it no longer feels l
 
 Keep these while bootstrapping the product:
 
-- `docs/seed/using-this-seed.md`
+- `docs/getting-started/using-this-seed.md`
 - `docs/getting-started/seed-checklist.md`
 
 Delete or rewrite them once they are no longer useful to the product team. The rest of the documentation should remain useful as normal project documentation.

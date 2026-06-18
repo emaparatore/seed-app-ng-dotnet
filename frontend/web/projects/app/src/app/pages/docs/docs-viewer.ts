@@ -71,7 +71,7 @@ export class DocsViewer {
 
     try {
       const markdown = await this.docsService.loadMarkdown(doc.path);
-      const html = await this.docsService.renderMarkdown(markdown);
+      const html = await this.docsService.renderMarkdown(markdown, doc.sourcePath);
       const nav = this.docsService.getNavItem(category, slug);
       if (!nav) {
         this.state.set({ kind: 'not-found' });

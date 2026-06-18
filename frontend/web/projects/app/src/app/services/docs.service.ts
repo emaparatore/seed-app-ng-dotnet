@@ -19,6 +19,32 @@ async function getDomPurify(): Promise<DomPurifyModule> {
   return domPurifyPromise;
 }
 
+function dirname(p: string): string {
+  const idx = p.lastIndexOf('/');
+  return idx >= 0 ? p.substring(0, idx) : '';
+}
+
+function resolveRelativePath(link: string, baseDir: string): string {
+  const baseParts = baseDir ? baseDir.split('/').filter(Boolean) : [];
+  const linkParts = link.split('/');
+  const resolved: string[] = [...baseParts];
+
+  for (const part of linkParts) {
+    if (part === '.' || part === '') {
+      continue;
+    }
+    if (part === '..') {
+      if (resolved.length > 0) {
+        resolved.pop();
+      }
+    } else {
+      resolved.push(part);
+    }
+  }
+
+  return resolved.join('/');
+}
+
 @Injectable({ providedIn: 'root' })
 export class DocsService {
   private readonly http = inject(HttpClient);
@@ -52,6 +78,14 @@ export class DocsService {
     },
   );
 
+  private readonly docsBySourcePath = computed<Map<string, DocsEntry>>(() => {
+    const map = new Map<string, DocsEntry>();
+    for (const doc of this.docs()) {
+      map.set(doc.sourcePath, doc);
+    }
+    return map;
+  });
+
   constructor() {
     void this.warmupRenderers();
   }
@@ -59,7 +93,6 @@ export class DocsService {
   private async warmupRenderers(): Promise<void> {
     const [marked, dompurify] = await Promise.all([getMarked(), getDomPurify()]);
     marked.marked.setOptions({ gfm: true, breaks: false });
-    // Touch the default export so the bundler keeps it.
     void dompurify.default;
   }
 
@@ -128,12 +161,57 @@ export class DocsService {
     return response;
   }
 
-  async renderMarkdown(markdown: string): Promise<string> {
+  async renderMarkdown(markdown: string, sourcePath: string): Promise<string> {
+    const rewritten = this.rewriteInternalLinks(
+      this.stripLeadingTitle(markdown),
+      sourcePath,
+    );
     const [marked, dompurify] = await Promise.all([getMarked(), getDomPurify()]);
-    const raw = marked.marked.parse(markdown, { async: false }) as string;
+    const raw = marked.marked.parse(rewritten, { async: false }) as string;
     return dompurify.default.sanitize(raw, {
       ADD_ATTR: ['target', 'rel'],
     });
+  }
+
+  private stripLeadingTitle(markdown: string): string {
+    return markdown.replace(/^#\s+.+?(?:\r?\n){1,2}/, '');
+  }
+
+  private rewriteInternalLinks(markdown: string, sourcePath: string): string {
+    const baseDir = dirname(sourcePath);
+
+    return markdown.replace(
+      /\[([^\]]*)\]\(([^)\s]+\.md)(?:\s+"[^"]*")?\)/g,
+      (match, text, linkPath) => {
+        if (/^(https?:\/\/|mailto:|#)/.test(linkPath)) {
+          return match;
+        }
+
+        const resolved = this.resolveDocSourcePath(linkPath, baseDir);
+        if (!resolved) {
+          return match;
+        }
+
+        const doc = this.docsBySourcePath().get(resolved);
+        if (!doc) {
+          return match;
+        }
+
+        return `[${text}](/docs/${doc.category}/${doc.slug})`;
+      },
+    );
+  }
+
+  private resolveDocSourcePath(linkPath: string, baseDir: string): string | null {
+    if (linkPath.startsWith('docs/')) {
+      return linkPath;
+    }
+
+    if (!baseDir) {
+      return linkPath;
+    }
+
+    return resolveRelativePath(linkPath, baseDir);
   }
 
   private formatError(err: unknown): string {
