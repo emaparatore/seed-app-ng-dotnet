@@ -6,7 +6,7 @@ A battle-tested, production-ready full-stack seed/starter application. Includes 
 - Angular web frontend (with SSR support)
 - Docker setup for local development and test execution
 
-If you want to create a product from this repository, start with [Using This Seed](docs/getting-started/using-this-seed.md) for the seed-specific handoff, then use [New Project Deploy Guide](docs/getting-started/new-project-deploy-guide.md) for the actual first deploy.
+If you want to create a product from this repository, start with [Using This Seed](docs/getting-started/using-this-seed.md) 
 
 
 
