@@ -24,139 +24,152 @@
       "slug": "compliance",
       "title": "Compliance",
       "order": 5
-    },
-    {
-      "slug": "seed",
-      "title": "Seed",
-      "order": 6
     }
   ],
   "docs": [
     {
       "category": "getting-started",
-      "slug": "seed-checklist",
-      "title": "Checklist Rapida: Riusa la Seed per un Nuovo Progetto",
+      "slug": "project-overview",
+      "title": "Project Overview",
       "order": 1,
-      "path": "docs/getting-started/seed-checklist.md"
+      "path": "docs/getting-started/project-overview.md",
+      "sourcePath": "README.md"
+    },
+    {
+      "category": "getting-started",
+      "slug": "using-this-seed",
+      "title": "Using This Seed",
+      "order": 2,
+      "path": "docs/getting-started/using-this-seed.md",
+      "sourcePath": "docs/getting-started/using-this-seed.md"
     },
     {
       "category": "getting-started",
       "slug": "vps-setup-guide",
-      "title": "Guida: Preparazione VPS per Deploy Docker",
-      "order": 2,
-      "path": "docs/getting-started/vps-setup-guide.md"
+      "title": "Preparazione VPS per Deploy Docker",
+      "order": 3,
+      "path": "docs/getting-started/vps-setup-guide.md",
+      "sourcePath": "docs/getting-started/vps-setup-guide.md"
     },
     {
       "category": "getting-started",
       "slug": "new-project-deploy-guide",
-      "title": "Guida: Primo Deploy di un Nuovo Progetto dalla Seed App",
-      "order": 3,
-      "path": "docs/getting-started/new-project-deploy-guide.md"
+      "title": "Primo Deploy di un Nuovo Progetto dalla Seed App",
+      "order": 4,
+      "path": "docs/getting-started/new-project-deploy-guide.md",
+      "sourcePath": "docs/getting-started/new-project-deploy-guide.md"
     },
     {
       "category": "architecture",
       "slug": "authentication",
       "title": "Autenticazione JWT — Documentazione Implementazione",
       "order": 1,
-      "path": "docs/architecture/authentication.md"
+      "path": "docs/architecture/authentication.md",
+      "sourcePath": "docs/architecture/authentication.md"
     },
     {
       "category": "architecture",
       "slug": "bootstrap-console",
       "title": "Bootstrap Console Application",
       "order": 2,
-      "path": "docs/architecture/bootstrap-console.md"
+      "path": "docs/architecture/bootstrap-console.md",
+      "sourcePath": "docs/architecture/bootstrap-console.md"
     },
     {
       "category": "architecture",
       "slug": "migration-strategy",
       "title": "Migration Strategy",
       "order": 3,
-      "path": "docs/architecture/migration-strategy.md"
+      "path": "docs/architecture/migration-strategy.md",
+      "sourcePath": "docs/architecture/migration-strategy.md"
     },
     {
       "category": "modules",
       "slug": "admin-dashboard",
       "title": "Admin Dashboard",
       "order": 1,
-      "path": "docs/modules/admin-dashboard.md"
+      "path": "docs/modules/admin-dashboard.md",
+      "sourcePath": "docs/modules/admin-dashboard.md"
     },
     {
       "category": "modules",
       "slug": "smtp-configuration",
       "title": "Configurazione SMTP",
       "order": 2,
-      "path": "docs/modules/smtp-configuration.md"
+      "path": "docs/modules/smtp-configuration.md",
+      "sourcePath": "docs/modules/smtp-configuration.md"
     },
     {
       "category": "modules",
       "slug": "stripe-payments-setup",
       "title": "Guida Operativa: Configurazione Pagamenti e Stripe",
       "order": 3,
-      "path": "docs/modules/stripe-payments-setup.md"
+      "path": "docs/modules/stripe-payments-setup.md",
+      "sourcePath": "docs/modules/stripe-payments-setup.md"
     },
     {
       "category": "modules",
       "slug": "in-app-documentation",
       "title": "In-App Documentation Viewer",
       "order": 4,
-      "path": "docs/modules/in-app-documentation.md"
+      "path": "docs/modules/in-app-documentation.md",
+      "sourcePath": "docs/modules/in-app-documentation.md"
     },
     {
       "category": "modules",
       "slug": "subscription-payments",
       "title": "Subscription Payments",
       "order": 5,
-      "path": "docs/modules/subscription-payments.md"
+      "path": "docs/modules/subscription-payments.md",
+      "sourcePath": "docs/modules/subscription-payments.md"
     },
     {
       "category": "operations",
       "slug": "env-backup",
       "title": ".env Backup",
       "order": 1,
-      "path": "docs/operations/env-backup.md"
+      "path": "docs/operations/env-backup.md",
+      "sourcePath": "docs/operations/env-backup.md"
     },
     {
       "category": "operations",
       "slug": "ci-cd",
       "title": "CI/CD Pipeline",
       "order": 2,
-      "path": "docs/operations/ci-cd.md"
+      "path": "docs/operations/ci-cd.md",
+      "sourcePath": "docs/operations/ci-cd.md"
     },
     {
       "category": "operations",
       "slug": "monitoring",
       "title": "Monitoring Stack",
       "order": 3,
-      "path": "docs/operations/monitoring.md"
+      "path": "docs/operations/monitoring.md",
+      "sourcePath": "docs/operations/monitoring.md"
     },
     {
       "category": "operations",
       "slug": "rollback",
       "title": "Rollback Guide",
       "order": 4,
-      "path": "docs/operations/rollback.md"
+      "path": "docs/operations/rollback.md",
+      "sourcePath": "docs/operations/rollback.md"
     },
     {
       "category": "operations",
       "slug": "troubleshooting",
       "title": "Troubleshooting",
       "order": 5,
-      "path": "docs/operations/troubleshooting.md"
+      "path": "docs/operations/troubleshooting.md",
+      "sourcePath": "docs/operations/troubleshooting.md"
     },
     {
       "category": "compliance",
       "slug": "gdpr-compliance-checklist",
       "title": "GDPR Compliance Checklist",
       "order": 1,
-      "path": "docs/compliance/gdpr-compliance-checklist.md"
-    },
-    {
-      "category": "seed",
-      "slug": "using-this-seed",
-      "title": "Using This Seed",
-      "order": 1,
-      "path": "docs/seed/using-this-seed.md"
+      "path": "docs/compliance/gdpr-compliance-checklist.md",
+      "sourcePath": "docs/compliance/gdpr-compliance-checklist.md"
     }
   ]
 }

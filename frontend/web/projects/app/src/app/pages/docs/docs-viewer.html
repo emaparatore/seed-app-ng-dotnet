@@ -38,7 +38,12 @@
             <h1 class="docs-title">{{ s.doc.title }}</h1>
           </header>
 
-          <section class="docs-body" [innerHTML]="s.html"></section>
+          <section
+            #docsBody
+            class="docs-body"
+            [innerHTML]="s.html"
+            (click)="onDocumentClick($event)"
+          ></section>
 
           <nav class="docs-pager" aria-label="Document navigation">
             @if (s.nav.previous; as prev) {
