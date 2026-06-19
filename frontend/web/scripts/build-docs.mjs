@@ -17,7 +17,6 @@ const CATEGORIES = [
   { slug: 'modules', title: 'Modules', order: 3 },
   { slug: 'operations', title: 'Operations', order: 4 },
   { slug: 'compliance', title: 'Compliance', order: 5 },
-  { slug: 'seed', title: 'Seed', order: 6 },
 ];
 
 const CATEGORY_BY_SLUG = new Map(CATEGORIES.map((category) => [category.slug, category]));
@@ -50,6 +49,28 @@ async function readPublicDocsConfig() {
   return parsed.documents;
 }
 
+function parseEntry(entry) {
+  if (typeof entry === 'string') {
+    return { source: entry, stringEntry: true };
+  }
+  if (entry && typeof entry === 'object' && typeof entry.source === 'string') {
+    const { source, category, slug, title } = entry;
+    if (!source.endsWith('.md')) {
+      throw new Error(`Public doc source must end with ".md": ${source}`);
+    }
+    if (!category) {
+      throw new Error(`Public doc entry for "${source}" is missing "category".`);
+    }
+    if (!slug) {
+      throw new Error(`Public doc entry for "${source}" is missing "slug".`);
+    }
+    return { source, category, slug: slugifyTitle(slug), title: title ?? null, stringEntry: false };
+  }
+  throw new Error(
+    'Each public document entry must be a string path or an object with "source", "category", "slug".',
+  );
+}
+
 async function cleanOutput(outputDir) {
   await fs.rm(outputDir, { recursive: true, force: true });
   await fs.mkdir(outputDir, { recursive: true });
@@ -58,30 +79,43 @@ async function cleanOutput(outputDir) {
 async function buildDocs(outputDir) {
   await cleanOutput(outputDir);
   const publicDocs = await readPublicDocsConfig();
-  const seen = new Set();
+  const seenSources = new Set();
   const orderByCategory = new Map();
   const docs = [];
 
-  for (const relativePath of publicDocs) {
-    validatePublicDocPath(relativePath, seen);
+  for (const entry of publicDocs) {
+    const parsed = parseEntry(entry);
+    const { source, stringEntry } = parsed;
 
-    const parts = relativePath.split('/');
-    const categorySlug = parts[1];
+    if (seenSources.has(source)) {
+      throw new Error(`Duplicate public doc source: ${source}`);
+    }
+    seenSources.add(source);
+
+    const categorySlug = stringEntry
+      ? source.split('/')[1]
+      : parsed.category;
     const category = CATEGORY_BY_SLUG.get(categorySlug);
     if (!category) {
-      throw new Error(`Unsupported public docs category "${categorySlug}" in ${relativePath}.`);
+      throw new Error(`Unsupported public docs category "${categorySlug}" in ${source}.`);
     }
 
-    const sourceFile = path.join(REPO_ROOT, relativePath);
+    const sourceFile = path.join(REPO_ROOT, source);
     const stat = await fs.stat(sourceFile).catch(() => null);
     if (!stat?.isFile()) {
-      throw new Error(`Public doc not found: ${relativePath}`);
+      throw new Error(`Public doc not found: ${source}`);
     }
 
     const content = await fs.readFile(sourceFile, 'utf-8');
-    const title = extractTitle(content) ?? path.basename(relativePath, '.md');
-    const fileBase = path.basename(relativePath, '.md');
-    const slug = slugifyTitle(fileBase);
+    const extractedTitle = extractTitle(content);
+    const title = stringEntry
+      ? (extractedTitle ?? path.basename(source, '.md'))
+      : (parsed.title ?? extractedTitle ?? path.basename(source, '.md'));
+
+    const slug = stringEntry
+      ? slugifyTitle(path.basename(source, '.md'))
+      : parsed.slug;
+
     const outputCategoryDir = path.join(outputDir, categorySlug);
     const outputFile = path.join(outputCategoryDir, `${slug}.md`);
 
@@ -97,6 +131,7 @@ async function buildDocs(outputDir) {
       title,
       order,
       path: `docs/${categorySlug}/${slug}.md`,
+      sourcePath: source,
     });
   }
 
@@ -112,26 +147,6 @@ async function buildDocs(outputDir) {
   );
 
   return manifest;
-}
-
-function validatePublicDocPath(relativePath, seen) {
-  if (typeof relativePath !== 'string') {
-    throw new Error('Each public document path must be a string.');
-  }
-  if (seen.has(relativePath)) {
-    throw new Error(`Duplicate public doc path: ${relativePath}`);
-  }
-  seen.add(relativePath);
-
-  if (!relativePath.startsWith('docs/')) {
-    throw new Error(`Public doc path must start with "docs/": ${relativePath}`);
-  }
-  if (!relativePath.endsWith('.md')) {
-    throw new Error(`Public doc path must end with ".md": ${relativePath}`);
-  }
-  if (relativePath.includes('..') || path.isAbsolute(relativePath)) {
-    throw new Error(`Public doc path must be relative and stay inside docs/: ${relativePath}`);
-  }
 }
 
 async function listFiles(rootDir) {

@@ -1,4 +1,4 @@
-# Guida: Primo Deploy di un Nuovo Progetto dalla Seed App
+# Primo Deploy di un Nuovo Progetto dalla Seed App
 
 Questa guida spiega come trasformare la seed app in un nuovo progetto deployato tramite GitHub Actions, GHCR, Docker Compose, Cloudflare e VPS.
 
@@ -37,6 +37,21 @@ git remote set-url origin https://github.com/TUO_USERNAME/nuovo-progetto.git
 ```
 
 La rinomina completa dei namespace `Seed.*`, solution e progetti C# e opzionale per il primo deploy. Per partire velocemente, scegli prima uno slug stabile e aggiorna branding/configurazione visibile.
+
+Minimo consigliato prima del primo deploy:
+
+- nome repository GitHub
+- `PROJECT_SLUG`
+- dominio applicazione e `CLIENT_BASE_URL`
+- `General__AppName`
+- branding base frontend, logo e favicon
+- mittente email (`Smtp__FromName`, `Smtp__FromEmail`) se usi SMTP reale
+
+Puoi rimandare a dopo:
+
+- rename completo dei namespace `Seed.*`
+- rename solution/progetti C#
+- refactor cosmetici non necessari al primo rilascio
 
 Esempio:
 
@@ -477,6 +492,14 @@ Dopo il bootstrap iniziale:
 - aggiorna `General__AppName`, branding, logo, favicon e testi demo
 - verifica che Cloudflare Access protegga staging
 - documenta eventuali valori custom del progetto
+
+Considera il seed validato quando riesci ad arrivare senza attrito anomalo a:
+
+- clone/template del repository
+- configurazione `.env` e GitHub secrets/variables
+- primo deploy riuscito
+- smoke test base passato
+- avvio della prima feature della tua applicazione
 
 ---
 
