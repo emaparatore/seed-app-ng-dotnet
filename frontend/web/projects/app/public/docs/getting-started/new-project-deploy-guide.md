@@ -26,15 +26,22 @@ Questa guida spiega come trasformare la seed app in un nuovo progetto deployato 
 
 ---
 
-## 1. Fork, Clone e Rinomina
+## 1. Crea Repository, Clone e Rinomina
 
-Crea un nuovo repository da GitHub usando il seed come template, oppure clona e cambia remote:
+Crea prima un nuovo repository vuoto su GitHub, per esempio `TUO_USERNAME/nuovo-progetto`.
+
+Importante: crealo vuoto, senza README, `.gitignore` o license. Il codice verra' caricato dal clone locale con il primo push.
+
+Poi clona il seed e cambia remote:
 
 ```bash
 git clone https://github.com/TUO_USERNAME/seed-app-ng-dotnet.git nuovo-progetto
 cd nuovo-progetto
 git remote set-url origin https://github.com/TUO_USERNAME/nuovo-progetto.git
+git remote -v
 ```
+
+Se esegui `git remote set-url` dalla cartella padre invece che da `nuovo-progetto`, Git mostrera' `fatal: not a git repository`: entra prima nella directory clonata con `cd nuovo-progetto`.
 
 La rinomina completa dei namespace `Seed.*`, solution e progetti C# e opzionale per il primo deploy. Per partire velocemente, scegli prima uno slug stabile e aggiorna branding/configurazione visibile.
 
