@@ -41,8 +41,6 @@ git remote set-url origin https://github.com/TUO_USERNAME/nuovo-progetto.git
 git remote -v
 ```
 
-Se esegui `git remote set-url` dalla cartella padre invece che da `nuovo-progetto`, Git mostrera' `fatal: not a git repository`: entra prima nella directory clonata con `cd nuovo-progetto`.
-
 La rinomina completa dei namespace `Seed.*`, solution e progetti C# e opzionale per il primo deploy. Per partire velocemente, scegli prima uno slug stabile e aggiorna branding/configurazione visibile.
 
 Minimo consigliato prima del primo deploy:
@@ -116,14 +114,6 @@ Se vuoi forzare un build manuale:
 ---
 
 ## 4. Prepara la Directory sul VPS
-
-Esempio con `PROJECT_SLUG=nuovo-progetto` e path default `/opt/nuovo-progetto`:
-
-```bash
-ssh deploy@TUO_IP_VPS
-sudo mkdir -p /opt/nuovo-progetto
-sudo chown deploy:deploy /opt/nuovo-progetto
-```
 
 Il CI/CD crea automaticamente le subdirectory `production`, `staging` e sincronizza compose, nginx, monitoring e script ad ogni deploy. Manualmente devi preparare solo la root e i file `.env`.
 

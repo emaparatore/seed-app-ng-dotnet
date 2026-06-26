@@ -115,14 +115,6 @@ Se vuoi forzare un build manuale:
 
 ## 4. Prepara la Directory sul VPS
 
-Esempio con `PROJECT_SLUG=nuovo-progetto` e path default `/opt/nuovo-progetto`:
-
-```bash
-ssh deploy@TUO_IP_VPS
-sudo mkdir -p /opt/nuovo-progetto
-sudo chown deploy:deploy /opt/nuovo-progetto
-```
-
 Il CI/CD crea automaticamente le subdirectory `production`, `staging` e sincronizza compose, nginx, monitoring e script ad ogni deploy. Manualmente devi preparare solo la root e i file `.env`.
 
 Struttura attesa dopo il primo deploy:
