@@ -15,13 +15,13 @@ Questa guida spiega come trasformare la seed app in un nuovo progetto deployato 
 ```text
 [ ] 1. Crea il nuovo repository dal seed
 [ ] 2. Scegli `PROJECT_SLUG` e dominio
-[ ] 3. Crea la root directory sul VPS
-[ ] 4. Configura `.env` per production e, se serve, staging
-[ ] 5. Configura Cloudflare DNS, SSL/TLS e staging protetto
-[ ] 6. Salva il Cloudflare Origin Certificate nei volumi Docker
-[ ] 7. Configura GitHub secrets e variables
+[ ] 3. Configura accesso VPS e GitHub secrets per il deploy
+[ ] 4. Crea le directory minime sul VPS
+[ ] 5. Configura `.env` per production e, se serve, staging
+[ ] 6. Configura Cloudflare DNS, SSL/TLS e staging protetto
+[ ] 7. Salva il Cloudflare Origin Certificate nei volumi Docker
 [ ] 8. Esegui build immagini e deploy via CI/CD
-[ ] 9. Esegui smoke test e pulizia post-bootstrap
+[ ] 9. Verifica struttura deployata, smoke test e pulizia post-bootstrap
 ```
 
 ---
@@ -113,36 +113,105 @@ Se vuoi forzare un build manuale:
 
 ---
 
-## 4. Prepara la Directory sul VPS
+## 4. Prepara Accesso VPS e GitHub Secrets
 
-Il CI/CD crea automaticamente le subdirectory `production`, `staging` e sincronizza compose, nginx, monitoring e script ad ogni deploy. Manualmente devi preparare solo la root e i file `.env`.
+Prima di creare `.env` e lanciare il deploy, GitHub Actions deve poter entrare nel VPS via SSH e leggere le immagini private da GHCR.
 
-Struttura attesa dopo il primo deploy:
+Questi valori sono specifici del nuovo repository: non vengono ereditati dal seed e non vengono creati automaticamente.
+
+### 4.1 Crea un PAT per GHCR
+
+In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (classic)** crea un token con scope:
 
 ```text
-/opt/nuovo-progetto/
-|-- production/
-|   |-- docker-compose.deploy.yml
-|   |-- .env
-|   |-- nginx/
-|   `-- scripts/
-|-- staging/
-|   |-- docker-compose.deploy.yml
-|   |-- .env
-|   |-- nginx/
-|   `-- scripts/
-`-- backups/
-    |-- production/
-    `-- staging/
+read:packages
 ```
+
+### 4.2 Genera una chiave SSH dedicata al deploy
+
+Dal computer locale:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
+```
+
+Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
+
+### 4.3 Aggiungi la chiave pubblica al VPS
+
+Mostra la chiave pubblica:
+
+```bash
+cat ~/.ssh/deploy_key.pub
+```
+
+Sul VPS:
+
+```bash
+ssh deploy@TUO_IP_VPS
+echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
+exit
+```
+
+Verifica dal computer locale:
+
+```bash
+ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
+```
+
+### 4.4 Configura repository secrets
+
+Nel nuovo repository GitHub vai in **Settings > Secrets and variables > Actions > Secrets** e crea:
+
+| Secret | Valore |
+|--------|--------|
+| `DEPLOY_HOST` | IP o hostname del VPS |
+| `DEPLOY_USER` | `deploy` |
+| `DEPLOY_SSH_KEY` | contenuto della chiave privata `~/.ssh/deploy_key` |
+| `GHCR_TOKEN` | PAT con scope `read:packages` |
+
+`DEPLOY_SSH_KEY` deve contenere la chiave privata completa, non il file `.pub`:
+
+```text
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+Se usi GitHub Environments, configura gli stessi secret anche nell'environment corretto:
+
+- `production`: deploy da `master`, preferibilmente con reviewer richiesto
+- `staging`: deploy automatico da `dev`
+
+Prima di proseguire, verifica che `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY` siano presenti nel nuovo repository o nell'environment usato dal branch che stai deployando.
 
 ---
 
-## 5. Configura `.env`
+## 5. Prepara le Directory Minime sul VPS
+
+Prima del deploy devi creare solo la directory dell'ambiente e il file `.env`. Il workflow sincronizzera automaticamente compose, nginx, monitoring e script.
+
+Per production:
+
+```bash
+mkdir -p /opt/nuovo-progetto/production
+```
+
+Se usi staging sullo stesso VPS:
+
+```bash
+mkdir -p /opt/nuovo-progetto/staging
+```
+
+Non aspettarti ancora `docker-compose.deploy.yml`, `nginx/`, `scripts/` o `monitoring/`: vengono copiati dal workflow durante un deploy riuscito.
+
+---
+
+## 6. Configura `.env`
 
 Ogni ambiente ha il proprio file `.env`. I valori sotto sono esempi: genera password e secret reali con `openssl rand -base64 32`.
 
-### 5.1 Production
+### 6.1 Production
 
 ```bash
 mkdir -p /opt/nuovo-progetto/production
@@ -194,7 +263,7 @@ WEB_IMAGE_TAG=latest
 # SuperAdmin__LastName=User
 ```
 
-### 5.2 Staging
+### 6.2 Staging
 
 Se usi staging sullo stesso VPS:
 
@@ -241,18 +310,18 @@ Note importanti:
 
 ---
 
-## 6. Configura Cloudflare
+## 7. Configura Cloudflare
 
 Cloudflare e legato al dominio dell'app, quindi fa parte del deploy del progetto, non del setup generico del VPS.
 
-### 6.1 Aggiungi il dominio
+### 7.1 Aggiungi il dominio
 
 1. Vai su https://dash.cloudflare.com
 2. Clicca **Add a site** e inserisci `nuovodominio.com`
 3. Seleziona il piano **Free**
 4. Se il dominio non e registrato su Cloudflare, cambia i nameserver nel pannello del registrar
 
-### 6.2 Record DNS
+### 7.2 Record DNS
 
 In **DNS > Records**, crea:
 
@@ -264,7 +333,7 @@ In **DNS > Records**, crea:
 
 Se non usi staging, puoi saltare il record `staging`.
 
-### 6.3 SSL/TLS
+### 7.3 SSL/TLS
 
 In **SSL/TLS > Overview**:
 
@@ -280,7 +349,7 @@ In **Speed > Optimization > Content Optimization**:
 - abilita **Brotli**
 - abilita Auto Minify solo se non crea problemi con asset o debug frontend
 
-### 6.4 Origin Rule per staging
+### 7.4 Origin Rule per staging
 
 Lo staging ascolta su `8443`, mentre Cloudflare riceve traffico su `443`. Crea una Origin Rule:
 
@@ -296,7 +365,7 @@ Lo staging ascolta su `8443`, mentre Cloudflare riceve traffico su `443`. Crea u
 5. **Then**: Destination Port `8443`
 6. Clicca **Deploy**
 
-### 6.5 Proteggi staging con Cloudflare Access
+### 7.5 Proteggi staging con Cloudflare Access
 
 Lo staging non dovrebbe essere pubblico.
 
@@ -311,11 +380,11 @@ Da questo momento Cloudflare mostra login email/OTP prima di permettere l'access
 
 ---
 
-## 7. Certificato SSL Cloudflare Origin
+## 8. Certificato SSL Cloudflare Origin
 
 Cloudflare Full Strict richiede un certificato valido tra Cloudflare e VPS. Usa un **Cloudflare Origin Certificate**, gratuito e valido fino a 15 anni.
 
-### 7.1 Genera il certificato
+### 8.1 Genera il certificato
 
 1. Cloudflare > **SSL/TLS > Origin Server**
 2. Clicca **Create Certificate**
@@ -323,7 +392,7 @@ Cloudflare Full Strict richiede un certificato valido tra Cloudflare e VPS. Usa 
 4. Clicca **Create**
 5. Copia subito Origin Certificate e Private Key
 
-### 7.2 Salva certificato production
+### 8.2 Salva certificato production
 
 Il nome del volume deriva da `COMPOSE_PROJECT_NAME`. Con `COMPOSE_PROJECT_NAME=nuovo-progetto-production`:
 
@@ -335,7 +404,7 @@ sudo nano /var/lib/docker/volumes/nuovo-progetto-production_certbot_conf/_data/l
 sudo nano /var/lib/docker/volumes/nuovo-progetto-production_certbot_conf/_data/live/nuovodominio.com/privkey.pem
 ```
 
-### 7.3 Salva certificato staging
+### 8.3 Salva certificato staging
 
 Lo staging puo usare lo stesso wildcard certificate:
 
@@ -357,66 +426,6 @@ Verifica:
 sudo ls -la /var/lib/docker/volumes/nuovo-progetto-production_certbot_conf/_data/live/nuovodominio.com/
 sudo ls -la /var/lib/docker/volumes/nuovo-progetto-staging_certbot_conf/_data/live/staging.nuovodominio.com/
 ```
-
----
-
-## 8. GitHub Secrets per Deploy Automatico
-
-### 8.1 Crea un PAT per GHCR
-
-In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (classic)** crea un token con scope:
-
-```text
-read:packages
-```
-
-### 8.2 Genera una chiave SSH dedicata al deploy
-
-Dal computer locale:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
-```
-
-Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
-
-### 8.3 Aggiungi la chiave pubblica al VPS
-
-Mostra la chiave pubblica:
-
-```bash
-cat ~/.ssh/deploy_key.pub
-```
-
-Sul VPS:
-
-```bash
-ssh deploy@TUO_IP_VPS
-echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
-exit
-```
-
-Verifica:
-
-```bash
-ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
-```
-
-### 8.4 Configura repository secrets
-
-Nel repository GitHub > **Settings > Secrets and variables > Actions > Secrets**:
-
-| Secret | Valore |
-|--------|--------|
-| `DEPLOY_HOST` | IP del VPS |
-| `DEPLOY_USER` | `deploy` |
-| `DEPLOY_SSH_KEY` | contenuto della chiave privata `~/.ssh/deploy_key` |
-| `GHCR_TOKEN` | PAT con scope `read:packages` |
-
-Se usi GitHub Environments, configura:
-
-- `staging`: deploy automatico da `dev`
-- `production`: deploy da `master`, preferibilmente con reviewer richiesto
 
 ---
 
@@ -448,6 +457,31 @@ I backup pre-migrazione vengono salvati in:
 - staging: `/opt/nuovo-progetto/backups/staging/`
 
 Per dettagli, vedi [Migration Strategy](../architecture/migration-strategy.md).
+
+### 9.1 Verifica la struttura creata dal deploy
+
+Dopo un deploy riuscito, la struttura attesa e:
+
+```text
+/opt/nuovo-progetto/
+|-- production/
+|   |-- docker-compose.deploy.yml
+|   |-- .env
+|   |-- nginx/
+|   |-- monitoring/
+|   `-- scripts/
+|-- staging/
+|   |-- docker-compose.deploy.yml
+|   |-- .env
+|   |-- nginx/
+|   |-- monitoring/
+|   `-- scripts/
+`-- backups/
+    |-- production/
+    `-- staging/
+```
+
+Se questa struttura non esiste, il deploy non e arrivato alla fase di sync dei file. Controlla il log del workflow `Deploy` prima di proseguire con gli smoke test.
 
 ---
 
@@ -535,6 +569,28 @@ Non usare `docker compose down -v` in ambienti reali: elimina i volumi e quindi 
 ---
 
 ## 13. Troubleshooting Primo Deploy
+
+### Deploy fallisce con `usage: ssh` e exit code 255
+
+Causa probabile: uno tra `DEPLOY_HOST`, `DEPLOY_USER` o `DEPLOY_SSH_KEY` non e configurato, e vuoto oppure si trova nell'environment GitHub sbagliato.
+
+Il sintomo tipico nel workflow `Deploy` e:
+
+```text
+Run install -m 600 /dev/null /tmp/deploy_key
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] ...
+Error: Process completed with exit code 255.
+```
+
+Verifica:
+
+- nel nuovo repository: **Settings > Secrets and variables > Actions > Secrets**
+- se usi Environments: **Settings > Environments > production/staging**
+- `DEPLOY_HOST` contiene IP o hostname del VPS
+- `DEPLOY_USER` contiene `deploy` o l'utente SSH scelto
+- `DEPLOY_SSH_KEY` contiene la chiave privata completa, non la `.pub`
+
+Dopo aver corretto i secret, rilancia il workflow. Se il deploy parte da `workflow_run`, puoi rilanciare `Docker Publish` per attivare di nuovo `Deploy`.
 
 ### Nginx non si avvia
 
