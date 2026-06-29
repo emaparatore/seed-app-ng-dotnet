@@ -15,13 +15,15 @@ Questa guida spiega come trasformare la seed app in un nuovo progetto deployato 
 ```text
 [ ] 1. Crea il nuovo repository dal seed
 [ ] 2. Scegli `PROJECT_SLUG` e dominio
-[ ] 3. Configura accesso VPS e GitHub secrets per il deploy
+[ ] 2.5 Abilita Workflow Permissions per Actions
+[ ] 3. Configura accesso VPS, GitHub Environments e secrets per il deploy
 [ ] 4. Crea le directory minime sul VPS
 [ ] 5. Configura `.env` per production e, se serve, staging
 [ ] 6. Configura Cloudflare DNS, SSL/TLS e staging protetto
 [ ] 7. Salva il Cloudflare Origin Certificate nei volumi Docker
 [ ] 8. Esegui build immagini e deploy via CI/CD
 [ ] 9. Verifica struttura deployata, smoke test e pulizia post-bootstrap
+[ ] 9.5 Configura Branch Protection su master e dev
 ```
 
 ---
@@ -93,7 +95,22 @@ Variabile opzionale:
 
 ---
 
-## 3. Prepara Accesso VPS e GitHub Secrets
+## 2.5 Workflow Permissions
+
+Le pipeline usano GitHub Actions con permessi specifici. Configurali prima di qualsiasi deploy.
+
+In **Settings > Actions > General > Workflow permissions**:
+
+1. Imposta **Workflow permissions** a **Read and write permissions** (necessario per `docker-publish.yml` che pubblica immagini su GHCR)
+2. Abilita **Allow GitHub Actions to create and approve pull requests** — necessario per il workflow `hotfix-backmerge.yml` che apre automaticamente la PR di back-merge `master` → `dev`
+
+Senza quest'ultima opzione, il back-merge automatico dopo un hotfix fallisce con errore di permessi.
+
+Per il dettaglio dei permessi richiesti da ciascun workflow, vedi [CI/CD Pipeline](../operations/ci-cd.md#github-settings-required).
+
+---
+
+## 3. Prepara Accesso VPS e GitHub Environments/Secrets
 
 Prima di creare `.env` e lanciare il deploy, GitHub Actions deve poter entrare nel VPS via SSH e leggere le immagini private da GHCR.
 
@@ -131,9 +148,25 @@ Verifica dal computer locale:
 ssh -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
 ```
 
-### 3.4 Configura repository secrets
+### 3.4 Crea gli Environments su GitHub
 
-Nel nuovo repository GitHub vai in **Settings > Secrets and variables > Actions > Secrets** e crea:
+Il workflow `deploy.yml` usa GitHub Environments per discriminare production e staging dal branch di partenza:
+
+- branch `master` → environment `production`
+- branch `dev` → environment `staging`
+
+In **Settings > Environments** crea due environments:
+
+| Environment | Deploy da | Reviewer | Note |
+|-------------|-----------|----------|------|
+| `production` | `master` | Consigliato (required reviewers) | Blocca il deploy finche un umano non approva |
+| `staging` | `dev` | Nessuno | Auto-deploy al merge su `dev` |
+
+Per `production`, in **Required reviewers** aggiungi almeno il tuo utente o il team. Puoi anche impostare un **Wait timer** (es. 2 minuti) per dare tempo di annullare un deploy errato.
+
+### 3.5 Configura i Secrets negli Environments
+
+I secret di deploy devono esistere **in ogni environment** che vuoi deployare, non basta lasciarli a livello di repository. Crea gli stessi 4 secret sia in `production` che in `staging`:
 
 | Secret | Valore |
 |--------|--------|
@@ -141,6 +174,8 @@ Nel nuovo repository GitHub vai in **Settings > Secrets and variables > Actions 
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_SSH_KEY` | contenuto della chiave privata `~/.ssh/deploy_key` |
 | `GHCR_TOKEN` | PAT con scope `read:packages` |
+
+I valori sono identici tra i due environments: entrambi deployano sullo stesso VPS, e la directory di destinazione (`production/` o `staging/`) viene derivata automaticamente dal branch. Se in futuro deployerai staging e production su VPS diversi, potrai diversificare `DEPLOY_HOST` e `DEPLOY_SSH_KEY` per environment.
 
 `DEPLOY_SSH_KEY` deve contenere la chiave privata completa, non il file `.pub`:
 
@@ -150,12 +185,7 @@ Nel nuovo repository GitHub vai in **Settings > Secrets and variables > Actions 
 -----END OPENSSH PRIVATE KEY-----
 ```
 
-Se usi GitHub Environments, configura gli stessi secret anche nell'environment corretto:
-
-- `production`: deploy da `master`, preferibilmente con reviewer richiesto
-- `staging`: deploy automatico da `dev`
-
-Prima di proseguire, verifica che `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY` siano presenti nel nuovo repository o nell'environment usato dal branch che stai deployando.
+Prima di proseguire, verifica che `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY` siano presenti in entrambi gli environments (o almeno in quello che stai per deployare per primo).
 
 ---
 
@@ -472,6 +502,25 @@ Dopo un deploy riuscito, la struttura attesa e:
 ```
 
 Se questa struttura non esiste, il deploy non e arrivato alla fase di sync dei file. Controlla il log del workflow `Deploy` prima di proseguire con gli smoke test.
+
+---
+
+## 9.5 Configura Branch Protection
+
+Una volta che il primo deploy e andato a buon fine, proteggi i branch `master` e `dev` per evitare push diretti e garantire che la CI passi prima di ogni merge.
+
+In **Settings > Branches > Add branch protection rule** crea una regola per entrambi i branch (`master` e `dev`) con:
+
+- **Require a pull request before merging** — 0 approvazioni per solo dev, aumentare per team
+- **Require status checks to pass before merging** — aggiungi `ci-success` come required check
+- **Require conversation resolution before merging**
+- **Do not allow bypassing the above settings** — applica le regole anche agli admin
+- **Restrict who can push to matching branches** (opzionale, per team)
+- **No force pushes** e **No deletions**
+
+Il check `ci-success` e l'unico required status check necessario: e il job gate del workflow `ci.yml` che aggrega il risultato di build, test, docs-sync e migration check. Non aggiungere singoli job (`backend-build-test`, `frontend-build-test`, ecc.) come required, perche vengono skippati se il path filter non rileva cambiamenti e bloccherebbero la PR.
+
+Per il dettaglio completo delle regole e della strategia di branching, vedi [CI/CD Pipeline](../operations/ci-cd.md#branch-protection-rules).
 
 ---
 
