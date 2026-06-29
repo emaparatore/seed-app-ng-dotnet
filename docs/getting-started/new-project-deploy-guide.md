@@ -112,31 +112,23 @@ read:packages
 Dal computer locale:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
+ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy_key -C "github-actions-deploy"
 ```
 
 Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
 
 ### 3.3 Aggiungi la chiave pubblica al VPS
 
-Mostra la chiave pubblica:
+Aggiungi la chiave pubblica sul server alle authorized keys:
 
 ```bash
-cat ~/.ssh/deploy_key.pub
-```
-
-Sul VPS:
-
-```bash
-ssh deploy@TUO_IP_VPS
-echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
-exit
+ssh-copy-id -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
 ```
 
 Verifica dal computer locale:
 
 ```bash
-ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
+ssh -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
 ```
 
 ### 3.4 Configura repository secrets

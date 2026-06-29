@@ -93,33 +93,13 @@ Variabile opzionale:
 
 ---
 
-## 3. Push e Build Immagini
-
-Esegui il primo push:
-
-```bash
-git push origin master
-```
-
-Il workflow `docker-publish.yml` builda e pubblica le immagini su GHCR. Verifica in GitHub > Actions che il build sia andato a buon fine.
-
-Se vuoi forzare un build manuale:
-
-1. Vai su GitHub > **Actions** > **Docker Publish**
-2. Clicca **Run workflow**
-3. Seleziona il branch (`master` per production, `dev` per staging)
-4. Spunta **Force API image rebuild** e **Force Web image rebuild**
-5. Avvia il workflow
-
----
-
-## 4. Prepara Accesso VPS e GitHub Secrets
+## 3. Prepara Accesso VPS e GitHub Secrets
 
 Prima di creare `.env` e lanciare il deploy, GitHub Actions deve poter entrare nel VPS via SSH e leggere le immagini private da GHCR.
 
 Questi valori sono specifici del nuovo repository: non vengono ereditati dal seed e non vengono creati automaticamente.
 
-### 4.1 Crea un PAT per GHCR
+### 3.1 Crea un PAT per GHCR
 
 In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (classic)** crea un token con scope:
 
@@ -127,39 +107,31 @@ In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (c
 read:packages
 ```
 
-### 4.2 Genera una chiave SSH dedicata al deploy
+### 3.2 Genera una chiave SSH dedicata al deploy
 
 Dal computer locale:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
+ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy_key -C "github-actions-deploy"
 ```
 
 Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
 
-### 4.3 Aggiungi la chiave pubblica al VPS
+### 3.3 Aggiungi la chiave pubblica al VPS
 
-Mostra la chiave pubblica:
-
-```bash
-cat ~/.ssh/deploy_key.pub
-```
-
-Sul VPS:
+Aggiungi la chiave pubblica sul server alle authorized keys:
 
 ```bash
-ssh deploy@TUO_IP_VPS
-echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
-exit
+ssh-copy-id -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
 ```
 
 Verifica dal computer locale:
 
 ```bash
-ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
+ssh -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
 ```
 
-### 4.4 Configura repository secrets
+### 3.4 Configura repository secrets
 
 Nel nuovo repository GitHub vai in **Settings > Secrets and variables > Actions > Secrets** e crea:
 
@@ -187,7 +159,7 @@ Prima di proseguire, verifica che `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY
 
 ---
 
-## 5. Prepara le Directory Minime sul VPS
+## 4. Prepara le Directory Minime sul VPS
 
 Prima del deploy devi creare solo la directory dell'ambiente e il file `.env`. Il workflow sincronizzera automaticamente compose, nginx, monitoring e script.
 
@@ -207,11 +179,11 @@ Non aspettarti ancora `docker-compose.deploy.yml`, `nginx/`, `scripts/` o `monit
 
 ---
 
-## 6. Configura `.env`
+## 5. Configura `.env`
 
 Ogni ambiente ha il proprio file `.env`. I valori sotto sono esempi: genera password e secret reali con `openssl rand -base64 32`.
 
-### 6.1 Production
+### 5.1 Production
 
 ```bash
 mkdir -p /opt/nuovo-progetto/production
@@ -263,7 +235,7 @@ WEB_IMAGE_TAG=latest
 # SuperAdmin__LastName=User
 ```
 
-### 6.2 Staging
+### 5.2 Staging
 
 Se usi staging sullo stesso VPS:
 
@@ -310,18 +282,18 @@ Note importanti:
 
 ---
 
-## 7. Configura Cloudflare
+## 6. Configura Cloudflare
 
 Cloudflare e legato al dominio dell'app, quindi fa parte del deploy del progetto, non del setup generico del VPS.
 
-### 7.1 Aggiungi il dominio
+### 6.1 Aggiungi il dominio
 
 1. Vai su https://dash.cloudflare.com
 2. Clicca **Add a site** e inserisci `nuovodominio.com`
 3. Seleziona il piano **Free**
 4. Se il dominio non e registrato su Cloudflare, cambia i nameserver nel pannello del registrar
 
-### 7.2 Record DNS
+### 6.2 Record DNS
 
 In **DNS > Records**, crea:
 
@@ -333,7 +305,7 @@ In **DNS > Records**, crea:
 
 Se non usi staging, puoi saltare il record `staging`.
 
-### 7.3 SSL/TLS
+### 6.3 SSL/TLS
 
 In **SSL/TLS > Overview**:
 
@@ -349,7 +321,7 @@ In **Speed > Optimization > Content Optimization**:
 - abilita **Brotli**
 - abilita Auto Minify solo se non crea problemi con asset o debug frontend
 
-### 7.4 Origin Rule per staging
+### 6.4 Origin Rule per staging
 
 Lo staging ascolta su `8443`, mentre Cloudflare riceve traffico su `443`. Crea una Origin Rule:
 
@@ -365,7 +337,7 @@ Lo staging ascolta su `8443`, mentre Cloudflare riceve traffico su `443`. Crea u
 5. **Then**: Destination Port `8443`
 6. Clicca **Deploy**
 
-### 7.5 Proteggi staging con Cloudflare Access
+### 6.5 Proteggi staging con Cloudflare Access
 
 Lo staging non dovrebbe essere pubblico.
 
@@ -380,11 +352,11 @@ Da questo momento Cloudflare mostra login email/OTP prima di permettere l'access
 
 ---
 
-## 8. Certificato SSL Cloudflare Origin
+## 7. Certificato SSL Cloudflare Origin
 
 Cloudflare Full Strict richiede un certificato valido tra Cloudflare e VPS. Usa un **Cloudflare Origin Certificate**, gratuito e valido fino a 15 anni.
 
-### 8.1 Genera il certificato
+### 7.1 Genera il certificato
 
 1. Cloudflare > **SSL/TLS > Origin Server**
 2. Clicca **Create Certificate**
@@ -392,7 +364,7 @@ Cloudflare Full Strict richiede un certificato valido tra Cloudflare e VPS. Usa 
 4. Clicca **Create**
 5. Copia subito Origin Certificate e Private Key
 
-### 8.2 Salva certificato production
+### 7.2 Salva certificato production
 
 Il nome del volume deriva da `COMPOSE_PROJECT_NAME`. Con `COMPOSE_PROJECT_NAME=nuovo-progetto-production`:
 
@@ -404,7 +376,7 @@ sudo nano /var/lib/docker/volumes/nuovo-progetto-production_certbot_conf/_data/l
 sudo nano /var/lib/docker/volumes/nuovo-progetto-production_certbot_conf/_data/live/nuovodominio.com/privkey.pem
 ```
 
-### 8.3 Salva certificato staging
+### 7.3 Salva certificato staging
 
 Lo staging puo usare lo stesso wildcard certificate:
 
@@ -429,16 +401,32 @@ sudo ls -la /var/lib/docker/volumes/nuovo-progetto-staging_certbot_conf/_data/li
 
 ---
 
-## 9. Primo Deploy tramite CI/CD
+## 8. Primo Deploy tramite CI/CD
 
 Con `.env`, certificati e secrets pronti, il primo deploy avviene tramite pipeline.
 
-Flusso consigliato:
+Esegui il primo push solo a questo punto:
 
-1. Esegui `git push origin master`
-2. Verifica che `docker-publish.yml` pubblichi le immagini
-3. Verifica che `deploy.yml` copi i file sul VPS
-4. Verifica che migrazioni, seeding e bootstrap completino senza errori
+```bash
+git push origin master
+```
+
+Il workflow `docker-publish.yml` builda e pubblica le immagini su GHCR. A build completata, il workflow `deploy.yml` parte automaticamente e deploya sul VPS.
+
+Se vuoi forzare un build manuale:
+
+1. Vai su GitHub > **Actions** > **Docker Publish**
+2. Clicca **Run workflow**
+3. Seleziona il branch (`master` per production, `dev` per staging)
+4. Spunta **Force API image rebuild** e **Force Web image rebuild**
+5. Avvia il workflow
+
+Dopo aver avviato la pipeline:
+
+1. Verifica che `docker-publish.yml` pubblichi le immagini
+2. Verifica che `deploy.yml` copi i file sul VPS
+3. Verifica che migrazioni, seeding e bootstrap completino senza errori
+4. Verifica la struttura deployata
 5. Esegui gli smoke test
 
 Il deploy automatico esegue:
@@ -458,7 +446,9 @@ I backup pre-migrazione vengono salvati in:
 
 Per dettagli, vedi [Migration Strategy](../architecture/migration-strategy.md).
 
-### 9.1 Verifica la struttura creata dal deploy
+---
+
+## 9. Verifica la Struttura Creata dal Deploy
 
 Dopo un deploy riuscito, la struttura attesa e:
 
