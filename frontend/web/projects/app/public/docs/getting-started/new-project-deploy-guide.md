@@ -18,7 +18,7 @@ Questa guida spiega come trasformare la seed app in un nuovo progetto deployato 
 [ ] 2.5 Abilita Workflow Permissions per Actions
 [ ] 3. Configura accesso VPS, GitHub Environments e secrets per il deploy
 [ ] 4. Crea le directory minime sul VPS
-[ ] 5. Configura `.env` per production e, se serve, staging
+[ ] 5. Configura `.env` per production e, se serve, staging, incluso SMTP reale
 [ ] 6. Configura Cloudflare DNS, SSL/TLS e staging protetto
 [ ] 7. Salva il Cloudflare Origin Certificate nei volumi Docker
 [ ] 8. Esegui build immagini e deploy via CI/CD
@@ -213,6 +213,8 @@ Non aspettarti ancora `docker-compose.deploy.yml`, `nginx/`, `scripts/` o `monit
 
 Ogni ambiente ha il proprio file `.env`. I valori sotto sono esempi: genera password e secret reali con `openssl rand -base64 32`.
 
+Per production, configura anche un provider SMTP reale prima del primo deploy se l'app deve creare utenti, confermare email o gestire reset password. Senza SMTP, l'app usa il fallback console: le email vengono scritte nei log del container API e non arrivano agli utenti. Per la configurazione completa vedi [SMTP Configuration](../modules/smtp-configuration.md).
+
 ### 5.1 Production
 
 ```bash
@@ -249,7 +251,7 @@ GHCR_OWNER=tuo-github-username
 API_IMAGE_TAG=latest
 WEB_IMAGE_TAG=latest
 
-# --- SMTP opzionale ---
+# --- SMTP production ---
 # Smtp__Host=smtp-relay.brevo.com
 # Smtp__Port=587
 # Smtp__Username=tua-email@brevo.com
@@ -307,7 +309,8 @@ Note importanti:
 
 - `COMPOSE_PROJECT_NAME` deve essere diverso tra production e staging per evitare collisioni di container, network e volumi.
 - `AllowedHosts=*` e intenzionale: l'API non e esposta direttamente, riceve traffico interno da Nginx e healthcheck locali.
-- Se `Smtp__Host` non e configurato, le email vengono loggate in console. Vedi [SMTP Configuration](../modules/smtp-configuration.md).
+- In production, `Smtp__Host` dovrebbe essere configurato con un provider reale: senza SMTP, registrazione utenti, conferma email e reset password non sono realmente usabili dagli utenti finali. Segui [SMTP Configuration](../modules/smtp-configuration.md) per provider, DNS/SPF/DKIM e troubleshooting.
+- Il fallback console senza SMTP e accettabile solo per sviluppo, staging temporaneo o app production che non usano alcun flusso email.
 - Dopo il primo bootstrap, rimuovi `SuperAdmin__Password` dal `.env`. Vedi [Admin Dashboard](../modules/admin-dashboard.md#configurazione-iniziale).
 
 ---
@@ -548,6 +551,7 @@ Verifica anche:
 
 - pagina web caricata via HTTPS
 - login o registrazione base
+- invio email reale per registrazione/conferma o reset password, se l'app consente creazione utenti
 - accesso SuperAdmin iniziale, se configurato
 - assenza di errori evidenti nei log API e web
 
@@ -559,7 +563,7 @@ Dopo il bootstrap iniziale:
 
 - rimuovi `SuperAdmin__Password` dal `.env`
 - conserva in modo sicuro le credenziali iniziali
-- verifica SMTP reale oppure accetta consapevolmente il fallback console
+- verifica SMTP reale seguendo [SMTP Configuration](../modules/smtp-configuration.md), oppure accetta consapevolmente il fallback console solo se l'ambiente non deve inviare email agli utenti
 - aggiorna `General__AppName`, branding, logo, favicon e testi demo
 - verifica che Cloudflare Access protegga staging
 - documenta eventuali valori custom del progetto
