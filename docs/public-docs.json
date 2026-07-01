@@ -20,6 +20,7 @@
     "docs/operations/env-backup.md",
     "docs/operations/ci-cd.md",
     "docs/operations/monitoring.md",
+    "docs/operations/seq.md",
     "docs/operations/rollback.md",
     "docs/operations/troubleshooting.md",
     "docs/compliance/gdpr-compliance-checklist.md"

@@ -149,9 +149,17 @@
     },
     {
       "category": "operations",
+      "slug": "seq",
+      "title": "Seq Logging",
+      "order": 4,
+      "path": "docs/operations/seq.md",
+      "sourcePath": "docs/operations/seq.md"
+    },
+    {
+      "category": "operations",
       "slug": "rollback",
       "title": "Rollback Guide",
-      "order": 4,
+      "order": 5,
       "path": "docs/operations/rollback.md",
       "sourcePath": "docs/operations/rollback.md"
     },
@@ -159,7 +167,7 @@
       "category": "operations",
       "slug": "troubleshooting",
       "title": "Troubleshooting",
-      "order": 5,
+      "order": 6,
       "path": "docs/operations/troubleshooting.md",
       "sourcePath": "docs/operations/troubleshooting.md"
     },

@@ -402,7 +402,7 @@ A livello applicativo, i log strutturati (Serilog / Seq) includono entry per ogn
 [INF] Trial will end soon for subscription {SubscriptionId}
 ```
 
-Accesso Seq: `http://localhost:8081` (dev) oppure `https://yourdomain.com:8081` (production/staging).
+Accesso Seq: `http://localhost:8081` in dev. In production/staging usare SSH tunnel come descritto in [Seq Logging](../operations/seq.md).
 
 ---
 
