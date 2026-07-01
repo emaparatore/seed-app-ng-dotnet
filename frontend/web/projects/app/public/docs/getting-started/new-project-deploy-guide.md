@@ -513,6 +513,7 @@ In **Settings > Branches > Add branch protection rule** crea una regola per entr
 
 - **Require a pull request before merging** — 0 approvazioni per solo dev, aumentare per team
 - **Require status checks to pass before merging** — aggiungi `ci-success` come required check
+- **Require branches to be up to date before merging** 
 - **Require conversation resolution before merging**
 - **Do not allow bypassing the above settings** — applica le regole anche agli admin
 - **Restrict who can push to matching branches** (opzionale, per team)
