@@ -36,6 +36,14 @@ hotfix/*      → PR direct to master (auto back-merge to dev)
 
 ## Workflows
 
+All active GitHub Actions are pinned to full commit SHA references instead of mutable tags or branches. Keep the version tag as an inline comment for readability, for example:
+
+```yaml
+uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+```
+
+Dependabot is configured for the `github-actions` ecosystem in `.github/dependabot.yml` and checks for updates weekly. When updating an action, update both the SHA and the trailing version comment.
+
 ### 1. CI (`ci.yml`)
 
 **Trigger:** Pull requests targeting `dev` or `master`
