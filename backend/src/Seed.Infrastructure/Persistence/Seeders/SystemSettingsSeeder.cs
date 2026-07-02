@@ -9,8 +9,25 @@ public class SystemSettingsSeeder(
     ApplicationDbContext dbContext,
     ILogger<SystemSettingsSeeder> logger)
 {
+    private const string AppNameKey = "General.AppName";
+    private const string PreviousDefaultAppName = "Starter App";
+
     public async Task SeedAsync()
     {
+        var defaultAppName = SystemSettingsDefaults.GetAll()
+            .Single(s => s.Key == AppNameKey)
+            .Value;
+
+        var existingAppName = await dbContext.SystemSettings
+            .SingleOrDefaultAsync(s => s.Key == AppNameKey);
+
+        if (existingAppName?.Value == PreviousDefaultAppName)
+        {
+            existingAppName.Value = defaultAppName;
+            await dbContext.SaveChangesAsync();
+            logger.LogInformation("Updated default application name to {AppName}", defaultAppName);
+        }
+
         var existingKeys = await dbContext.SystemSettings
             .Select(s => s.Key)
             .ToHashSetAsync();

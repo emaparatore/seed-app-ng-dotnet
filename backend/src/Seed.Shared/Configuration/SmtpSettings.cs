@@ -9,7 +9,7 @@ public sealed class SmtpSettings
     public string Username { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
     public string FromEmail { get; init; } = string.Empty;
-    public string FromName { get; init; } = "Starter App";
+    public string FromName { get; init; } = "Seed App";
     /// <summary>
     /// Connection security: "None", "StartTls", or "SslOnConnect".
     /// </summary>

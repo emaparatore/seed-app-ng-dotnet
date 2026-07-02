@@ -51,7 +51,7 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
     "Username": "",
     "Password": "",
     "FromEmail": "noreply@example.com",
-    "FromName": "Starter App",
+    "FromName": "Seed App",
     "Security": "StartTls"
   }
 }
@@ -64,7 +64,7 @@ Non serve modificare codice: basta compilare la sezione `Smtp` in `appsettings.j
 | `Username`  | Username per autenticazione SMTP                 | `""`           |
 | `Password`  | Password o App Password per autenticazione SMTP  | `""`           |
 | `FromEmail` | Indirizzo mittente                               | `""`           |
-| `FromName`  | Nome visualizzato del mittente                   | `"Starter App"`   |
+| `FromName`  | Nome visualizzato del mittente                   | `"Seed App"`      |
 | `Security`  | Sicurezza connessione: `None`, `StartTls`, `SslOnConnect` | `"StartTls"` |
 
 ---
@@ -112,7 +112,7 @@ Smtp__Port=587
 Smtp__Username=tuaemail@brevo.com
 Smtp__Password=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Smtp__FromEmail=noreply@tuodominio.com
-Smtp__FromName=Starter App
+Smtp__FromName=Seed App
 Smtp__Security=StartTls
 ```
 
@@ -124,7 +124,7 @@ Smtp__Port=587
 Smtp__Username=tuaemail@brevo.com
 Smtp__Password=xsmtpsib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Smtp__FromEmail=noreply-staging@tuodominio.com
-Smtp__FromName=Starter App (Staging)
+Smtp__FromName=Seed App (Staging)
 Smtp__Security=StartTls
 ```
 
