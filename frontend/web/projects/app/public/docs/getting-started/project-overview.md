@@ -269,6 +269,7 @@ Detailed documentation is available in the [`docs/`](docs/) folder:
 | [Migration Strategy](docs/architecture/migration-strategy.md) | EF Core migrations (local + production), rollback, backup procedures |
 | [Rollback Guide](docs/operations/rollback.md) | Production rollback strategies: image rollback, git revert, DB restore |
 | [Monitoring](docs/operations/monitoring.md) | Monitoring stack: Prometheus, Grafana, cAdvisor, Node Exporter, Portainer, alerting |
+| [Seq Logging](docs/operations/seq.md) | Structured log viewer setup, secure access, authentication, queries and troubleshooting |
 | [.env Backup](docs/operations/env-backup.md) | Automated daily .env backup via cron, cleanup, restore procedure |
 | [Troubleshooting](docs/operations/troubleshooting.md) | Common issues and solutions not tied to a specific topic |
 

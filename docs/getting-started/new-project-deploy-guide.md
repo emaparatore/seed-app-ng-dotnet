@@ -15,25 +15,32 @@ Questa guida spiega come trasformare la seed app in un nuovo progetto deployato 
 ```text
 [ ] 1. Crea il nuovo repository dal seed
 [ ] 2. Scegli `PROJECT_SLUG` e dominio
-[ ] 3. Crea la root directory sul VPS
-[ ] 4. Configura `.env` per production e, se serve, staging
-[ ] 5. Configura Cloudflare DNS, SSL/TLS e staging protetto
-[ ] 6. Salva il Cloudflare Origin Certificate nei volumi Docker
-[ ] 7. Configura GitHub secrets e variables
+[ ] 2.5 Abilita Workflow Permissions per Actions
+[ ] 3. Configura accesso VPS, GitHub Environments e secrets per il deploy
+[ ] 4. Crea le directory minime sul VPS
+[ ] 5. Configura `.env` per production e, se serve, staging, incluso SMTP reale
+[ ] 6. Configura Cloudflare DNS, SSL/TLS e staging protetto
+[ ] 7. Salva il Cloudflare Origin Certificate nei volumi Docker
 [ ] 8. Esegui build immagini e deploy via CI/CD
-[ ] 9. Esegui smoke test e pulizia post-bootstrap
+[ ] 9. Verifica struttura deployata, smoke test e pulizia post-bootstrap
+[ ] 9.5 Configura Branch Protection su master e dev
 ```
 
 ---
 
-## 1. Fork, Clone e Rinomina
+## 1. Crea Repository, Clone e Rinomina
 
-Crea un nuovo repository da GitHub usando il seed come template, oppure clona e cambia remote:
+Crea prima un nuovo repository vuoto su GitHub, per esempio `TUO_USERNAME/nuovo-progetto`.
+
+Importante: crealo vuoto, senza README, `.gitignore` o license. Il codice verra' caricato dal clone locale con il primo push.
+
+Poi clona il seed e cambia remote:
 
 ```bash
 git clone https://github.com/TUO_USERNAME/seed-app-ng-dotnet.git nuovo-progetto
 cd nuovo-progetto
 git remote set-url origin https://github.com/TUO_USERNAME/nuovo-progetto.git
+git remote -v
 ```
 
 La rinomina completa dei namespace `Seed.*`, solution e progetti C# e opzionale per il primo deploy. Per partire velocemente, scegli prima uno slug stabile e aggiorna branding/configurazione visibile.
@@ -88,62 +95,125 @@ Variabile opzionale:
 
 ---
 
-## 3. Push e Build Immagini
+## 2.5 Workflow Permissions
 
-Esegui il primo push:
+Le pipeline usano GitHub Actions con permessi specifici. Configurali prima di qualsiasi deploy.
 
-```bash
-git push origin master
-```
+In **Settings > Actions > General > Workflow permissions**:
 
-Il workflow `docker-publish.yml` builda e pubblica le immagini su GHCR. Verifica in GitHub > Actions che il build sia andato a buon fine.
+1. Imposta **Workflow permissions** a **Read and write permissions** (necessario per `docker-publish.yml` che pubblica immagini su GHCR)
+2. Abilita **Allow GitHub Actions to create and approve pull requests** — necessario per il workflow `hotfix-backmerge.yml` che apre automaticamente la PR di back-merge `master` → `dev`
 
-Se vuoi forzare un build manuale:
+Senza quest'ultima opzione, il back-merge automatico dopo un hotfix fallisce con errore di permessi.
 
-1. Vai su GitHub > **Actions** > **Docker Publish**
-2. Clicca **Run workflow**
-3. Seleziona il branch (`master` per production, `dev` per staging)
-4. Spunta **Force API image rebuild** e **Force Web image rebuild**
-5. Avvia il workflow
+Per il dettaglio dei permessi richiesti da ciascun workflow, vedi [CI/CD Pipeline](../operations/ci-cd.md#github-settings-required).
 
 ---
 
-## 4. Prepara la Directory sul VPS
+## 3. Prepara Accesso VPS e GitHub Environments/Secrets
 
-Esempio con `PROJECT_SLUG=nuovo-progetto` e path default `/opt/nuovo-progetto`:
+Prima di creare `.env` e lanciare il deploy, GitHub Actions deve poter entrare nel VPS via SSH e leggere le immagini private da GHCR.
 
-```bash
-ssh deploy@TUO_IP_VPS
-sudo mkdir -p /opt/nuovo-progetto
-sudo chown deploy:deploy /opt/nuovo-progetto
-```
+Questi valori sono specifici del nuovo repository: non vengono ereditati dal seed e non vengono creati automaticamente.
 
-Il CI/CD crea automaticamente le subdirectory `production`, `staging` e sincronizza compose, nginx, monitoring e script ad ogni deploy. Manualmente devi preparare solo la root e i file `.env`.
+### 3.1 Crea un PAT per GHCR
 
-Struttura attesa dopo il primo deploy:
+In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (classic)** crea un token con scope:
 
 ```text
-/opt/nuovo-progetto/
-|-- production/
-|   |-- docker-compose.deploy.yml
-|   |-- .env
-|   |-- nginx/
-|   `-- scripts/
-|-- staging/
-|   |-- docker-compose.deploy.yml
-|   |-- .env
-|   |-- nginx/
-|   `-- scripts/
-`-- backups/
-    |-- production/
-    `-- staging/
+read:packages
 ```
+
+### 3.2 Genera una chiave SSH dedicata al deploy
+
+Dal computer locale:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy_key -C "github-actions-deploy"
+```
+
+Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
+
+### 3.3 Aggiungi la chiave pubblica al VPS
+
+Aggiungi la chiave pubblica sul server alle authorized keys:
+
+```bash
+ssh-copy-id -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
+```
+
+Verifica dal computer locale:
+
+```bash
+ssh -i ~/.ssh/gh_deploy_key deploy@TUO_IP_VPS
+```
+
+### 3.4 Crea gli Environments su GitHub
+
+Il workflow `deploy.yml` usa GitHub Environments per discriminare production e staging dal branch di partenza:
+
+- branch `master` → environment `production`
+- branch `dev` → environment `staging`
+
+In **Settings > Environments** crea due environments:
+
+| Environment | Deploy da | Reviewer | Note |
+|-------------|-----------|----------|------|
+| `production` | `master` | Consigliato (required reviewers) | Blocca il deploy finche un umano non approva |
+| `staging` | `dev` | Nessuno | Auto-deploy al merge su `dev` |
+
+Per `production`, in **Required reviewers** aggiungi almeno il tuo utente o il team. Puoi anche impostare un **Wait timer** (es. 2 minuti) per dare tempo di annullare un deploy errato.
+
+### 3.5 Configura i Secrets negli Environments
+
+I secret di deploy devono esistere **in ogni environment** che vuoi deployare, non basta lasciarli a livello di repository. Crea gli stessi 4 secret sia in `production` che in `staging`:
+
+| Secret | Valore |
+|--------|--------|
+| `DEPLOY_HOST` | IP o hostname del VPS |
+| `DEPLOY_USER` | `deploy` |
+| `DEPLOY_SSH_KEY` | contenuto della chiave privata `~/.ssh/deploy_key` |
+| `GHCR_TOKEN` | PAT con scope `read:packages` |
+
+I valori sono identici tra i due environments: entrambi deployano sullo stesso VPS, e la directory di destinazione (`production/` o `staging/`) viene derivata automaticamente dal branch. Se in futuro deployerai staging e production su VPS diversi, potrai diversificare `DEPLOY_HOST` e `DEPLOY_SSH_KEY` per environment.
+
+`DEPLOY_SSH_KEY` deve contenere la chiave privata completa, non il file `.pub`:
+
+```text
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+Prima di proseguire, verifica che `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY` siano presenti in entrambi gli environments (o almeno in quello che stai per deployare per primo).
+
+---
+
+## 4. Prepara le Directory Minime sul VPS
+
+Prima del deploy devi creare solo la directory dell'ambiente e il file `.env`. Il workflow sincronizzera automaticamente compose, nginx, monitoring e script.
+
+Per production:
+
+```bash
+mkdir -p /opt/nuovo-progetto/production
+```
+
+Se usi staging sullo stesso VPS:
+
+```bash
+mkdir -p /opt/nuovo-progetto/staging
+```
+
+Non aspettarti ancora `docker-compose.deploy.yml`, `nginx/`, `scripts/` o `monitoring/`: vengono copiati dal workflow durante un deploy riuscito.
 
 ---
 
 ## 5. Configura `.env`
 
 Ogni ambiente ha il proprio file `.env`. I valori sotto sono esempi: genera password e secret reali con `openssl rand -base64 32`.
+
+Per production, configura anche un provider SMTP reale prima del primo deploy se l'app deve creare utenti, confermare email o gestire reset password. Senza SMTP, l'app usa il fallback console: le email vengono scritte nei log del container API e non arrivano agli utenti. Per la configurazione completa vedi [SMTP Configuration](../modules/smtp-configuration.md).
 
 ### 5.1 Production
 
@@ -181,7 +251,7 @@ GHCR_OWNER=tuo-github-username
 API_IMAGE_TAG=latest
 WEB_IMAGE_TAG=latest
 
-# --- SMTP opzionale ---
+# --- SMTP production ---
 # Smtp__Host=smtp-relay.brevo.com
 # Smtp__Port=587
 # Smtp__Username=tua-email@brevo.com
@@ -239,7 +309,8 @@ Note importanti:
 
 - `COMPOSE_PROJECT_NAME` deve essere diverso tra production e staging per evitare collisioni di container, network e volumi.
 - `AllowedHosts=*` e intenzionale: l'API non e esposta direttamente, riceve traffico interno da Nginx e healthcheck locali.
-- Se `Smtp__Host` non e configurato, le email vengono loggate in console. Vedi [SMTP Configuration](../modules/smtp-configuration.md).
+- In production, `Smtp__Host` dovrebbe essere configurato con un provider reale: senza SMTP, registrazione utenti, conferma email e reset password non sono realmente usabili dagli utenti finali. Segui [SMTP Configuration](../modules/smtp-configuration.md) per provider, DNS/SPF/DKIM e troubleshooting.
+- Il fallback console senza SMTP e accettabile solo per sviluppo, staging temporaneo o app production che non usano alcun flusso email.
 - Dopo il primo bootstrap, rimuovi `SuperAdmin__Password` dal `.env`. Vedi [Admin Dashboard](../modules/admin-dashboard.md#configurazione-iniziale).
 
 ---
@@ -363,76 +434,32 @@ sudo ls -la /var/lib/docker/volumes/nuovo-progetto-staging_certbot_conf/_data/li
 
 ---
 
-## 8. GitHub Secrets per Deploy Automatico
-
-### 8.1 Crea un PAT per GHCR
-
-In GitHub > **Settings > Developer settings > Personal access tokens > Tokens (classic)** crea un token con scope:
-
-```text
-read:packages
-```
-
-### 8.2 Genera una chiave SSH dedicata al deploy
-
-Dal computer locale:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy"
-```
-
-Non impostare passphrase: la chiave privata sara protetta dai GitHub Secrets e deve essere usabile dalla pipeline non interattiva.
-
-### 8.3 Aggiungi la chiave pubblica al VPS
-
-Mostra la chiave pubblica:
-
-```bash
-cat ~/.ssh/deploy_key.pub
-```
-
-Sul VPS:
-
-```bash
-ssh deploy@TUO_IP_VPS
-echo "INCOLLA_QUI_LA_CHIAVE_PUBBLICA" >> ~/.ssh/authorized_keys
-exit
-```
-
-Verifica:
-
-```bash
-ssh -i ~/.ssh/deploy_key deploy@TUO_IP_VPS
-```
-
-### 8.4 Configura repository secrets
-
-Nel repository GitHub > **Settings > Secrets and variables > Actions > Secrets**:
-
-| Secret | Valore |
-|--------|--------|
-| `DEPLOY_HOST` | IP del VPS |
-| `DEPLOY_USER` | `deploy` |
-| `DEPLOY_SSH_KEY` | contenuto della chiave privata `~/.ssh/deploy_key` |
-| `GHCR_TOKEN` | PAT con scope `read:packages` |
-
-Se usi GitHub Environments, configura:
-
-- `staging`: deploy automatico da `dev`
-- `production`: deploy da `master`, preferibilmente con reviewer richiesto
-
----
-
-## 9. Primo Deploy tramite CI/CD
+## 8. Primo Deploy tramite CI/CD
 
 Con `.env`, certificati e secrets pronti, il primo deploy avviene tramite pipeline.
 
-Flusso consigliato:
+Esegui il primo push solo a questo punto:
 
-1. Esegui `git push origin master`
-2. Verifica che `docker-publish.yml` pubblichi le immagini
-3. Verifica che `deploy.yml` copi i file sul VPS
-4. Verifica che migrazioni, seeding e bootstrap completino senza errori
+```bash
+git push origin master
+```
+
+Il workflow `docker-publish.yml` builda e pubblica le immagini su GHCR. A build completata, il workflow `deploy.yml` parte automaticamente e deploya sul VPS.
+
+Se vuoi forzare un build manuale:
+
+1. Vai su GitHub > **Actions** > **Docker Publish**
+2. Clicca **Run workflow**
+3. Seleziona il branch (`master` per production, `dev` per staging)
+4. Spunta **Force API image rebuild** e **Force Web image rebuild**
+5. Avvia il workflow
+
+Dopo aver avviato la pipeline:
+
+1. Verifica che `docker-publish.yml` pubblichi le immagini
+2. Verifica che `deploy.yml` copi i file sul VPS
+3. Verifica che migrazioni, seeding e bootstrap completino senza errori
+4. Verifica la struttura deployata
 5. Esegui gli smoke test
 
 Il deploy automatico esegue:
@@ -451,6 +478,53 @@ I backup pre-migrazione vengono salvati in:
 - staging: `/opt/nuovo-progetto/backups/staging/`
 
 Per dettagli, vedi [Migration Strategy](../architecture/migration-strategy.md).
+
+---
+
+## 9. Verifica la Struttura Creata dal Deploy
+
+Dopo un deploy riuscito, la struttura attesa e:
+
+```text
+/opt/nuovo-progetto/
+|-- production/
+|   |-- docker-compose.deploy.yml
+|   |-- .env
+|   |-- nginx/
+|   |-- monitoring/
+|   `-- scripts/
+|-- staging/
+|   |-- docker-compose.deploy.yml
+|   |-- .env
+|   |-- nginx/
+|   |-- monitoring/
+|   `-- scripts/
+`-- backups/
+    |-- production/
+    `-- staging/
+```
+
+Se questa struttura non esiste, il deploy non e arrivato alla fase di sync dei file. Controlla il log del workflow `Deploy` prima di proseguire con gli smoke test.
+
+---
+
+## 9.5 Configura Branch Protection
+
+Una volta che il primo deploy e andato a buon fine, proteggi i branch `master` e `dev` per evitare push diretti e garantire che la CI passi prima di ogni merge.
+
+In **Settings > Branches > Add branch protection rule** crea una regola per entrambi i branch (`master` e `dev`) con:
+
+- **Require a pull request before merging** — 0 approvazioni per solo dev, aumentare per team
+- **Require status checks to pass before merging** — aggiungi `ci-success` come required check
+- **Require branches to be up to date before merging** 
+- **Require conversation resolution before merging**
+- **Do not allow bypassing the above settings** — applica le regole anche agli admin
+- **Restrict who can push to matching branches** (opzionale, per team)
+- **No force pushes** e **No deletions**
+
+Il check `ci-success` e l'unico required status check necessario: e il job gate del workflow `ci.yml` che aggrega il risultato di build, test, docs-sync e migration check. Non aggiungere singoli job (`backend-build-test`, `frontend-build-test`, ecc.) come required, perche vengono skippati se il path filter non rileva cambiamenti e bloccherebbero la PR.
+
+Per il dettaglio completo delle regole e della strategia di branching, vedi [CI/CD Pipeline](../operations/ci-cd.md#branch-protection-rules).
 
 ---
 
@@ -477,6 +551,7 @@ Verifica anche:
 
 - pagina web caricata via HTTPS
 - login o registrazione base
+- invio email reale per registrazione/conferma o reset password, se l'app consente creazione utenti
 - accesso SuperAdmin iniziale, se configurato
 - assenza di errori evidenti nei log API e web
 
@@ -488,7 +563,7 @@ Dopo il bootstrap iniziale:
 
 - rimuovi `SuperAdmin__Password` dal `.env`
 - conserva in modo sicuro le credenziali iniziali
-- verifica SMTP reale oppure accetta consapevolmente il fallback console
+- verifica SMTP reale seguendo [SMTP Configuration](../modules/smtp-configuration.md), oppure accetta consapevolmente il fallback console solo se l'ambiente non deve inviare email agli utenti
 - aggiorna `General__AppName`, branding, logo, favicon e testi demo
 - verifica che Cloudflare Access protegga staging
 - documenta eventuali valori custom del progetto
@@ -538,6 +613,28 @@ Non usare `docker compose down -v` in ambienti reali: elimina i volumi e quindi 
 ---
 
 ## 13. Troubleshooting Primo Deploy
+
+### Deploy fallisce con `usage: ssh` e exit code 255
+
+Causa probabile: uno tra `DEPLOY_HOST`, `DEPLOY_USER` o `DEPLOY_SSH_KEY` non e configurato, e vuoto oppure si trova nell'environment GitHub sbagliato.
+
+Il sintomo tipico nel workflow `Deploy` e:
+
+```text
+Run install -m 600 /dev/null /tmp/deploy_key
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] ...
+Error: Process completed with exit code 255.
+```
+
+Verifica:
+
+- nel nuovo repository: **Settings > Secrets and variables > Actions > Secrets**
+- se usi Environments: **Settings > Environments > production/staging**
+- `DEPLOY_HOST` contiene IP o hostname del VPS
+- `DEPLOY_USER` contiene `deploy` o l'utente SSH scelto
+- `DEPLOY_SSH_KEY` contiene la chiave privata completa, non la `.pub`
+
+Dopo aver corretto i secret, rilancia il workflow. Se il deploy parte da `workflow_run`, puoi rilanciare `Docker Publish` per attivare di nuovo `Deploy`.
 
 ### Nginx non si avvia
 
