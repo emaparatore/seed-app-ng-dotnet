@@ -72,7 +72,7 @@ jobs:
     #   - "production": required reviewers + wait timer
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Check which images were built
         id: check
@@ -197,7 +197,7 @@ jobs:
 
       - name: Deploy via SSH
         if: steps.check.outputs.should_deploy == 'true'
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}

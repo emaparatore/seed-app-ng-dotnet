@@ -70,17 +70,47 @@ usermod -aG sudo deploy
 
 ### 2.4 Configura le chiavi SSH
 
-Dal computer locale, copia la tua chiave pubblica sul server:
+Dal computer locale, crea una chiave SSH dedicata per questo VPS. Dare un nome esplicito evita confusione se hai gia altre chiavi:
 
 ```bash
-# Dal tuo PC locale. Se non hai una chiave SSH: ssh-keygen -t ed25519
-ssh-copy-id deploy@TUO_IP_VPS
+ssh-keygen -t ed25519 -f ~/.ssh/seed-vps -C "deploy@seed-vps"
 ```
 
-Verifica di poter accedere senza password:
+Il comando crea due file:
+
+- `~/.ssh/seed-vps` - chiave privata, non condividerla mai
+- `~/.ssh/seed-vps.pub` - chiave pubblica, da copiare sul server
+
+Copia la chiave pubblica sull'utente `deploy` del VPS:
 
 ```bash
-ssh deploy@TUO_IP_VPS
+ssh-copy-id -i ~/.ssh/seed-vps.pub deploy@TUO_IP_VPS
+```
+
+Alla prima copia e normale che venga chiesta la password dell'utente `deploy`. Serve solo per installare la chiave pubblica in `/home/deploy/.ssh/authorized_keys`.
+
+Verifica di poter accedere usando quella chiave:
+
+```bash
+ssh -i ~/.ssh/seed-vps deploy@TUO_IP_VPS
+```
+
+Per evitare di specificare `-i` ogni volta, configura un alias SSH sul computer locale nel file `~/.ssh/config`:
+
+```sshconfig
+Host seed-vps
+  HostName TUO_IP_VPS
+  User deploy
+  IdentityFile ~/.ssh/seed-vps
+  IdentitiesOnly yes
+```
+
+Su Windows il file si trova di solito in `C:\Users\TUO_UTENTE\.ssh\config`. Deve chiamarsi `config`, senza estensione `.txt`.
+
+Da questo momento puoi accedere con:
+
+```bash
+ssh seed-vps
 ```
 
 ### 2.5 Disabilita accesso password e root login
@@ -116,12 +146,13 @@ sudo apt install -y ca-certificates curl gnupg
 
 # Aggiungi la chiave GPG di Docker
 sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+sudo rm -f /etc/apt/keyrings/docker.asc /etc/apt/keyrings/docker.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
 # Aggiungi il repository Docker
 echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
