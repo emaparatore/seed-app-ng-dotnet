@@ -40,7 +40,7 @@ public class PaymentsModuleDisabledTests(CustomWebApplicationFactory factory)
         var config = await response.Content.ReadFromJsonAsync<ConfigResponse>();
         config.Should().NotBeNull();
         config!.PaymentsEnabled.Should().BeFalse();
-        config.AppName.Should().Be("Starter App");
+        config.AppName.Should().Be("Seed App");
     }
 }
 
@@ -57,7 +57,7 @@ public class PaymentsModuleEnabledConfigTests(WebhookWebApplicationFactory facto
         var config = await response.Content.ReadFromJsonAsync<ConfigResponse>();
         config.Should().NotBeNull();
         config!.PaymentsEnabled.Should().BeTrue();
-        config.AppName.Should().Be("Starter App");
+        config.AppName.Should().Be("Seed App");
     }
 }
 

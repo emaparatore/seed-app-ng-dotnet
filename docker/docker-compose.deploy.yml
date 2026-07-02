@@ -48,7 +48,7 @@ services:
       - Smtp__Username=${Smtp__Username:-}
       - Smtp__Password=${Smtp__Password:-}
       - Smtp__FromEmail=${Smtp__FromEmail:-}
-      - Smtp__FromName=${Smtp__FromName:-Starter App}
+      - Smtp__FromName=${Smtp__FromName:-Seed App}
       - Smtp__Security=${Smtp__Security:-StartTls}
       - Client__BaseUrl=${CLIENT_BASE_URL}
       - Serilog__WriteTo__1__Name=Seq

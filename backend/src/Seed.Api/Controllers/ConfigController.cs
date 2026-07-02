@@ -15,7 +15,7 @@ public class ConfigController(
     IConfiguration configuration,
     ISystemSettingsService systemSettingsService) : ControllerBase
 {
-    private const string DefaultAppName = "Starter App";
+    private const string DefaultAppName = "Seed App";
 
     [HttpGet]
     public async Task<IActionResult> GetConfig(CancellationToken cancellationToken)

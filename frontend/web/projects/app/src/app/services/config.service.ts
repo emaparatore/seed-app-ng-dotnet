@@ -17,7 +17,7 @@ export class ConfigService {
   private readonly http = inject(HttpClient);
   private readonly transferState = inject(TransferState);
   private readonly configUrl = `${inject(AUTH_CONFIG).apiUrl}/config`;
-  readonly appName = signal('Starter App');
+  readonly appName = signal('Seed App');
   readonly paymentsEnabled = signal(false);
 
   async loadConfig(): Promise<void> {
